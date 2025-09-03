@@ -1,7 +1,6 @@
 {
   "name": "@wonderyard/vivarium",
   "description": "Modern, intuitive, WebGPU-powered toolkit for creating your own cellular automata.",
-  "private": true,
   "version": "0.1.0",
   "type": "module",
   "files": [
