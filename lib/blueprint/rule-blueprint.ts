@@ -23,6 +23,14 @@ export class RuleBlueprint extends BaseBlueprint {
     return new RuleBlueprintWithAccept(this.context, this.automaton, this.rule);
   }
 
+  count(
+    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
+    count: number[]
+  ): void;
+  count(
+    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
+    ...count: number[]
+  ): void;
   public count(
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
     count: number | number[] = this.automaton.neighborhood === "cross"
