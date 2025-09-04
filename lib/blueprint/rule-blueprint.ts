@@ -26,11 +26,11 @@ export class RuleBlueprint extends BaseBlueprint {
   count(
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
     count: number[]
-  ): void;
+  ): RuleBlueprintWithAccept;
   count(
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
     ...count: number[]
-  ): void;
+  ): RuleBlueprintWithAccept;
   public count(
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
     count: number | number[] = this.automaton.neighborhood === "cross"
