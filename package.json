@@ -5,6 +5,14 @@
   "repository": "https://github.com/WonderYard/vivarium",
   "license": "MIT",
   "author": "OrangeNote",
+  "keywords": [
+    "cellular-automata",
+    "compute",
+    "creative-coding",
+    "game-of-life",
+    "simulation",
+    "webgpu"
+  ],
   "type": "module",
   "files": [
     "dist"
