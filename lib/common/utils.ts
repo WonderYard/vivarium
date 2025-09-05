@@ -71,13 +71,11 @@ const mapNamedColor = (color: string): string => {
       return "#b8860b";
 
     case "darkgray":
+    case "darkgrey":
       return "#a9a9a9";
 
     case "darkgreen":
       return "#006400";
-
-    case "darkgrey":
-      return "#a9a9a9";
 
     case "darkkhaki":
       return "#bdb76b";
@@ -107,8 +105,6 @@ const mapNamedColor = (color: string): string => {
       return "#483d8b";
 
     case "darkslategray":
-      return "#2f4f4f";
-
     case "darkslategrey":
       return "#2f4f4f";
 
@@ -125,8 +121,6 @@ const mapNamedColor = (color: string): string => {
       return "#00bfff";
 
     case "dimgray":
-      return "#696969";
-
     case "dimgrey":
       return "#696969";
 
@@ -211,13 +205,11 @@ const mapNamedColor = (color: string): string => {
       return "#fafad2";
 
     case "lightgray":
+    case "lightgrey":
       return "#d3d3d3";
 
     case "lightgreen":
       return "#90ee90";
-
-    case "lightgrey":
-      return "#d3d3d3";
 
     case "lightpink":
       return "#ffb6c1";
@@ -232,8 +224,6 @@ const mapNamedColor = (color: string): string => {
       return "#87cefa";
 
     case "lightslategray":
-      return "#778899";
-
     case "lightslategrey":
       return "#778899";
 
@@ -391,8 +381,6 @@ const mapNamedColor = (color: string): string => {
       return "#6a5acd";
 
     case "slategray":
-      return "#708090";
-
     case "slategrey":
       return "#708090";
 
