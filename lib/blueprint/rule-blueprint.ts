@@ -23,25 +23,24 @@ export class RuleBlueprint extends BaseBlueprint {
     return new RuleBlueprintWithAccept(this.context, this.automaton, this.rule);
   }
 
-  count(
-    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
-    count: number[]
-  ): RuleBlueprintWithAccept;
-  count(
-    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
-    ...count: number[]
-  ): RuleBlueprintWithAccept;
   public count(
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
-    count: number | number[] = this.automaton.neighborhood === "cross"
-      ? [1, 2, 3, 4]
-      : [1, 2, 3, 4, 5, 6, 7, 8]
+    ...count: (number | number[])[]
   ): RuleBlueprintWithAccept {
+    let flatCount =
+      this.automaton.neighborhood === "cross"
+        ? [1, 2, 3, 4]
+        : [1, 2, 3, 4, 5, 6, 7, 8];
+
+    if (count.length !== 0) {
+      flatCount = count.flat();
+    }
+
     return this.condition({
       type: "count",
       id: nanoid(),
       check: toRefIdOrPoint(refBlueprintOrNeighbor),
-      count: Array.isArray(count) ? count : [count],
+      count: flatCount,
     });
   }
 
