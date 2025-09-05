@@ -8,7 +8,7 @@ Vivarium is a TypeScript library that aims to provide a simple yet expressive wa
 
 Vivarium exposes a minimal API that attempts to express complex rules and conditions in a way that resembles natural language. Concepts and technical terms from the cellular automata theory are almost transparent to the user. This way the cognitive effort of translating ideas into code is reduced. By lowering this barrier we enable fast prototyping during the creative coding process, especially for users who are approaching the cellular automata world for the first time.
 
-Read the **WIP** [docs] to get started, or continue reading for a quick overview and **WIP** [demo].
+Read the **WIP** [docs] to get started, or continue reading for a quick overview and [demo](https://vivarium-demo.netlify.app/).
 
 ## Overview
 
@@ -83,7 +83,7 @@ const loop = async () => {
 requestAnimationFrame(loop);
 ```
 
-**WIP** [See the live demo here]
+[See the live demo here](https://vivarium-demo.netlify.app/)
 
 ## Browser compatibility
 
