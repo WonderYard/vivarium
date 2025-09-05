@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life</title>
+  </head>
+  <body>
+    <div class="flex justify-center">
+      <div
+        class="relative p-4 !pb-16 sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-[400px]"
+      >
+        <div
+          class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full"
+        >
+          <h1 class="text-2xl font-bold">Vivarium demo - Life</h1>
+          <a class="btn btn-soft btn-accent btn-sm" href="#">Source</a>
+        </div>
+
+        <div
+          class="card image-full shadow-sm border border-base-200 w-full sm:max-w-[400px]"
+        >
+          <figure class="aspect-square">
+            <canvas class="w-full" id="life-canvas"></canvas>
+          </figure>
+          <button
+            class="btn btn-soft btn-neutral btn-sm absolute right-0 bottom-0 m-2"
+            onclick="window.location.reload()"
+          >
+            Restart
+          </button>
+        </div>
+
+        <div
+          class="mockup-code w-full bg-gradient-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
+        >
+          <pre
+            data-prefix="1"
+          ><code>const space = element("space", "white")</code></pre>
+          <pre
+            data-prefix="2"
+          ><code>const cat = element("cat", "orange")</code></pre>
+          <pre data-prefix="3"></pre>
+          <pre data-prefix="4"><code>space.to(cat).count(cat, 3)</code></pre>
+          <pre data-prefix="5"><code>cat.to(cat).count(cat, 2, 3)</code></pre>
+          <pre data-prefix="6"><code>cat.to(space)</code></pre>
+          <pre data-prefix="7"></pre>
+          <pre data-prefix="8"><code>const life = create()</code></pre>
+        </div>
+        <a class="btn btn-accent self-center" href="#">Read the docs</a>
+        <div
+          class="fixed bg-white pb-4 flex flex-col items-center w-full sm:max-w-[400px] left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0_white]"
+        >
+          <div class="divider mt-0 mb-0"></div>
+          <code class="text-xs">@wonderyard/vivarium</code>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

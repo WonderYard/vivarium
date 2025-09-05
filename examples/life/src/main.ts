@@ -1,0 +1,41 @@
+import "./style.css";
+import { setup, vivarium } from "@wonderyard/vivarium";
+
+/* Create */
+
+const vi = vivarium();
+
+const space = vi.element("space", "#fffefd");
+const cat = vi.element("cat", "coral");
+
+// A cat is born if there's a family of 3 in the area.
+space.to(cat).count(cat, 3);
+
+// The cat stays if the area is neither too empty nor too crowded...
+cat.to(cat).count(cat, 2, 3);
+
+// ...otherwise the cat will leave the area forever.
+cat.to(space);
+
+const life = vi.create();
+
+/* Run */
+
+// Get an existing canvas (or you could create one)
+const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
+canvas.style.imageRendering = "pixelated";
+
+// Set the canvas size. This will be the automaton size as well.
+const size = 128;
+canvas.width = size;
+canvas.height = size;
+
+// Pass the canvas and the automaton you created to the setup function:
+const { evolve } = setup({ canvas, automaton: life });
+
+// Create a simple loop that evolves the canvas:
+const loop = async () => {
+  await evolve();
+  requestAnimationFrame(loop);
+};
+requestAnimationFrame(loop);

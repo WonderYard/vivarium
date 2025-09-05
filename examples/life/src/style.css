@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* biome-ignore lint/suspicious/noUnknownAtRules: @plugin is a tailwind directive */
+@plugin "daisyui" {
+  /* biome-ignore lint/correctness/noUnknownProperty: themes is a daisyui property */
+  themes: emerald --default;
+}
