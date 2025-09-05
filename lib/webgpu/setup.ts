@@ -1,5 +1,5 @@
 import { randf } from "@typegpu/noise";
-import tgpu, { type TgpuUniform } from "typegpu";
+import tgpu, { type TgpuBindGroup, type TgpuUniform } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import type { Automaton } from "@/automaton/types";
@@ -339,27 +339,6 @@ export const setup = ({
     .createBuffer(d.arrayOf(d.u32, width * height))
     .$usage("storage");
 
-  const colors = new Uint32Array(width * height);
-  const ids = new Uint32Array(width * height);
-
-  // TODO: for now we initialize like this
-  for (let i = 0; i < colors.length; i++) {
-    const randomValue = Math.random() > 0.5;
-    colors[i] = randomValue ? 0xff000000 : 0xffffffff;
-    ids[i] = randomValue ? 0 : 1;
-
-    // if (i >= colors.length - width) {
-    //   colors[i] = automaton.colors[2];
-    //   ids[i] = 2;
-    // }
-  }
-  // colors[(width * height) / 2 + width / 2] = automaton.colors[1];
-  // ids[(width * height) / 2 + width / 2] = 1;
-
-  // and we write the inizialization to the buffers
-  colors0.write(Array.from(colors));
-  ids0.write(Array.from(ids));
-
   const colorsStagingBuffer = root
     .createBuffer(d.arrayOf(d.u32, width * height))
     .$addFlags(GPUBufferUsage.MAP_READ);
@@ -383,10 +362,53 @@ export const setup = ({
   });
 
   // using let because we can reassign this when we update the automaton
-  let automatonGroup = root.createBindGroup(
-    automatonLayout,
-    compileGpuAutomaton(root, automaton)
-  );
+  let automatonGroup: TgpuBindGroup;
+  let palette: number[] = [];
+
+  const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
+    const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } =
+      compileGpuAutomaton(automaton);
+
+    palette = gpuElements.map((element) => element.color);
+
+    automatonGroup = root.createBindGroup(automatonLayout, {
+      neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
+      elements: root
+        .createBuffer(
+          d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
+          gpuElements
+        )
+        .$usage("storage"),
+      rules: root
+        .createBuffer(
+          d.arrayOf(GpuRule, Math.max(gpuRules.length, 1)),
+          gpuRules
+        )
+        .$usage("storage"),
+      conditions: root
+        .createBuffer(
+          d.arrayOf(GpuCondition, Math.max(gpuConditions.length, 1)),
+          gpuConditions
+        )
+        .$usage("storage"),
+    });
+  };
+
+  setAutomaton({ automaton });
+
+  const colors = new Uint32Array(width * height);
+  const ids = new Uint32Array(width * height);
+
+  // TODO: for now we initialize like this
+  for (let i = 0; i < colors.length; i++) {
+    const randomIndex = Math.floor(Math.random() * automaton.elements.length);
+    colors[i] = palette[randomIndex];
+    ids[i] = randomIndex;
+  }
+
+  // and we write the inizialization to the buffers
+  colors0.write(Array.from(colors));
+  ids0.write(Array.from(ids));
 
   const imageData = g.createImageData(width, height);
   const pixels = new Uint32Array(imageData.data.buffer);
@@ -419,13 +441,6 @@ export const setup = ({
     rawBuffer.unmap();
 
     frames++;
-  };
-
-  const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
-    automatonGroup = root.createBindGroup(
-      automatonLayout,
-      compileGpuAutomaton(root, automaton)
-    );
   };
 
   return { evolve, setAutomaton, tgpuRoot: root };

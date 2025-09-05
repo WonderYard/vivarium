@@ -1,4 +1,3 @@
-import type { TgpuRoot } from "typegpu";
 import * as d from "typegpu/data";
 import type {
   Automaton,
@@ -159,7 +158,14 @@ const compileIs = (
   }
 };
 
-export const compileGpuAutomaton = (root: TgpuRoot, automaton: Automaton) => {
+export type GpuAutomaton = {
+  gpuNeighborhood: number;
+  gpuElements: GpuElementType[];
+  gpuRules: GpuRuleType[];
+  gpuConditions: GpuConditionType[];
+};
+
+export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
   const { elements, rules: _rules } = automaton;
 
   // First we group element rules by element index
@@ -306,23 +312,9 @@ export const compileGpuAutomaton = (root: TgpuRoot, automaton: Automaton) => {
   });
 
   return {
-    neighborhood: root
-      .createBuffer(d.u32, automaton.neighborhood === "cross" ? 4 : 8)
-      .$usage("uniform"),
-    elements: root
-      .createBuffer(
-        d.arrayOf(GpuElement, Math.max(elements.length, 1)),
-        gpuElements
-      )
-      .$usage("storage"),
-    rules: root
-      .createBuffer(d.arrayOf(GpuRule, Math.max(rules.length, 1)), gpuRules)
-      .$usage("storage"),
-    conditions: root
-      .createBuffer(
-        d.arrayOf(GpuCondition, Math.max(conditions.length, 1)),
-        gpuConditions
-      )
-      .$usage("storage"),
+    gpuNeighborhood: automaton.neighborhood === "cross" ? 4 : 8,
+    gpuElements,
+    gpuRules,
+    gpuConditions,
   };
 };
