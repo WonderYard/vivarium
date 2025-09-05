@@ -12,8 +12,8 @@ importers:
         specifier: ^4.1.13
         version: 4.1.13(vite@7.1.4(jiti@2.5.1)(lightningcss@1.30.1))
       '@wonderyard/vivarium':
-        specifier: ^0.1.4
-        version: link:../..
+        specifier: ^0.1.5
+        version: 0.1.5
       tailwindcss:
         specifier: ^4.1.13
         version: 4.1.13
@@ -401,8 +401,16 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
+  '@typegpu/noise@0.7.0':
+    resolution: {integrity: sha512-4q3lN/m0F1pLKz0bJjTj8ukPl0uYsd5EWT4WjauXf19oQrGoHaHIO2lVkTkYTzOvjKf7WvDoSo/MIwv86DxZTg==}
+    peerDependencies:
+      typegpu: ^0.7.0
+
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@wonderyard/vivarium@0.1.5':
+    resolution: {integrity: sha512-LDqPneTVGqF0F+ClJjd7Zhbmx5UZdL55lz0/+Y5V+Us0piPusVsrSkCQozPnlamdB5UupeYEsFpl5DEmejUkYA==}
 
   chownr@3.0.0:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
@@ -530,6 +538,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@5.1.5:
+    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -561,9 +574,20 @@ packages:
     resolution: {integrity: sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==}
     engines: {node: '>=18'}
 
+  tinyest@0.1.1:
+    resolution: {integrity: sha512-YNHlB8BOXgW6RPzrfqqAkgyY9xj33sjXJcJlOl3MwY0BXXx26m3JUqf5yV8iBdwJPNe51DmxypR9Zbbd266biQ==}
+    engines: {node: '>=12.20.0'}
+
   tinyglobby@0.2.14:
     resolution: {integrity: sha512-tX5e7OM1HnYr2+a2C/4V0htOcSQcoSTH9KgJnVvNm5zm/cyEWKJ7j7YutsH9CxMdtOkkLFy2AHrMci9IM8IPZQ==}
     engines: {node: '>=12.0.0'}
+
+  typed-binary@4.3.2:
+    resolution: {integrity: sha512-HT3pIBM2njCZUmeczDaQUUErGiM6GXFCqMsHegE12HCoBtvHCkfR10JJni0TeGOTnLilTd6YFyj+YhflqQDrDQ==}
+
+  typegpu@0.7.1:
+    resolution: {integrity: sha512-PyP/ZRsX8lCX27fNzBE5TjwxC8Vj88RcLlCv4VXg5sVd6gBuiPZTJQoC5HR15hjTJoRAfayT/TXQ4phWOkA/aA==}
+    engines: {node: '>=12.20.0'}
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
@@ -851,7 +875,17 @@ snapshots:
       tailwindcss: 4.1.13
       vite: 7.1.4(jiti@2.5.1)(lightningcss@1.30.1)
 
+  '@typegpu/noise@0.7.0(typegpu@0.7.1)':
+    dependencies:
+      typegpu: 0.7.1
+
   '@types/estree@1.0.8': {}
+
+  '@wonderyard/vivarium@0.1.5':
+    dependencies:
+      '@typegpu/noise': 0.7.0(typegpu@0.7.1)
+      nanoid: 5.1.5
+      typegpu: 0.7.1
 
   chownr@3.0.0: {}
 
@@ -963,6 +997,8 @@ snapshots:
 
   nanoid@3.3.11: {}
 
+  nanoid@5.1.5: {}
+
   picocolors@1.1.1: {}
 
   picomatch@4.0.3: {}
@@ -1015,10 +1051,19 @@ snapshots:
       mkdirp: 3.0.1
       yallist: 5.0.0
 
+  tinyest@0.1.1: {}
+
   tinyglobby@0.2.14:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
+
+  typed-binary@4.3.2: {}
+
+  typegpu@0.7.1:
+    dependencies:
+      tinyest: 0.1.1
+      typed-binary: 4.3.2
 
   typescript@5.8.3: {}
 
