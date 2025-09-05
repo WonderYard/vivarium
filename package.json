@@ -1,7 +1,7 @@
 {
   "name": "@wonderyard/vivarium",
   "description": "Modern, intuitive, WebGPU-powered toolkit for creating your own cellular automata.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "repository": "https://github.com/WonderYard/vivarium",
   "license": "MIT",
   "author": "OrangeNote",
