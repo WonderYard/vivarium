@@ -10,7 +10,7 @@ Vivarium is a TypeScript library that aims to provide a simple yet expressive wa
 
 Vivarium exposes a minimal API that attempts to express complex rules and conditions in a way that resembles natural language. Concepts and technical terms from the cellular automata theory are almost transparent to the user. This way the cognitive effort of translating ideas into code is reduced. By lowering this barrier we enable fast prototyping during the creative coding process, especially for users who are approaching the cellular automata world for the first time.
 
-Read the **WIP** [docs] to get started, or continue reading for a quick overview and [demo](https://vivarium-demo.netlify.app/).
+Read the [docs](https://vivarium.orangenote.dev) to get started, or continue reading for a quick overview and [demo](https://vivarium-demo.netlify.app/).
 
 ## Overview
 
@@ -42,7 +42,7 @@ import { vivarium, setup } from "@wonderyard/vivarium";
 
 To give you an idea of what the API can offer and how intuitive it can be to reason about rules and conditions, we recreated the most popular cellular automaton: [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life). Now featuring (with a little bit of imagination) orange cats 🐈
 
-> We suggest you to read about Game of Life and how it works before continuing reading. If you don't understand clearly what the following code is representing, it's okay! Visit the **WIP** [docs] for a gentler introduction to cellular automata and what vivarium is meant for.
+> We suggest you to read about Game of Life and how it works before continuing reading. If you don't understand clearly what the following code is representing, it's okay! Visit the [docs](https://vivarium.orangenote.dev) for a gentler introduction to cellular automata and what vivarium is meant for.
 
 ```typescript
 const vi = vivarium();
