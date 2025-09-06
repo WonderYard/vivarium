@@ -1,6 +1,8 @@
 # Vivarium
 
-⚠️ Work in progress ⚠️
+<p align="center">
+  <img src="docs/banner.png" />
+</p>
 
 ## Introduction
 
