@@ -40,24 +40,24 @@ import { vivarium, setup } from "@wonderyard/vivarium";
 
 ### Create
 
-To give you an idea of what the API can offer and how intuitive it can be to reason about rules and conditions, we recreated the most popular cellular automaton: [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life). Now featuring (with a little bit of imagination) orange cats 🐈
+To give you an idea of what the API can offer and how intuitive it can be to reason about rules and conditions, we recreated the most popular cellular automaton: [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life). Now featuring (with a little bit of imagination) green aliens 👽
 
 > We suggest you to read about Game of Life and how it works before continuing reading. If you don't understand clearly what the following code is representing, it's okay! Visit the [docs](https://vivarium.orangenote.dev) for a gentler introduction to cellular automata and what vivarium is meant for.
 
 ```typescript
 const vi = vivarium();
 
-const space = vi.element("space", "white");
-const cat = vi.element("cat", "orange");
+const space = vi.element("space", "blue");
+const alien = vi.element("alien", "green");
 
-// A cat is born if there's a family of 3 in the area.
-space.to(cat).count(cat, 3);
+// An alien is born if there's a family of 3 in the area.
+space.to(alien).count(alien, 3);
 
-// The cat stays if the area is neither too empty nor too crowded...
-cat.to(cat).count(cat, 2, 3);
+// The alien stays if the area is neither too empty nor too crowded...
+alien.to(alien).count(alien, 2, 3);
 
-// ...otherwise the cat will leave the area forever.
-cat.to(space);
+// ...otherwise the alien will leave the area forever.
+alien.to(space);
 
 const life = vi.create();
 ```

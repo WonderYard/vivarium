@@ -5,17 +5,17 @@ import { setup, vivarium } from "@wonderyard/vivarium";
 
 const vi = vivarium();
 
-const space = vi.element("space", "#fffefd");
-const cat = vi.element("cat", "coral");
+const space = vi.element("space", "#04153b");
+const alien = vi.element("alien", "#34d399");
 
-// A cat is born if there's a family of 3 in the area.
-space.to(cat).count(cat, 3);
+// A alien is born if there's a family of 3 in the area.
+space.to(alien).count(alien, 3);
 
-// The cat stays if the area is neither too empty nor too crowded...
-cat.to(cat).count(cat, 2, 3);
+// The alien stays if the area is neither too empty nor too crowded...
+alien.to(alien).count(alien, 2, 3);
 
-// ...otherwise the cat will leave the area forever.
-cat.to(space);
+// ...otherwise the alien will leave the area forever.
+alien.to(space);
 
 const life = vi.create();
 

@@ -17,9 +17,9 @@ In the digital world, think of a vivarium like a 2d image in motion. The movemen
 
 ## Elements
 
-An element is an abstract way to represent anything we want to put in our vivarium. Dogs, cats, people, trees, sand, electricity, hot air balloons... are all valid elements. It's up to you what an element represents. All is needed is:
-- a name — like "cat" — to know what it is (how to distinguish it _logically_ from other elements)
-- a color — like "orange" — to know how to draw it on the screen (how to distinguish it _visually_ from other elements)
+An element is an abstract way to represent anything we want to put in our vivarium. Dogs, cats, aliens, trees, sand, electricity, hot air balloons... are all valid elements. It's up to you what an element represents. All is needed is:
+- a name — like "alien" — to know what it is (how to distinguish it _logically_ from other elements)
+- a color — like "green" — to know how to draw it on the screen (how to distinguish it _visually_ from other elements)
 
 <Aside type="note" title="Technical note on colors">Vivarium understands all CSS named colors found in [these tables](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color#syntax). In case you want to use colors that don't have a name assigned, you can use the six-value [hexadecimal color syntax](https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color#syntax). For instance, you can write `#FF7A45` to represent a specific shade of orange. The three-value syntax shorthand is also accepted. Vivarium does not represent colors with transparency.</Aside>
 
@@ -35,13 +35,13 @@ By default, the neighborhood of a cell is made of the 8 adjacent (diagonal inclu
 To show you how a vivarium works, let's start with a very small image.
 
 This is a 5 pixels by 5 pixels image. If you're not familiar with pixels and how images are represented on a screen, think of this as a grid of little squares. A color is assigned to each square. Often we're going to call these squares "cells".
-In this image we have white cells all around a central orange cell. This is our initial image.
+In this image we have blue cells all around a central green cell. This is our initial image.
 
 <Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid is, but sometimes we'd like to have a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and have a controlled test case, so we can study and predict what's going to happen.</Aside>
 
 We are going to update the image in two steps.
-First we're going to fill in the grid with numbers. In each cell we're going to write down the number of orange cells that are found in the neighborhood of the current cell.
+First we're going to fill in the grid with numbers. In each cell we're going to write down the number of green cells that are found in the neighborhood of the current cell.
 
-The second step is to color the cells that have a 1 in them. This is because the rule we're going to apply says that white cells become orange if the number of orange neighbors is exactly 1.
+The second step is to color the cells that have a 1 in them. This is because the rule we're going to apply says that blue cells become green if the number of green neighbors is exactly 1.
 
 Note how this is made in two steps. It's important to compute first all the numbers we'll write in, and then update the grid with new colors. I'll show you why:

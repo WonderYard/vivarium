@@ -51,17 +51,17 @@ An _element_ is the basic bit of your simulation. It can be represented with a l
 Here's how to define one.
 
 ```typescript
-const cat = vi.element("cat", "orange");
+const alien = vi.element("alien", "green");
 ```
 
-We're not drawing it on the screen yet. For now we are just defining what a cat is, so that our system is aware of its existence in the vivarium.
+We're not drawing it on the screen yet. For now we are just defining what an alien is, so that our system is aware of its existence in the vivarium.
 
 ## Kinds
 
 The second base concept of Vivarium is _kinds_. A kind is not an element, it doesn't have a color and so it cannot be directly represented on a screen. However it can be inherited by elements to share common characteristics. It is not necessary to use _kinds_. Consider it an advanced concept that allows you to write less code and achieve more complex. To start, I'll show you how to define one, which is similar to how we define elements.
 
 ```typescript
-const animal = vi.kind("animal");
+const sentient = vi.kind("sentient");
 ```
 
 ## Rules
@@ -69,39 +69,39 @@ const animal = vi.kind("animal");
 The heart of Vivarium is made of _rules_. A rule is a way to tell elements how to behave in our vivarium. Every step of the simulation, an element can become another element or stay the same. Let's see a simple rule first:
 
 ```typescript
-const space = vi.element("space", "white");
-const cat = vi.element("cat", "orange");
+const space = vi.element("space", "blue");
+const alien = vi.element("alien", "green");
 
-space.to(cat); // all spaces become cats
+space.to(alien); // all spaces become aliens
 ```
 
-The method `to` can be read as "becomes" or "evolves to". So with this last line, what we are saying is: when we will run the system, at every simulation step, every space element will become a cat element. It's like cats appearing out of nowhere, so on the screen we would see every white cell in the grid becoming orange as soon as we start the simulation. A room filled with cats! (You might need to put your imagination to the test.)
+The method `to` can be read as "becomes" or "evolves to". So with this last line, what we are saying is: when we will run the system, at every simulation step, every space element will become an alien element. It's like aliens appearing out of nowhere, so on the screen we would see every blue cell in the grid becoming green as soon as we start the simulation. A room filled with aliens! (You might need to put your imagination to the test.)
 
 ## Conditions
 
-However in a system like that, nothing interesting would happen after the first step. All free spaces are occupied by cats immediately and they will just sit there forever.
+However in a system like that, nothing interesting would happen after the first step. All free spaces are occupied by aliens immediately and they will just sit there forever.
 
 Let's create a more interesting system, this time by adding a _condition_ to the existing rule.
 
 ```typescript
-space.to(cat).count(cat, 1);
+space.to(alien).count(alien, 1);
 ```
 
-By calling the method `count` we are stating that every time the simulation attempts to apply the rule `space.to(cat)` it must first count the number of whatever we pass as first parameter (`cat` in this case) in from the neighborhood of `space` and compare that with the second argument (`1` in this case). If the condition is met, that is, the number of cats in the neighborhood of space is exactly 1, then the rule is applied, otherwise it is skipped for the current step.
+By calling the method `count` we are stating that every time the simulation attempts to apply the rule `space.to(alien)` it must first count the number of whatever we pass as first parameter (`alien` in this case) in from the neighborhood of `space` and compare that with the second argument (`1` in this case). If the condition is met, that is, the number of aliens in the neighborhood of space is exactly 1, then the rule is applied, otherwise it is skipped for the current step.
 
-With this rule, we are filling the room bit by bit in an interesting pattern. It almost looks like a net made of cat tails! Eventually the simulation becomes stable and nothing else happens. Can we do any better?
+With this rule, we are filling the room bit by bit in an interesting pattern. It almost looks like alien tentacles! Eventually the simulation becomes stable and nothing else happens. Can we do any better?
 
 ## Game of Life
 
 Probably the most famous cellular automata, Game of Life rules are not that far from what we created just before, but they show [emergent behavior](https://en.wikipedia.org/wiki/Emergence). There's many ways to implement Game of Life rules. Here's one version:
 
 ```typescript
-// A new cat is born near a family of 3
-space.to(cat).count(cat, 3);
-// Underpopulation: the cat leaves the space because it feels lonely there
-cat.to(space).count(cat, [0, 1]);
-// Overpopulation: too many cats!
-cat.to(space).count(cat, [4, 5, 6, 7, 8]);
+// A new alien is born near a family of 3
+space.to(alien).count(alien, 3);
+// Underpopulation: the alien leaves the space because it feels lonely there
+alien.to(space).count(alien, [0, 1]);
+// Overpopulation: too many aliens!
+alien.to(space).count(alien, [4, 5, 6, 7, 8]);
 ```
 
 Feel free to come up with your own implementation! Vivarium is designed to allow you to define the same thing in multiple ways, depending on the structure and conventions you want to use.
@@ -110,14 +110,14 @@ Here's an equivalent list of rule declarations:
 
 ```typescript
 // Same as before
-space.to(cat).count(cat, 3);
-// Cat stays there when the number of cats around it is just right
-cat.to(cat).count(cat, [2, 3]);
-// Cat vanishes :'(
-cat.to(space);
+space.to(alien).count(alien, 3);
+// Alien stays there when the number of aliens around it is just right
+alien.to(alien).count(alien, [2, 3]);
+// Alien fell into a black hole :'(
+alien.to(space);
 ```
 
-Here we compressed the two `cat.to(space)` rules into one inverse rule, and we let it evolve to space otherwise, unconditionally. Try to reason on why this set of rules is equivalent to the previous one and notice two important things:
+Here we compressed the two `alien.to(space)` rules into one inverse rule, and we let it evolve to space otherwise, unconditionally. Try to reason on why this set of rules is equivalent to the previous one and notice two important things:
 
 - Rules without conditions are still meaningful, so use them when they might simplify your overall rule syntax.
 - Order of rules matters!

@@ -23,13 +23,13 @@
         </div>
 
         <div
-          class="card image-full shadow-sm border border-base-200 w-full sm:max-w-[400px]"
+          class="card image-full shadow-sm border border-base-300 w-full sm:max-w-[400px]"
         >
           <figure class="aspect-square">
             <canvas class="w-full" id="life-canvas"></canvas>
           </figure>
           <button
-            class="btn btn-soft btn-neutral btn-sm absolute right-0 bottom-0 m-2"
+            class="btn btn-soft btn-accent btn-sm absolute right-0 bottom-0 m-2"
             onclick="window.location.reload()"
           >
             Restart
@@ -41,14 +41,18 @@
         >
           <pre
             data-prefix="1"
-          ><code>const space = element("space", "white")</code></pre>
+          ><code>const space = element("space", "blue")</code></pre>
           <pre
             data-prefix="2"
-          ><code>const cat = element("cat", "orange")</code></pre>
+          ><code>const alien = element("alien", "green")</code></pre>
           <pre data-prefix="3"></pre>
-          <pre data-prefix="4"><code>space.to(cat).count(cat, 3)</code></pre>
-          <pre data-prefix="5"><code>cat.to(cat).count(cat, 2, 3)</code></pre>
-          <pre data-prefix="6"><code>cat.to(space)</code></pre>
+          <pre
+            data-prefix="4"
+          ><code>space.to(alien).count(alien, 3)</code></pre>
+          <pre
+            data-prefix="5"
+          ><code>alien.to(alien).count(alien, 2, 3)</code></pre>
+          <pre data-prefix="6"><code>alien.to(space)</code></pre>
           <pre data-prefix="7"></pre>
           <pre data-prefix="8"><code>const life = create()</code></pre>
         </div>
@@ -59,7 +63,7 @@
           Read the docs
         </a>
         <div
-          class="fixed bg-white pb-4 flex flex-col items-center w-full sm:max-w-[400px] left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0_white]"
+          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-[400px] left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
         >
           <div class="divider mt-0 mb-0"></div>
           <code class="text-xs">@wonderyard/vivarium</code>
