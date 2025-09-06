@@ -16,7 +16,7 @@ Read the **WIP** [docs] to get started, or continue reading for a quick overview
 
 ### Install
 
-Install Vivarium as a dependency. No other dependecies required.
+Install Vivarium as a dependency. No other dependencies required.
 
 ```bash
 npm i @wonderyard/vivarium
