@@ -34,7 +34,7 @@ yarn add @wonderyard/vivarium
 
 Import it once and use it anywhere.
 
-```TypeScript
+```typescript
 import { vivarium, setup } from "@wonderyard/vivarium";
 ```
 
@@ -44,7 +44,7 @@ To give you an idea of what the API can offer and how intuitive it can be to rea
 
 > We suggest you to read about Game of Life and how it works before continuing reading. If you don't understand clearly what the following code is representing, it's okay! Visit the **WIP** [docs] for a gentler introduction to cellular automata and what vivarium is meant for.
 
-```TypeScript
+```typescript
 const vi = vivarium();
 
 const space = vi.element("space", "white");
@@ -64,7 +64,7 @@ const life = vi.create();
 
 ### Run
 
-```TypeScript
+```typescript
 // Create a new canvas (or you could use an existing one)
 const canvas = document.createElement(canvas);
 document.body.appendChild(canvas);

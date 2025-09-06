@@ -1,0 +1,118 @@
+---
+title: Condition
+description: Learn how to use conditions in Vivarium.
+sidebar:
+  order: 30
+---
+
+A rule without conditions is going to be always accepted when evaluated. A condition determines if a rule is going to be accepted or not.
+
+## Condition types
+
+There are three types of conditions: [Count](#count), [Is](#is), [Chance](#chance).
+
+### Count
+
+```typescript
+space.to(cat).count(cat, 1);
+```
+
+```typescript
+space.to(cat).count(cat);
+```
+
+#### Helpers
+
+##### `between()`
+
+The `between` helper function generates a range of whole numbers from the given start and finish numbers. It also makes sure the input is valid for the chosen neighborhood.
+
+```typescript
+const {between} = vi.helpers;
+
+space.to(cat).count(cat, between(1, 5));
+// same as
+space.to(cat).count(cat, [1, 2, 3, 4, 5]);
+```
+
+##### `not()`
+
+```typescript
+
+const { not } = vi.helpers;
+
+space.to(cat).count(cat, not(2));
+// in a square neighborhood the line above is equivalent to:
+space.to(cat).count(cat, [0, 1, 3, 4, 5, 6, 7, 8]);
+```
+
+You can also combine it with `between`
+
+##### `even()` and `odd()`
+
+These helpers generate an array of even number (zero included) and odd numbers respectively, from 0 to 8 (0 to 4 for the "cross" neighborhood):
+
+```typescript
+
+const { even, odd } = vi.helpers;
+
+space.to(cat).count(cat, even());
+// same as
+space.to(cat).count(cat, [0, 2, 4, 6, 8]);
+
+space.to(cat).count(cat, odd());
+// same as
+space.to(cat).count(cat, [1, 3, 5, 7]);
+```
+
+### Is
+
+```typescript
+const { neighbor } = vi;
+
+space.to(cat).is(neighbor.TOP, cat);
+```
+
+```typescript
+const { neighbor } = vi;
+
+space.to(cat).is(neighbor.TOP, animal);
+```
+
+```typescript
+const { neighbor } = vi;
+
+space.to(cat).is(neighbor.TOP, neighbor.BOTTOM);
+```
+
+### Chance
+
+```typescript
+// 1 in 1000 chance for the cell to become a cat
+space.to(cat).chance(1, 1000);
+```
+
+## Multiple conditions
+
+You can add more than one condition per rule. When that is the case, the rule is accepted only if every condition is met. To modify the strategy used for the acceptance of rules, you can use the accept method on the builder chain. This method stops the chain, that is, you cannot add more conditions after determining the accept strategy.
+
+There are 4 strategy available:
+
+- `"all"` (default): **every condition** has to be met in order for the rule to be accepted.
+- `"any"`: **at least one condition** has to be met in order for the rule to be accepted.
+- `"one"`: **one and only one condition** has to be met in order for the rule to be accepted.
+- `"none"`: **every condition has to be left unmet** in order for the rule to be accepted.
+
+```typescript
+space.to(cat).count(cat, 1).chance(1, 1000).accept("any")
+```
+
+"none" is useful also as a way to negate a single condition. For instance:
+
+```typescript
+const { neighbor } = vi;
+
+space.to(house).is(neighbor.BOTTOM, liquid).accept("none");
+```
+
+We build a house on top of another cell only if the cell below is not of liquid kind.

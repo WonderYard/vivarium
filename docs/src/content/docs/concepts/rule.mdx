@@ -1,0 +1,30 @@
+---
+title: Rule
+description: Learn how to use rules in Vivarium.
+sidebar:
+  order: 20
+---
+
+Rules are a way to define the evolution of elements over time. You can create a new rule on any element or kind with the builder method `to`.
+
+## Evolve to element
+
+```typescript
+
+const space = vi.element("space", "white");
+const cat = vi.element("cat", "orange");
+
+space.to(cat);
+```
+
+[Image of a cell and 8 neighbors showing the transition between before and after]
+
+## Evolve to neighbor reference
+
+Instead of passing a predetermined element, you can also pass a neighbor.
+
+```typescript
+space.to(vi.neighbor.TOP);
+```
+
+In this example, space is going to evolve to whatever element is above it.

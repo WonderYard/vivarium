@@ -1,0 +1,47 @@
+---
+title: Foundations
+description: Your first steps in creating something unique and a little bit magical.
+sidebar:
+  order: 10
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+To those who are not familiar with cellular automata, here's a guide to introduce you to Vivarium. For now just know that a vivarium is an abstraction we created to describe cellular automata in a way that is easy and fun to learn for those who wouldn't know exactly where to start.
+
+## Vivarium
+
+<Aside type="tip" icon="open-book" title="A place for living things">A vivarium (Latin for "place of life") is an enclosed area with living entities in a simulated environment, designed for observation and study.</Aside>
+
+In the digital world, think of a vivarium like a 2d image in motion. The movement happens in steps, each step is a consequence of the previous one. This motion is the result of a simulation driven by a set of rules that are unique to each vivarium. These rules are simple, but can create complex behaviors when combined together, making the image evolve over time. We'll talk about rules in a bit. Now let's define our building blocks.
+
+## Elements
+
+An element is an abstract way to represent anything we want to put in our vivarium. Dogs, cats, people, trees, sand, electricity, hot air balloons... are all valid elements. It's up to you what an element represents. All is needed is:
+- a name — like "cat" — to know what it is (how to distinguish it _logically_ from other elements)
+- a color — like "orange" — to know how to draw it on the screen (how to distinguish it _visually_ from other elements)
+
+<Aside type="note" title="Technical note on colors">Vivarium understands all CSS named colors found in [these tables](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color#syntax). In case you want to use colors that don't have a name assigned, you can use the six-value [hexadecimal color syntax](https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color#syntax). For instance, you can write `#FF7A45` to represent a specific shade of orange. The three-value syntax shorthand is also accepted. Vivarium does not represent colors with transparency.</Aside>
+
+## Neighborhood
+
+Elements exists in a world we call _the grid_. Every element occupies a _cell_ of the grid, and shares its surroundings with other elements. More than often, an element is influenced by its neighbors and evolve into another element when the configuration of its neighbors meets certain criteria. We call _neighborhood_ the area of influence of a given element. Anything happening outside the neighborhood can be ignored, while anything that happens inside the neighborhood might have an impact on the element.
+
+By default, the neighborhood of a cell is made of the 8 adjacent (diagonal included) cells surrounding it. In Vivarium, technically speaking, the central cell does not belong to its neighborhood.
+
+<Aside type="note" title="Square for Moore">This type of neighborhood is often called [Moore neighborhood](https://en.wikipedia.org/wiki/Moore_neighborhood). From now on we'll simply call it "square" neighborhood, since it's easier to remember and visualize.</Aside>
+
+## Evolution
+To show you how a vivarium works, let's start with a very small image.
+
+This is a 5 pixels by 5 pixels image. If you're not familiar with pixels and how images are represented on a screen, think of this as a grid of little squares. A color is assigned to each square. Often we're going to call these squares "cells".
+In this image we have white cells all around a central orange cell. This is our initial image.
+
+<Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid is, but sometimes we'd like to have a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and have a controlled test case, so we can study and predict what's going to happen.</Aside>
+
+We are going to update the image in two steps.
+First we're going to fill in the grid with numbers. In each cell we're going to write down the number of orange cells that are found in the neighborhood of the current cell.
+
+The second step is to color the cells that have a 1 in them. This is because the rule we're going to apply says that white cells become orange if the number of orange neighbors is exactly 1.
+
+Note how this is made in two steps. It's important to compute first all the numbers we'll write in, and then update the grid with new colors. I'll show you why:
