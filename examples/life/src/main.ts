@@ -8,7 +8,7 @@ const vi = vivarium();
 const space = vi.element("space", "#04153b");
 const alien = vi.element("alien", "#34d399");
 
-// A alien is born if there's a family of 3 in the area.
+// An alien is born if there's a family of 3 in the area.
 space.to(alien).count(alien, 3);
 
 // The alien stays if the area is neither too empty nor too crowded...
