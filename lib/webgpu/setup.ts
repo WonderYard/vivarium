@@ -423,12 +423,11 @@ export const setup = ({
 
     colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
 
-    // FIXME: we are manually doing these steps, from flush to unmap,
-    // even though TgpuBuffer.read exists, because we notice heavy work happening JS-side.
-    // What is the buffer reader actually doing? We need raw data, so skipping it is fine.
-    // > const mapped = gpuBuffer.getMappedRange();
-    // > const res = readData(new BufferReader(mapped), this.dataType);
-    // Maybe one day they'll address the performance issue or expose a readRaw() method.
+    // We are manually doing these steps, from flush to unmap, even though
+    // TgpuBuffer.read exists, because we notice heavy work happening JS-side
+    // due to its readers. Since we don't need to parse data other than putting
+    // it on the canvas, our approach is correct and fast. In the future, if
+    // beneficial, consider drawing GPU-side to avoid reading data every frame.
 
     root["~unstable"].flush();
 
