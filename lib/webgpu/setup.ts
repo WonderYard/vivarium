@@ -417,8 +417,8 @@ export const setup = ({
     seed.write(Math.random());
 
     pipeline
-      .with(automatonLayout, automatonGroup)
-      .with(gridLayout, frames % 2 === 0 ? gridGroup0 : gridGroup1)
+      .with(automatonGroup)
+      .with(frames % 2 === 0 ? gridGroup0 : gridGroup1)
       .dispatchWorkgroups(WORKGROUP_COUNT_W, WORKGROUP_COUNT_H);
 
     colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
