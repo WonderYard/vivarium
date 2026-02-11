@@ -10,13 +10,13 @@ importers:
     dependencies:
       '@typegpu/noise':
         specifier: ^0.8.0
-        version: 0.8.0(typegpu@0.8.0)
+        version: 0.8.0(typegpu@0.8.1)
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
       typegpu:
-        specifier: ^0.8.0
-        version: 0.8.0
+        specifier: ^0.8.1
+        version: 0.8.1
     devDependencies:
       '@biomejs/biome':
         specifier: 2.2.2
@@ -44,7 +44,7 @@ importers:
         version: 5.8.3
       unplugin-typegpu:
         specifier: ^0.8.0
-        version: 0.8.0(typegpu@0.8.0)
+        version: 0.8.0(typegpu@0.8.1)
       vite:
         specifier: ^7.1.0
         version: 7.1.0(@types/node@24.3.0)(jiti@2.5.1)
@@ -1008,8 +1008,8 @@ packages:
   typed-binary@4.3.2:
     resolution: {integrity: sha512-HT3pIBM2njCZUmeczDaQUUErGiM6GXFCqMsHegE12HCoBtvHCkfR10JJni0TeGOTnLilTd6YFyj+YhflqQDrDQ==}
 
-  typegpu@0.8.0:
-    resolution: {integrity: sha512-tLJG2S4ev8oV2Y9u+bG5gP4qGrCFuen2PpmeK2VsqzVveSHHA6274C/vTyHFpGBwOTs35Y2YtXxEHKnjTpWNDA==}
+  typegpu@0.8.1:
+    resolution: {integrity: sha512-74LiegV+HRDhsUKZ8wCYiFz0qHbKqVCIPVJcpS/l4+U40f8Yh4u4Au/6X4HTedXAcZGL4AxazLSlZf2ZU9BAKg==}
     engines: {node: '>=12.20.0'}
 
   typescript@5.8.2:
@@ -1454,9 +1454,9 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@typegpu/noise@0.8.0(typegpu@0.8.0)':
+  '@typegpu/noise@0.8.0(typegpu@0.8.1)':
     dependencies:
-      typegpu: 0.8.0
+      typegpu: 0.8.1
 
   '@types/argparse@1.0.38': {}
 
@@ -1990,7 +1990,7 @@ snapshots:
 
   typed-binary@4.3.2: {}
 
-  typegpu@0.8.0:
+  typegpu@0.8.1:
     dependencies:
       tinyest: 0.1.2
       typed-binary: 4.3.2
@@ -2005,7 +2005,7 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unplugin-typegpu@0.8.0(typegpu@0.8.0):
+  unplugin-typegpu@0.8.0(typegpu@0.8.1):
     dependencies:
       '@babel/standalone': 7.28.3
       defu: 6.1.4
@@ -2015,7 +2015,7 @@ snapshots:
       picomatch: 4.0.3
       tinyest: 0.1.2
       tinyest-for-wgsl: 0.1.3
-      typegpu: 0.8.0
+      typegpu: 0.8.1
       unplugin: 2.3.8
 
   unplugin@2.3.8:

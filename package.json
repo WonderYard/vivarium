@@ -46,6 +46,6 @@
   "dependencies": {
     "@typegpu/noise": "^0.8.0",
     "nanoid": "^5.1.5",
-    "typegpu": "^0.8.0"
+    "typegpu": "^0.8.1"
   }
 }
