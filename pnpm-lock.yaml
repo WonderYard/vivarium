@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@typegpu/noise':
-        specifier: ^0.8.0
-        version: 0.8.0(typegpu@0.8.1)
+        specifier: ^0.9.0
+        version: 0.9.0(typegpu@0.9.0)
       nanoid:
-        specifier: ^5.1.5
-        version: 5.1.5
+        specifier: ^5.1.6
+        version: 5.1.6
       typegpu:
-        specifier: ^0.8.1
-        version: 0.8.1
+        specifier: ^0.9.0
+        version: 0.9.0
     devDependencies:
       '@biomejs/biome':
         specifier: 2.2.2
@@ -28,8 +28,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0(vite@7.1.0(@types/node@24.3.0)(jiti@2.5.1))
       '@webgpu/types':
-        specifier: ^0.1.64
-        version: 0.1.64
+        specifier: ^0.1.69
+        version: 0.1.69
       glob:
         specifier: ^11.0.3
         version: 11.0.3
@@ -43,8 +43,8 @@ importers:
         specifier: ~5.8.3
         version: 5.8.3
       unplugin-typegpu:
-        specifier: ^0.8.0
-        version: 0.8.0(typegpu@0.8.1)
+        specifier: ^0.9.0
+        version: 0.9.0(typegpu@0.9.0)
       vite:
         specifier: ^7.1.0
         version: 7.1.0(@types/node@24.3.0)(jiti@2.5.1)
@@ -459,10 +459,10 @@ packages:
   '@rushstack/ts-command-line@5.0.2':
     resolution: {integrity: sha512-+AkJDbu1GFMPIU8Sb7TLVXDv/Q7Mkvx+wAjEl8XiXVVq+p1FmWW6M3LYpJMmoHNckSofeMecgWg5lfMwNAAsEQ==}
 
-  '@typegpu/noise@0.8.0':
-    resolution: {integrity: sha512-NScTVc06yIOcg8xAobGJ/YyXO2rsn2ir9MVcpZXSHBpc1OheN0B8JZdseZ1ja+tqxjT6uirff2xqAP/fwpYqWg==}
+  '@typegpu/noise@0.9.0':
+    resolution: {integrity: sha512-mAcbjJ7X7VX2Wik7bkif7N9RWArNCdd7S2zSm4lq2MCNGf0arbjuGCMVh/7x9GGpowkZKPO1c+XXEKvdpUlCUg==}
     peerDependencies:
-      typegpu: ^0.8.0
+      typegpu: ^0.9.0
 
   '@types/argparse@1.0.38':
     resolution: {integrity: sha512-ebDJ9b0e702Yr7pWgB0jzm+CX4Srzz8RcXtLJDJB+BSccqMa36uyH/zUsSYao5+BD1ytv3k3rPYCq4mAE1hsXA==}
@@ -549,8 +549,8 @@ packages:
   '@vue/shared@3.5.18':
     resolution: {integrity: sha512-cZy8Dq+uuIXbxCZpuLd2GJdeSO/lIzIspC2WtkqIpje5QyFbvLaI5wZtdUjLHjGZrlVX6GilejatWwVYYRc8tA==}
 
-  '@webgpu/types@0.1.64':
-    resolution: {integrity: sha512-84kRIAGV46LJTlJZWxShiOrNL30A+9KokD7RB3dRCIqODFjodS5tCD5yyiZ8kIReGVZSDfA3XkkwyyOIF6K62A==}
+  '@webgpu/types@0.1.69':
+    resolution: {integrity: sha512-RPmm6kgRbI8e98zSD3RVACvnuktIja5+yLgDAkTmxLr90BEwdTXRQWNLF3ETTTyH/8mKhznZuN5AveXYFEsMGQ==}
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -836,8 +836,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanoid@5.1.5:
-    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+  nanoid@5.1.6:
+    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==}
     engines: {node: ^18 || >=20}
     hasBin: true
 
@@ -978,12 +978,12 @@ packages:
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
-  tinyest-for-wgsl@0.1.3:
-    resolution: {integrity: sha512-Wm5ADG1UyDxykf42S1gLYP4U9e1QP/TdtJeovQi6y68zttpiFLKqQGioHmPs9Mjysh7YMSAr/Lpuk0cD2MVdGA==}
+  tinyest-for-wgsl@0.2.0:
+    resolution: {integrity: sha512-aFKlgGEjQJYcq31+5ykwyd0Cbw5BCb3s/ATje9wlkgyNPwKtSZCSXAPsCswjaQBCiHXub0onzsfgYvy7ez8t0Q==}
     engines: {node: '>=12.20.0'}
 
-  tinyest@0.1.2:
-    resolution: {integrity: sha512-aHRmouyowIq1P5jrTF+YK6pGX+WuvFtSCLbqk91yHnU3SWQRIcNIamZLM5XF6lLqB13AWz0PGPXRff2QGDsxIg==}
+  tinyest@0.2.0:
+    resolution: {integrity: sha512-k8XL8FipMVboHtNwAJ6PgGVkWk+9hWEROGoxEXJKmO9ZOXehlBgdGY5uCkGRgT60TYJhtfOelvC/ikMpKYAmHA==}
     engines: {node: '>=12.20.0'}
 
   tinyexec@0.3.2:
@@ -1008,8 +1008,8 @@ packages:
   typed-binary@4.3.2:
     resolution: {integrity: sha512-HT3pIBM2njCZUmeczDaQUUErGiM6GXFCqMsHegE12HCoBtvHCkfR10JJni0TeGOTnLilTd6YFyj+YhflqQDrDQ==}
 
-  typegpu@0.8.1:
-    resolution: {integrity: sha512-74LiegV+HRDhsUKZ8wCYiFz0qHbKqVCIPVJcpS/l4+U40f8Yh4u4Au/6X4HTedXAcZGL4AxazLSlZf2ZU9BAKg==}
+  typegpu@0.9.0:
+    resolution: {integrity: sha512-1mIUiElaxmwy4RMGvFrifHYmLnXLQjB30eKanAWj1ab3qhJvDq0bUfi9j0JP3jaQPXsGgFcNvLGJvCfvi55Ajg==}
     engines: {node: '>=12.20.0'}
 
   typescript@5.8.2:
@@ -1032,10 +1032,10 @@ packages:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
 
-  unplugin-typegpu@0.8.0:
-    resolution: {integrity: sha512-VJHdXSXGOkAx0WhwFczhVUjAI6HyDkrQXk20HnwyuzIE3FdqE5l9sJTCYZzoVGo3z8i/IA5TMHCDzzP0Bc97Cw==}
+  unplugin-typegpu@0.9.0:
+    resolution: {integrity: sha512-xEuOgh9u5BXAG+T2kiBKT2Dn5+gTkcBeHFGMMNMjOx5NT6HcKI/uu6XucAnGxaE/hkJzwR6aQxxmMe6lhbcxcg==}
     peerDependencies:
-      typegpu: ^0.8.0
+      typegpu: ^0.9.0
 
   unplugin@2.3.8:
     resolution: {integrity: sha512-lkaSIlxceytPyt9yfb1h7L9jDFqwMqvUZeGsKB7Z8QrvAO3xZv2S+xMQQYzxk0AGJHcQhbcvhKEstrMy99jnuQ==}
@@ -1454,9 +1454,9 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@typegpu/noise@0.8.0(typegpu@0.8.1)':
+  '@typegpu/noise@0.9.0(typegpu@0.9.0)':
     dependencies:
-      typegpu: 0.8.1
+      typegpu: 0.9.0
 
   '@types/argparse@1.0.38': {}
 
@@ -1571,7 +1571,7 @@ snapshots:
 
   '@vue/shared@3.5.18': {}
 
-  '@webgpu/types@0.1.64': {}
+  '@webgpu/types@0.1.69': {}
 
   acorn@8.15.0: {}
 
@@ -1830,7 +1830,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nanoid@5.1.5: {}
+  nanoid@5.1.6: {}
 
   package-json-from-dist@1.0.1: {}
 
@@ -1969,11 +1969,11 @@ snapshots:
 
   tinybench@2.9.0: {}
 
-  tinyest-for-wgsl@0.1.3:
+  tinyest-for-wgsl@0.2.0:
     dependencies:
-      tinyest: 0.1.2
+      tinyest: 0.2.0
 
-  tinyest@0.1.2: {}
+  tinyest@0.2.0: {}
 
   tinyexec@0.3.2: {}
 
@@ -1990,9 +1990,9 @@ snapshots:
 
   typed-binary@4.3.2: {}
 
-  typegpu@0.8.1:
+  typegpu@0.9.0:
     dependencies:
-      tinyest: 0.1.2
+      tinyest: 0.2.0
       typed-binary: 4.3.2
 
   typescript@5.8.2: {}
@@ -2005,7 +2005,7 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unplugin-typegpu@0.8.0(typegpu@0.8.1):
+  unplugin-typegpu@0.9.0(typegpu@0.9.0):
     dependencies:
       '@babel/standalone': 7.28.3
       defu: 6.1.4
@@ -2013,9 +2013,9 @@ snapshots:
       magic-string-ast: 1.0.2
       pathe: 2.0.3
       picomatch: 4.0.3
-      tinyest: 0.1.2
-      tinyest-for-wgsl: 0.1.3
-      typegpu: 0.8.1
+      tinyest: 0.2.0
+      tinyest-for-wgsl: 0.2.0
+      typegpu: 0.9.0
       unplugin: 2.3.8
 
   unplugin@2.3.8:
