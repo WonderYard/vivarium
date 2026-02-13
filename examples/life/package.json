@@ -9,13 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "daisyui": "^5.1.7",
-    "typescript": "~5.8.3",
-    "vite": "^7.1.2"
+    "daisyui": "^5.5.18",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.13",
-    "@wonderyard/vivarium": "^0.1.5",
-    "tailwindcss": "^4.1.13"
+    "@tailwindcss/vite": "^4.1.18",
+    "@wonderyard/vivarium": "^0.1.7",
+    "tailwindcss": "^4.1.18"
   }
 }
