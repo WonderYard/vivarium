@@ -203,7 +203,7 @@ describe("COUNT_KIND opcode", () => {
   test("counting by kind uses COUNT_KIND opcode with packed element IDs", () => {
     const gpu = compile((vi) => {
       const conductor = vi.kind("conductor");
-      const _empty = vi.element("empty", "#000000");
+      vi.element("empty", "#000000");
       const wire = vi.element("wire", "#ff8800", [conductor]);
       const head = vi.element("head", "#0088ff", [conductor]);
       vi.element("tail", "#ffffff", [conductor]);
@@ -275,7 +275,7 @@ describe("IS_KIND opcode", () => {
       const conductor = vi.kind("conductor");
       const empty = vi.element("empty", "#000000");
       const wire = vi.element("wire", "#ff8800", [conductor]);
-      const _head = vi.element("head", "#0088ff", [conductor]);
+      vi.element("head", "#0088ff", [conductor]);
       vi.element("tail", "#ffffff", [conductor]);
 
       // empty -> wire if TOP is any conductor
@@ -425,9 +425,9 @@ describe("kind rule merging", () => {
     const gpu = compile((vi) => {
       const conductor = vi.kind("conductor");
       vi.element("empty", "#000000");
-      const _wire = vi.element("wire", "#ff8800", [conductor]);
-      const _head = vi.element("head", "#0088ff", [conductor]);
-      const _tail = vi.element("tail", "#ffffff", [conductor]);
+      vi.element("wire", "#ff8800", [conductor]);
+      vi.element("head", "#0088ff", [conductor]);
+      vi.element("tail", "#ffffff", [conductor]);
 
       // kind rule: all conductors with no rules just stay themselves
       conductor.to(Square.SELF);
@@ -480,7 +480,7 @@ describe("kind rule merging", () => {
     const gpu = compile((vi) => {
       const conductor = vi.kind("conductor");
       vi.element("empty", "#000000");
-      const _wire = vi.element("wire", "#ff8800", [conductor]);
+      vi.element("wire", "#ff8800", [conductor]);
       const head = vi.element("head", "#0088ff", [conductor]);
       vi.element("tail", "#ffffff", [conductor]);
 

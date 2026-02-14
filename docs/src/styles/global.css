@@ -4,7 +4,6 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-/* biome-ignore lint/suspicious/noUnknownAtRules: @theme is a tailwind directive */
 @theme {
   /* Generated accent color palettes. */
   --color-accent-200: #abd4bf;
