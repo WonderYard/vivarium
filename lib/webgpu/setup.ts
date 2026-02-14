@@ -55,10 +55,9 @@ const automatonLayout = tgpu.bindGroupLayout({
 // Because functions reference layouts and not groups,
 // they can be defined once
 
-const pointToIndex = tgpu.fn(
-  [d.u32, d.u32],
-  d.u32
-)((x, y) => {
+const pointToIndex = (x: number, y: number) => {
+  "use gpu";
+
   // Note: keep in mind that we are performing subtraction in unsigned space.
   // The modulo here is the only thing that allows us to use unsigned ints everywhere.
   // Example 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
@@ -66,23 +65,21 @@ const pointToIndex = tgpu.fn(
     (y % gridLayout.bound.dimensions.$.y) * gridLayout.bound.dimensions.$.x +
     (x % gridLayout.bound.dimensions.$.x)
   );
-});
+};
 
-const testNeighbor = tgpu.fn(
-  [d.u32, d.u32, d.u32],
-  d.u32
-)((checkId, x, y) => {
+const testNeighbor = (checkId: number, x: number, y: number) => {
+  "use gpu";
+
   return std.select(
     d.u32(0),
     d.u32(1),
     gridLayout.bound.ids.$[pointToIndex(x, y)] === checkId
   );
-});
+};
 
-const testIdInPack = tgpu.fn(
-  [d.u32, d.u32, d.u32],
-  d.u32
-)((packedIds, x, y) => {
+const testIdInPack = (packedIds: number, x: number, y: number) => {
+  "use gpu";
+
   const idMask = gridLayout.bound.ids.$[pointToIndex(x, y)];
 
   // check if id is in the bits
@@ -94,15 +91,19 @@ const testIdInPack = tgpu.fn(
     // so to keep gpu logic simple we do the check during the compile step.
     (packedIds & (d.u32(1) << idMask)) !== d.u32(0)
   );
-});
+};
 
 /**
  * Compare the occurrences of checkId in the square neighborhood with count.
  */
-const checkIdCount = tgpu.fn(
-  [d.u32, d.u32, d.u32, d.u32],
-  d.u32
-)((x, y, checkId, packedCount) => {
+const checkIdCount = (
+  x: number,
+  y: number,
+  checkId: number,
+  packedCount: number
+) => {
+  "use gpu";
+
   const countMask =
     testNeighbor(checkId, x - 1, y - 1) +
     testNeighbor(checkId, x, y - 1) +
@@ -124,12 +125,16 @@ const checkIdCount = tgpu.fn(
     d.u32(1),
     (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
   );
-});
+};
 
-const checkIdsCount = tgpu.fn(
-  [d.u32, d.u32, d.u32, d.u32],
-  d.u32
-)((x, y, packedIds, packedCount) => {
+const checkIdsCount = (
+  x: number,
+  y: number,
+  packedIds: number,
+  packedCount: number
+) => {
+  "use gpu";
+
   const countMask =
     testIdInPack(packedIds, x - 1, y - 1) +
     testIdInPack(packedIds, x, y - 1) +
@@ -145,24 +150,32 @@ const checkIdsCount = tgpu.fn(
     d.u32(1),
     (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
   );
-});
+};
 
-const checkPointCount = tgpu.fn(
-  [d.u32, d.u32, d.vec2u, d.u32],
-  d.u32
-)((x, y, checkPoint, packedCount) => {
+const checkPointCount = (
+  x: number,
+  y: number,
+  checkPoint: d.v2u,
+  packedCount: number
+) => {
+  "use gpu";
+
   const pointIndex = pointToIndex(
     x + d.u32(checkPoint.x),
     y + d.u32(checkPoint.y)
   );
   const checkId = gridLayout.bound.ids.$[pointIndex];
   return checkIdCount(x, y, checkId, packedCount);
-});
+};
 
-const comparePointWithId = tgpu.fn(
-  [d.u32, d.u32, d.vec2u, d.u32],
-  d.u32
-)((x, y, comparePoint, withId) => {
+const comparePointWithId = (
+  x: number,
+  y: number,
+  comparePoint: d.v2u,
+  withId: number
+) => {
+  "use gpu";
+
   const comparePointIndex = pointToIndex(
     x + comparePoint.x,
     y + comparePoint.y
@@ -173,19 +186,27 @@ const comparePointWithId = tgpu.fn(
     d.u32(1),
     gridLayout.bound.ids.$[comparePointIndex] === withId
   );
-});
+};
 
-const comparePointWithKindId = tgpu.fn(
-  [d.u32, d.u32, d.vec2u, d.u32],
-  d.u32
-)((x, y, comparePoint, packedIds) => {
+const comparePointWithKindId = (
+  x: number,
+  y: number,
+  comparePoint: d.v2u,
+  packedIds: number
+) => {
+  "use gpu";
+
   return testIdInPack(packedIds, x + comparePoint.x, y + comparePoint.y);
-});
+};
 
-const comparePointWithPoint = tgpu.fn(
-  [d.u32, d.u32, d.vec2u, d.vec2u],
-  d.u32
-)((x, y, comparePoint, withPoint) => {
+const comparePointWithPoint = (
+  x: number,
+  y: number,
+  comparePoint: d.v2u,
+  withPoint: d.v2u
+) => {
+  "use gpu";
+
   const comparePointIndex = pointToIndex(
     x + comparePoint.x,
     y + comparePoint.y
@@ -198,7 +219,7 @@ const comparePointWithPoint = tgpu.fn(
     gridLayout.bound.ids.$[comparePointIndex] ===
       gridLayout.bound.ids.$[withPointIndex]
   );
-});
+};
 
 // also the main compute function has no variable dependencies
 const mainCompute = tgpu["~unstable"].computeFn({
@@ -417,19 +438,17 @@ export const setup = ({
     seed.write(Math.random());
 
     pipeline
-      .with(automatonLayout, automatonGroup)
-      .with(gridLayout, frames % 2 === 0 ? gridGroup0 : gridGroup1)
+      .with(automatonGroup)
+      .with(frames % 2 === 0 ? gridGroup0 : gridGroup1)
       .dispatchWorkgroups(WORKGROUP_COUNT_W, WORKGROUP_COUNT_H);
 
     colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
 
-    // We are manually doing these steps, from flush to unmap, even though
+    // We are manually doing these steps, from map to unmap, even though
     // TgpuBuffer.read exists, because we notice heavy work happening JS-side
     // due to its readers. Since we don't need to parse data other than putting
     // it on the canvas, our approach is correct and fast. In the future, if
     // beneficial, consider drawing GPU-side to avoid reading data every frame.
-
-    root["~unstable"].flush();
 
     const rawBuffer = colorsStagingBuffer.buffer;
     await rawBuffer.mapAsync(GPUMapMode.READ);
