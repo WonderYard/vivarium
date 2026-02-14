@@ -396,6 +396,10 @@ export const setup = ({
 
     palette = gpuElements.map((element) => element.color);
 
+    const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
+    const conditions =
+      gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
+
     automatonGroup = root.createBindGroup(automatonLayout, {
       neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
       elements: root
@@ -405,16 +409,10 @@ export const setup = ({
         )
         .$usage("storage"),
       rules: root
-        .createBuffer(
-          d.arrayOf(GpuRule, Math.max(gpuRules.length, 1)),
-          gpuRules
-        )
+        .createBuffer(d.arrayOf(GpuRule, rules.length), rules)
         .$usage("storage"),
       conditions: root
-        .createBuffer(
-          d.arrayOf(GpuCondition, Math.max(gpuConditions.length, 1)),
-          gpuConditions
-        )
+        .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
         .$usage("storage"),
     });
   };
