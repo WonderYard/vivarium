@@ -12,6 +12,11 @@ import {
   To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
+import {
+  matchesElement,
+  matchesPackedCount,
+  matchesPackedIds,
+} from "@/simulation/kernel";
 import { compileGpuAutomaton } from "./compiler";
 
 const adapter = await navigator.gpu.requestAdapter();
@@ -70,26 +75,15 @@ const pointToIndex = (x: number, y: number) => {
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.bound.ids.$[pointToIndex(x, y)] === checkId
-  );
+  return matchesElement(gridLayout.bound.ids.$[pointToIndex(x, y)], checkId);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
 
-  const idMask = gridLayout.bound.ids.$[pointToIndex(x, y)];
-
-  // check if id is in the bits
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
-    // so we cannot allow ids greater than 31 here. However no error is thrown,
-    // so to keep gpu logic simple we do the check during the compile step.
-    (packedIds & (d.u32(1) << idMask)) !== d.u32(0)
+  return matchesPackedIds(
+    gridLayout.bound.ids.$[pointToIndex(x, y)],
+    packedIds
   );
 };
 
@@ -114,17 +108,7 @@ const checkIdCount = (
     testNeighbor(checkId, x, y + 1) +
     testNeighbor(checkId, x + 1, y + 1);
 
-  // We select the bit in count using the number of occurrences as a mask
-  // packedCount is representing a 9 bit array of flags
-  // example: count = [2, 3] -> packedCount = 0b000001100
-  // if mask is 3, it means we will check if the 4th LSB is a 1.
-  // We are checking "!= 0u" and not "== 1u" because we are moving
-  // the bit of the mask, and NOT the bit we are reading.
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
-  );
+  return matchesPackedCount(countMask, packedCount);
 };
 
 const checkIdsCount = (
@@ -145,11 +129,7 @@ const checkIdsCount = (
     testIdInPack(packedIds, x, y + 1) +
     testIdInPack(packedIds, x + 1, y + 1);
 
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
-  );
+  return matchesPackedCount(countMask, packedCount);
 };
 
 const checkPointCount = (
@@ -176,15 +156,9 @@ const comparePointWithId = (
 ) => {
   "use gpu";
 
-  const comparePointIndex = pointToIndex(
-    x + comparePoint.x,
-    y + comparePoint.y
-  );
-
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.bound.ids.$[comparePointIndex] === withId
+  return matchesElement(
+    gridLayout.bound.ids.$[pointToIndex(x + comparePoint.x, y + comparePoint.y)],
+    withId
   );
 };
 
@@ -196,7 +170,12 @@ const comparePointWithKindId = (
 ) => {
   "use gpu";
 
-  return testIdInPack(packedIds, x + comparePoint.x, y + comparePoint.y);
+  return matchesPackedIds(
+    gridLayout.bound.ids.$[
+      pointToIndex(x + comparePoint.x, y + comparePoint.y)
+    ],
+    packedIds
+  );
 };
 
 const comparePointWithPoint = (
@@ -207,17 +186,11 @@ const comparePointWithPoint = (
 ) => {
   "use gpu";
 
-  const comparePointIndex = pointToIndex(
-    x + comparePoint.x,
-    y + comparePoint.y
-  );
-  const withPointIndex = pointToIndex(x + withPoint.x, y + withPoint.y);
-
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.bound.ids.$[comparePointIndex] ===
-      gridLayout.bound.ids.$[withPointIndex]
+  return matchesElement(
+    gridLayout.bound.ids.$[
+      pointToIndex(x + comparePoint.x, y + comparePoint.y)
+    ],
+    gridLayout.bound.ids.$[pointToIndex(x + withPoint.x, y + withPoint.y)]
   );
 };
 

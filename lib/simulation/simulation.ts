@@ -1,6 +1,11 @@
 import type { Automaton } from "@/automaton/types";
 import { Accept, Opcode, To } from "@/common/constants";
 import { type GpuAutomaton, compileGpuAutomaton } from "@/webgpu/compiler";
+import {
+  matchesElement,
+  matchesPackedCount,
+  matchesPackedIds,
+} from "./kernel";
 
 export type Grid = {
   width: number;
@@ -19,27 +24,14 @@ const pointToIndex = (
   return mod(y, height) * width + mod(x, width);
 };
 
-const testNeighbor = (
+const idAt = (
   ids: number[],
-  checkId: number,
   x: number,
   y: number,
   width: number,
   height: number
 ): number => {
-  return ids[pointToIndex(x, y, width, height)] === checkId ? 1 : 0;
-};
-
-const testIdInPack = (
-  ids: number[],
-  packedIds: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number
-): number => {
-  const idMask = ids[pointToIndex(x, y, width, height)];
-  return (packedIds & (1 << idMask)) !== 0 ? 1 : 0;
+  return ids[pointToIndex(x, y, width, height)];
 };
 
 const checkIdCount = (
@@ -52,16 +44,16 @@ const checkIdCount = (
   height: number
 ): number => {
   const countMask =
-    testNeighbor(ids, checkId, x - 1, y - 1, width, height) +
-    testNeighbor(ids, checkId, x, y - 1, width, height) +
-    testNeighbor(ids, checkId, x + 1, y - 1, width, height) +
-    testNeighbor(ids, checkId, x - 1, y, width, height) +
-    testNeighbor(ids, checkId, x + 1, y, width, height) +
-    testNeighbor(ids, checkId, x - 1, y + 1, width, height) +
-    testNeighbor(ids, checkId, x, y + 1, width, height) +
-    testNeighbor(ids, checkId, x + 1, y + 1, width, height);
+    matchesElement(idAt(ids, x - 1, y - 1, width, height), checkId) +
+    matchesElement(idAt(ids, x, y - 1, width, height), checkId) +
+    matchesElement(idAt(ids, x + 1, y - 1, width, height), checkId) +
+    matchesElement(idAt(ids, x - 1, y, width, height), checkId) +
+    matchesElement(idAt(ids, x + 1, y, width, height), checkId) +
+    matchesElement(idAt(ids, x - 1, y + 1, width, height), checkId) +
+    matchesElement(idAt(ids, x, y + 1, width, height), checkId) +
+    matchesElement(idAt(ids, x + 1, y + 1, width, height), checkId);
 
-  return (packedCount & (1 << countMask)) !== 0 ? 1 : 0;
+  return matchesPackedCount(countMask, packedCount);
 };
 
 const checkIdsCount = (
@@ -74,96 +66,16 @@ const checkIdsCount = (
   height: number
 ): number => {
   const countMask =
-    testIdInPack(ids, packedIds, x - 1, y - 1, width, height) +
-    testIdInPack(ids, packedIds, x, y - 1, width, height) +
-    testIdInPack(ids, packedIds, x + 1, y - 1, width, height) +
-    testIdInPack(ids, packedIds, x - 1, y, width, height) +
-    testIdInPack(ids, packedIds, x + 1, y, width, height) +
-    testIdInPack(ids, packedIds, x - 1, y + 1, width, height) +
-    testIdInPack(ids, packedIds, x, y + 1, width, height) +
-    testIdInPack(ids, packedIds, x + 1, y + 1, width, height);
+    matchesPackedIds(idAt(ids, x - 1, y - 1, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x, y - 1, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x + 1, y - 1, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x - 1, y, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x + 1, y, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x - 1, y + 1, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x, y + 1, width, height), packedIds) +
+    matchesPackedIds(idAt(ids, x + 1, y + 1, width, height), packedIds);
 
-  return (packedCount & (1 << countMask)) !== 0 ? 1 : 0;
-};
-
-const checkPointCount = (
-  ids: number[],
-  x: number,
-  y: number,
-  checkPointX: number,
-  checkPointY: number,
-  packedCount: number,
-  width: number,
-  height: number
-): number => {
-  const pointIndex = pointToIndex(x + checkPointX, y + checkPointY, width, height);
-  const checkId = ids[pointIndex];
-  return checkIdCount(ids, x, y, checkId, packedCount, width, height);
-};
-
-const comparePointWithId = (
-  ids: number[],
-  x: number,
-  y: number,
-  comparePointX: number,
-  comparePointY: number,
-  withId: number,
-  width: number,
-  height: number
-): number => {
-  const comparePointIndex = pointToIndex(
-    x + comparePointX,
-    y + comparePointY,
-    width,
-    height
-  );
-  return ids[comparePointIndex] === withId ? 1 : 0;
-};
-
-const comparePointWithKindId = (
-  ids: number[],
-  x: number,
-  y: number,
-  comparePointX: number,
-  comparePointY: number,
-  packedIds: number,
-  width: number,
-  height: number
-): number => {
-  return testIdInPack(
-    ids,
-    packedIds,
-    x + comparePointX,
-    y + comparePointY,
-    width,
-    height
-  );
-};
-
-const comparePointWithPoint = (
-  ids: number[],
-  x: number,
-  y: number,
-  comparePointX: number,
-  comparePointY: number,
-  withPointX: number,
-  withPointY: number,
-  width: number,
-  height: number
-): number => {
-  const comparePointIndex = pointToIndex(
-    x + comparePointX,
-    y + comparePointY,
-    width,
-    height
-  );
-  const withPointIndex = pointToIndex(
-    x + withPointX,
-    y + withPointY,
-    width,
-    height
-  );
-  return ids[comparePointIndex] === ids[withPointIndex] ? 1 : 0;
+  return matchesPackedCount(countMask, packedCount);
 };
 
 // Convert vec2u neighbor offset back to signed coordinates.
@@ -208,12 +120,18 @@ export const evolve = (grid: Grid, gpu: GpuAutomaton): Grid => {
               height
             );
           } else if (opcode === Opcode.COUNT_POINT) {
-            passing += checkPointCount(
+            const checkId = idAt(
+              ids,
+              x + toSigned(condition.checkPointOrComparePoint.x),
+              y + toSigned(condition.checkPointOrComparePoint.y),
+              width,
+              height
+            );
+            passing += checkIdCount(
               ids,
               x,
               y,
-              toSigned(condition.checkPointOrComparePoint.x),
-              toSigned(condition.checkPointOrComparePoint.y),
+              checkId,
               condition.countOrWithId,
               width,
               height
@@ -229,39 +147,39 @@ export const evolve = (grid: Grid, gpu: GpuAutomaton): Grid => {
               height
             );
           } else if (opcode === Opcode.IS_ELEMENT) {
-            passing += comparePointWithId(
+            const compareId = idAt(
               ids,
-              x,
-              y,
-              toSigned(condition.checkPointOrComparePoint.x),
-              toSigned(condition.checkPointOrComparePoint.y),
-              condition.countOrWithId,
+              x + toSigned(condition.checkPointOrComparePoint.x),
+              y + toSigned(condition.checkPointOrComparePoint.y),
               width,
               height
             );
+            passing += matchesElement(compareId, condition.countOrWithId);
           } else if (opcode === Opcode.IS_POINT) {
-            passing += comparePointWithPoint(
+            const compareId = idAt(
               ids,
-              x,
-              y,
-              toSigned(condition.checkPointOrComparePoint.x),
-              toSigned(condition.checkPointOrComparePoint.y),
-              toSigned(condition.withPoint.x),
-              toSigned(condition.withPoint.y),
+              x + toSigned(condition.checkPointOrComparePoint.x),
+              y + toSigned(condition.checkPointOrComparePoint.y),
               width,
               height
             );
+            const withId = idAt(
+              ids,
+              x + toSigned(condition.withPoint.x),
+              y + toSigned(condition.withPoint.y),
+              width,
+              height
+            );
+            passing += matchesElement(compareId, withId);
           } else if (opcode === Opcode.IS_KIND) {
-            passing += comparePointWithKindId(
+            const compareId = idAt(
               ids,
-              x,
-              y,
-              toSigned(condition.checkPointOrComparePoint.x),
-              toSigned(condition.checkPointOrComparePoint.y),
-              condition.countOrWithId,
+              x + toSigned(condition.checkPointOrComparePoint.x),
+              y + toSigned(condition.checkPointOrComparePoint.y),
               width,
               height
             );
+            passing += matchesPackedIds(compareId, condition.countOrWithId);
           }
           // CHANCE is intentionally skipped — tests should use deterministic rules
         }
