@@ -12,10 +12,6 @@ import {
   To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
-import {
-  evaluateCondition,
-  accepted,
-} from "@/simulation/kernel";
 import { compileGpuAutomaton } from "./compiler";
 
 const adapter = await navigator.gpu.requestAdapter();
@@ -31,8 +27,12 @@ void device.lost.then(() => {
 let frames = 0;
 let seed: TgpuUniform<d.F32>;
 
+export const setSeed = (s: TgpuUniform<d.F32>) => {
+  seed = s;
+};
+
 // layouts are predefined
-const gridLayout = tgpu.bindGroupLayout({
+export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   colors: { storage: d.arrayOf(d.u32), access: "mutable" },
   newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
@@ -40,7 +40,7 @@ const gridLayout = tgpu.bindGroupLayout({
   newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
 });
 
-const automatonLayout = tgpu.bindGroupLayout({
+export const automatonLayout = tgpu.bindGroupLayout({
   neighborhood: { uniform: d.u32 },
   elements: {
     storage: d.arrayOf(GpuElement),
@@ -71,13 +71,162 @@ const pointToIndex = (x: number, y: number) => {
   );
 };
 
-const idAt = (x: number, y: number) => {
+const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
-  return gridLayout.bound.ids.$[pointToIndex(x, y)];
+
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.bound.ids.$[pointToIndex(x, y)] === checkId
+  );
+};
+
+const testIdInPack = (packedIds: number, x: number, y: number) => {
+  "use gpu";
+
+  const idMask = gridLayout.bound.ids.$[pointToIndex(x, y)];
+
+  // check if id is in the bits
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
+    // so we cannot allow ids greater than 31 here. However no error is thrown,
+    // so to keep gpu logic simple we do the check during the compile step.
+    (packedIds & (d.u32(1) << idMask)) !== d.u32(0)
+  );
+};
+
+/**
+ * Compare the occurrences of checkId in the square neighborhood with count.
+ */
+const checkIdCount = (
+  x: number,
+  y: number,
+  checkId: number,
+  packedCount: number
+) => {
+  "use gpu";
+
+  const countMask =
+    testNeighbor(checkId, x - 1, y - 1) +
+    testNeighbor(checkId, x, y - 1) +
+    testNeighbor(checkId, x + 1, y - 1) +
+    testNeighbor(checkId, x - 1, y) +
+    testNeighbor(checkId, x + 1, y) +
+    testNeighbor(checkId, x - 1, y + 1) +
+    testNeighbor(checkId, x, y + 1) +
+    testNeighbor(checkId, x + 1, y + 1);
+
+  // We select the bit in count using the number of occurrences as a mask
+  // packedCount is representing a 9 bit array of flags
+  // example: count = [2, 3] -> packedCount = 0b000001100
+  // if mask is 3, it means we will check if the 4th LSB is a 1.
+  // We are checking "!= 0u" and not "== 1u" because we are moving
+  // the bit of the mask, and NOT the bit we are reading.
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
+  );
+};
+
+const checkIdsCount = (
+  x: number,
+  y: number,
+  packedIds: number,
+  packedCount: number
+) => {
+  "use gpu";
+
+  const countMask =
+    testIdInPack(packedIds, x - 1, y - 1) +
+    testIdInPack(packedIds, x, y - 1) +
+    testIdInPack(packedIds, x + 1, y - 1) +
+    testIdInPack(packedIds, x - 1, y) +
+    testIdInPack(packedIds, x + 1, y) +
+    testIdInPack(packedIds, x - 1, y + 1) +
+    testIdInPack(packedIds, x, y + 1) +
+    testIdInPack(packedIds, x + 1, y + 1);
+
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
+  );
+};
+
+const checkPointCount = (
+  x: number,
+  y: number,
+  checkPoint: d.v2u,
+  packedCount: number
+) => {
+  "use gpu";
+
+  const pointIndex = pointToIndex(
+    x + d.u32(checkPoint.x),
+    y + d.u32(checkPoint.y)
+  );
+  const checkId = gridLayout.bound.ids.$[pointIndex];
+  return checkIdCount(x, y, checkId, packedCount);
+};
+
+const comparePointWithId = (
+  x: number,
+  y: number,
+  comparePoint: d.v2u,
+  withId: number
+) => {
+  "use gpu";
+
+  const comparePointIndex = pointToIndex(
+    x + comparePoint.x,
+    y + comparePoint.y
+  );
+
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.bound.ids.$[comparePointIndex] === withId
+  );
+};
+
+const comparePointWithKindId = (
+  x: number,
+  y: number,
+  comparePoint: d.v2u,
+  packedIds: number
+) => {
+  "use gpu";
+
+  return testIdInPack(packedIds, x + comparePoint.x, y + comparePoint.y);
+};
+
+const comparePointWithPoint = (
+  x: number,
+  y: number,
+  comparePoint: d.v2u,
+  withPoint: d.v2u
+) => {
+  "use gpu";
+
+  const comparePointIndex = pointToIndex(
+    x + comparePoint.x,
+    y + comparePoint.y
+  );
+  const withPointIndex = pointToIndex(x + withPoint.x, y + withPoint.y);
+
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.bound.ids.$[comparePointIndex] ===
+      gridLayout.bound.ids.$[withPointIndex]
+  );
 };
 
 // also the main compute function has no variable dependencies
-const mainCompute = tgpu["~unstable"].computeFn({
+export const mainCompute = tgpu["~unstable"].computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
@@ -93,16 +242,6 @@ const mainCompute = tgpu["~unstable"].computeFn({
   const ruleStart = element.ruleStart;
   const ruleEnd = element.ruleEnd;
 
-  // Read the 8 neighbor IDs once, reused across conditions
-  const n0 = idAt(x - 1, y - 1);
-  const n1 = idAt(x, y - 1);
-  const n2 = idAt(x + 1, y - 1);
-  const n3 = idAt(x - 1, y);
-  const n4 = idAt(x + 1, y);
-  const n5 = idAt(x - 1, y + 1);
-  const n6 = idAt(x, y + 1);
-  const n7 = idAt(x + 1, y + 1);
-
   for (let i = ruleStart; i < ruleEnd; i++) {
     const rule = automatonLayout.bound.rules.$[i];
     const accept = rule.accept as Accept;
@@ -117,13 +256,31 @@ const mainCompute = tgpu["~unstable"].computeFn({
       const condition = automatonLayout.bound.conditions.$[j];
       const opcode = condition.opcode as Opcode;
 
-      // Resolve compare/with IDs from grid (binding-dependent)
-      const comparePoint = condition.checkPointOrComparePoint;
-      const compareId = idAt(x + comparePoint.x, y + comparePoint.y);
-      const withPoint = condition.withPoint;
-      const withId = idAt(x + withPoint.x, y + withPoint.y);
-
-      if (opcode === Opcode.CHANCE) {
+      if (opcode === Opcode.COUNT_ELEMENT) {
+        const checkId = condition.checkId;
+        const count = condition.countOrWithId;
+        passing += checkIdCount(x, y, checkId, count);
+      } else if (opcode === Opcode.COUNT_POINT) {
+        const checkPoint = condition.checkPointOrComparePoint;
+        const count = condition.countOrWithId;
+        passing += checkPointCount(x, y, checkPoint, count);
+      } else if (opcode === Opcode.COUNT_KIND) {
+        const packedIds = condition.checkId;
+        const count = condition.countOrWithId;
+        passing += checkIdsCount(x, y, packedIds, count);
+      } else if (opcode === Opcode.IS_ELEMENT) {
+        const comparePoint = condition.checkPointOrComparePoint;
+        const withId = condition.countOrWithId;
+        passing += comparePointWithId(x, y, comparePoint, withId);
+      } else if (opcode === Opcode.IS_POINT) {
+        const comparePoint = condition.checkPointOrComparePoint;
+        const withPoint = condition.withPoint;
+        passing += comparePointWithPoint(x, y, comparePoint, withPoint);
+      } else if (opcode === Opcode.IS_KIND) {
+        const comparePoint = condition.checkPointOrComparePoint;
+        const packedIds = condition.countOrWithId;
+        passing += comparePointWithKindId(x, y, comparePoint, packedIds);
+      } else if (opcode === Opcode.CHANCE) {
         const chance = condition.chance;
         randf.seed3(
           d.vec3f(
@@ -132,19 +289,15 @@ const mainCompute = tgpu["~unstable"].computeFn({
           )
         );
         passing += std.select(d.u32(0), d.u32(1), randf.sample() < chance);
-      } else {
-        passing += evaluateCondition(
-          opcode,
-          n0, n1, n2, n3, n4, n5, n6, n7,
-          condition.checkId,
-          condition.countOrWithId,
-          compareId,
-          withId
-        );
       }
     }
 
-    if (accepted(accept, passing, conditionsCount)) {
+    if (
+      (accept === Accept.ALL && passing === conditionsCount) ||
+      (accept === Accept.ANY && passing >= d.u32(1)) ||
+      (accept === Accept.ONE && passing === d.u32(1)) ||
+      (accept === Accept.NONE && passing === d.u32(0))
+    ) {
       let resolvedId = rule.toId;
 
       const toType = rule.toType as To;

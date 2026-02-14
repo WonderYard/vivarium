@@ -1,171 +1,22 @@
 import { describe, expect, test } from "vitest";
-import tgpu, { type TgpuUniform } from "typegpu";
+import tgpu from "typegpu";
 import * as d from "typegpu/data";
-import * as std from "typegpu/std";
-import { randf } from "@typegpu/noise";
 import type { Automaton } from "@/automaton/types";
 import {
-  Accept,
   GpuCondition,
   GpuElement,
   GpuRule,
-  Opcode,
   Square,
-  To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
-import { evaluateCondition, accepted } from "@/simulation/kernel";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
+import {
+  gridLayout,
+  automatonLayout,
+  mainCompute,
+  setSeed,
+} from "@/webgpu/setup";
 import { vivarium } from "@/vivarium/vivarium";
-
-// ── GPU test harness ────────────────────────────────────────────────
-
-/**
- * Minimal GPU pipeline that mirrors setup.ts but allows controlled
- * initial state and reading back IDs for assertions.
- */
-async function createGpuTestHarness() {
-  const adapter = await navigator.gpu.requestAdapter();
-  if (!adapter) {
-    throw new Error("WebGPU adapter not available");
-  }
-  const device = await adapter.requestDevice();
-  const root = tgpu.initFromDevice({ device });
-
-  return { root, device };
-}
-
-const gridLayout = tgpu.bindGroupLayout({
-  dimensions: { uniform: d.vec2u },
-  colors: { storage: d.arrayOf(d.u32), access: "mutable" },
-  newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
-  ids: { storage: d.arrayOf(d.u32), access: "mutable" },
-  newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
-});
-
-const automatonLayout = tgpu.bindGroupLayout({
-  neighborhood: { uniform: d.u32 },
-  elements: {
-    storage: d.arrayOf(GpuElement),
-    access: "readonly",
-  },
-  rules: {
-    storage: d.arrayOf(GpuRule),
-    access: "readonly",
-  },
-  conditions: {
-    storage: d.arrayOf(GpuCondition),
-    access: "readonly",
-  },
-});
-
-const pointToIndex = (x: number, y: number) => {
-  "use gpu";
-  return (
-    (y % gridLayout.bound.dimensions.$.y) * gridLayout.bound.dimensions.$.x +
-    (x % gridLayout.bound.dimensions.$.x)
-  );
-};
-
-const idAt = (x: number, y: number) => {
-  "use gpu";
-  return gridLayout.bound.ids.$[pointToIndex(x, y)];
-};
-
-let seed: TgpuUniform<d.F32>;
-
-const mainCompute = tgpu["~unstable"].computeFn({
-  workgroupSize: WORKGROUP_SIZE,
-  in: { pos: d.builtin.globalInvocationId },
-})(({ pos }) => {
-  const x = pos.x;
-  const y = pos.y;
-  const index = pointToIndex(x, y);
-
-  const color = gridLayout.bound.colors.$[index];
-  const id = gridLayout.bound.ids.$[index];
-
-  const element = automatonLayout.bound.elements.$[id];
-
-  const ruleStart = element.ruleStart;
-  const ruleEnd = element.ruleEnd;
-
-  const n0 = idAt(x - 1, y - 1);
-  const n1 = idAt(x, y - 1);
-  const n2 = idAt(x + 1, y - 1);
-  const n3 = idAt(x - 1, y);
-  const n4 = idAt(x + 1, y);
-  const n5 = idAt(x - 1, y + 1);
-  const n6 = idAt(x, y + 1);
-  const n7 = idAt(x + 1, y + 1);
-
-  for (let i = ruleStart; i < ruleEnd; i++) {
-    const rule = automatonLayout.bound.rules.$[i];
-    const accept = rule.accept as Accept;
-
-    let passing = d.u32(0);
-
-    const conditionsStart = rule.conditionsStart;
-    const conditionsEnd = rule.conditionsEnd;
-    const conditionsCount = conditionsEnd - conditionsStart;
-
-    for (let j = conditionsStart; j < conditionsEnd; j++) {
-      const condition = automatonLayout.bound.conditions.$[j];
-      const opcode = condition.opcode as Opcode;
-
-      const comparePoint = condition.checkPointOrComparePoint;
-      const compareId = idAt(x + comparePoint.x, y + comparePoint.y);
-      const withPoint = condition.withPoint;
-      const withId = idAt(x + withPoint.x, y + withPoint.y);
-
-      if (opcode === Opcode.CHANCE) {
-        const chance = condition.chance;
-        randf.seed3(
-          d.vec3f(
-            std.div(
-              d.vec2f(pos.xy),
-              d.vec2f(gridLayout.bound.dimensions.$.xy)
-            ),
-            seed.$
-          )
-        );
-        passing += std.select(d.u32(0), d.u32(1), randf.sample() < chance);
-      } else {
-        passing += evaluateCondition(
-          opcode,
-          n0, n1, n2, n3, n4, n5, n6, n7,
-          condition.checkId,
-          condition.countOrWithId,
-          compareId,
-          withId
-        );
-      }
-    }
-
-    if (accepted(accept, passing, conditionsCount)) {
-      let resolvedId = rule.toId;
-
-      const toType = rule.toType as To;
-
-      if (toType === To.POINT) {
-        const pointIndex = pointToIndex(
-          x + d.u32(rule.toNeighbor.x),
-          y + d.u32(rule.toNeighbor.y)
-        );
-        resolvedId = gridLayout.bound.ids.$[pointIndex];
-      }
-
-      gridLayout.bound.newIds.$[index] = resolvedId;
-      gridLayout.bound.newColors.$[index] =
-        automatonLayout.bound.elements.$[resolvedId].color;
-
-      return;
-    }
-  }
-
-  gridLayout.bound.newIds.$[index] = id;
-  gridLayout.bound.newColors.$[index] = color;
-});
 
 // ── Test utility ────────────────────────────────────────────────────
 
@@ -202,7 +53,7 @@ async function gpuEvolve(
     .withCompute(mainCompute)
     .createPipeline();
 
-  seed = root.createUniform(d.f32, 0);
+  setSeed(root.createUniform(d.f32, 0));
 
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
@@ -313,7 +164,12 @@ const step = async (
 // ── Tests ───────────────────────────────────────────────────────────
 
 describe("GPU simulation", async () => {
-  const { root } = await createGpuTestHarness();
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) {
+    throw new Error("WebGPU adapter not available");
+  }
+  const device = await adapter.requestDevice();
+  const root = tgpu.initFromDevice({ device });
 
   // ── Unconditional rules ─────────────────────────────────────────
 
