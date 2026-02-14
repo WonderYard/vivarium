@@ -883,7 +883,7 @@ describe("Game of Life patterns", () => {
     expect(after.ids[13]).toBe(D);
   });
 
-  test("L-shape (3 cells) evolves correctly", () => {
+  test("L-shape (4 cells) evolves correctly", () => {
     const before = grid([
       [D, D, D, D, D],
       [D, D, A, D, D],
