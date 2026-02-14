@@ -12,8 +12,8 @@ importers:
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2))
       '@wonderyard/vivarium':
-        specifier: ^0.1.7
-        version: 0.1.7
+        specifier: ^0.1.8
+        version: 0.1.8
       tailwindcss:
         specifier: ^4.1.18
         version: 4.1.18
@@ -417,16 +417,16 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@typegpu/noise@0.7.0':
-    resolution: {integrity: sha512-4q3lN/m0F1pLKz0bJjTj8ukPl0uYsd5EWT4WjauXf19oQrGoHaHIO2lVkTkYTzOvjKf7WvDoSo/MIwv86DxZTg==}
+  '@typegpu/noise@0.9.0':
+    resolution: {integrity: sha512-mAcbjJ7X7VX2Wik7bkif7N9RWArNCdd7S2zSm4lq2MCNGf0arbjuGCMVh/7x9GGpowkZKPO1c+XXEKvdpUlCUg==}
     peerDependencies:
-      typegpu: ^0.7.0
+      typegpu: ^0.9.0
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
-  '@wonderyard/vivarium@0.1.7':
-    resolution: {integrity: sha512-Yl4Du3flICDL7sK9BJihK+hMF9WrWB/+T7qrx7AOfE+g2zCf48rWjPQuCZMQ6QPBp86cgVLVfrY7G6xoN4Bwrg==}
+  '@wonderyard/vivarium@0.1.8':
+    resolution: {integrity: sha512-eX+/ZQNm1WdFqeR1yiE1A+l53k8SZ/o+Lyjtoy10CKwYHPS8SdvKp3DoxARL3Whx6hyF/bRX3VuDPrU5HohYKg==}
 
   daisyui@5.5.18:
     resolution: {integrity: sha512-VVzjpOitMGB6DWIBeRSapbjdOevFqyzpk9u5Um6a4tyId3JFrU5pbtF0vgjXDth76mJZbueN/j9Ok03SPrh/og==}
@@ -575,8 +575,8 @@ packages:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
 
-  tinyest@0.1.2:
-    resolution: {integrity: sha512-aHRmouyowIq1P5jrTF+YK6pGX+WuvFtSCLbqk91yHnU3SWQRIcNIamZLM5XF6lLqB13AWz0PGPXRff2QGDsxIg==}
+  tinyest@0.2.0:
+    resolution: {integrity: sha512-k8XL8FipMVboHtNwAJ6PgGVkWk+9hWEROGoxEXJKmO9ZOXehlBgdGY5uCkGRgT60TYJhtfOelvC/ikMpKYAmHA==}
     engines: {node: '>=12.20.0'}
 
   tinyglobby@0.2.15:
@@ -586,8 +586,8 @@ packages:
   typed-binary@4.3.2:
     resolution: {integrity: sha512-HT3pIBM2njCZUmeczDaQUUErGiM6GXFCqMsHegE12HCoBtvHCkfR10JJni0TeGOTnLilTd6YFyj+YhflqQDrDQ==}
 
-  typegpu@0.7.1:
-    resolution: {integrity: sha512-PyP/ZRsX8lCX27fNzBE5TjwxC8Vj88RcLlCv4VXg5sVd6gBuiPZTJQoC5HR15hjTJoRAfayT/TXQ4phWOkA/aA==}
+  typegpu@0.9.0:
+    resolution: {integrity: sha512-1mIUiElaxmwy4RMGvFrifHYmLnXLQjB30eKanAWj1ab3qhJvDq0bUfi9j0JP3jaQPXsGgFcNvLGJvCfvi55Ajg==}
     engines: {node: '>=12.20.0'}
 
   typescript@5.9.3:
@@ -877,17 +877,17 @@ snapshots:
       tailwindcss: 4.1.18
       vite: 7.3.1(jiti@2.6.1)(lightningcss@1.30.2)
 
-  '@typegpu/noise@0.7.0(typegpu@0.7.1)':
+  '@typegpu/noise@0.9.0(typegpu@0.9.0)':
     dependencies:
-      typegpu: 0.7.1
+      typegpu: 0.9.0
 
   '@types/estree@1.0.8': {}
 
-  '@wonderyard/vivarium@0.1.7':
+  '@wonderyard/vivarium@0.1.8':
     dependencies:
-      '@typegpu/noise': 0.7.0(typegpu@0.7.1)
+      '@typegpu/noise': 0.9.0(typegpu@0.9.0)
       nanoid: 5.1.6
-      typegpu: 0.7.1
+      typegpu: 0.9.0
 
   daisyui@5.5.18: {}
 
@@ -1042,7 +1042,7 @@ snapshots:
 
   tapable@2.3.0: {}
 
-  tinyest@0.1.2: {}
+  tinyest@0.2.0: {}
 
   tinyglobby@0.2.15:
     dependencies:
@@ -1051,9 +1051,9 @@ snapshots:
 
   typed-binary@4.3.2: {}
 
-  typegpu@0.7.1:
+  typegpu@0.9.0:
     dependencies:
-      tinyest: 0.1.2
+      tinyest: 0.2.0
       typed-binary: 4.3.2
 
   typescript@5.9.3: {}
