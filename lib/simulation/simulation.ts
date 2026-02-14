@@ -2,9 +2,8 @@ import type { Automaton } from "@/automaton/types";
 import { Accept, Opcode, To } from "@/common/constants";
 import { type GpuAutomaton, compileGpuAutomaton } from "@/webgpu/compiler";
 import {
-  matchesElement,
-  matchesPackedCount,
-  matchesPackedIds,
+  evaluateCondition,
+  accepted,
 } from "./kernel";
 
 export type Grid = {
@@ -34,50 +33,6 @@ const idAt = (
   return ids[pointToIndex(x, y, width, height)];
 };
 
-const checkIdCount = (
-  ids: number[],
-  x: number,
-  y: number,
-  checkId: number,
-  packedCount: number,
-  width: number,
-  height: number
-): number => {
-  const countMask =
-    matchesElement(idAt(ids, x - 1, y - 1, width, height), checkId) +
-    matchesElement(idAt(ids, x, y - 1, width, height), checkId) +
-    matchesElement(idAt(ids, x + 1, y - 1, width, height), checkId) +
-    matchesElement(idAt(ids, x - 1, y, width, height), checkId) +
-    matchesElement(idAt(ids, x + 1, y, width, height), checkId) +
-    matchesElement(idAt(ids, x - 1, y + 1, width, height), checkId) +
-    matchesElement(idAt(ids, x, y + 1, width, height), checkId) +
-    matchesElement(idAt(ids, x + 1, y + 1, width, height), checkId);
-
-  return matchesPackedCount(countMask, packedCount);
-};
-
-const checkIdsCount = (
-  ids: number[],
-  x: number,
-  y: number,
-  packedIds: number,
-  packedCount: number,
-  width: number,
-  height: number
-): number => {
-  const countMask =
-    matchesPackedIds(idAt(ids, x - 1, y - 1, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x, y - 1, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x + 1, y - 1, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x - 1, y, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x + 1, y, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x - 1, y + 1, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x, y + 1, width, height), packedIds) +
-    matchesPackedIds(idAt(ids, x + 1, y + 1, width, height), packedIds);
-
-  return matchesPackedCount(countMask, packedCount);
-};
-
 // Convert vec2u neighbor offset back to signed coordinates.
 // In the GPU, -1 is stored as 0xFFFFFFFF (unsigned). We interpret values > 0x7FFFFFFF as negative.
 const toSigned = (v: number): number => {
@@ -97,6 +52,16 @@ export const evolve = (grid: Grid, gpu: GpuAutomaton): Grid => {
 
       let transitioned = false;
 
+      // Read the 8 neighbor IDs once, reused across conditions
+      const n0 = idAt(ids, x - 1, y - 1, width, height);
+      const n1 = idAt(ids, x, y - 1, width, height);
+      const n2 = idAt(ids, x + 1, y - 1, width, height);
+      const n3 = idAt(ids, x - 1, y, width, height);
+      const n4 = idAt(ids, x + 1, y, width, height);
+      const n5 = idAt(ids, x - 1, y + 1, width, height);
+      const n6 = idAt(ids, x, y + 1, width, height);
+      const n7 = idAt(ids, x + 1, y + 1, width, height);
+
       for (let i = element.ruleStart; i < element.ruleEnd; i++) {
         const rule = gpuRules[i];
         const accept = rule.accept as Accept;
@@ -109,87 +74,34 @@ export const evolve = (grid: Grid, gpu: GpuAutomaton): Grid => {
           const condition = gpuConditions[j];
           const opcode = condition.opcode as Opcode;
 
-          if (opcode === Opcode.COUNT_ELEMENT) {
-            passing += checkIdCount(
-              ids,
-              x,
-              y,
-              condition.checkId,
-              condition.countOrWithId,
-              width,
-              height
-            );
-          } else if (opcode === Opcode.COUNT_POINT) {
-            const checkId = idAt(
-              ids,
-              x + toSigned(condition.checkPointOrComparePoint.x),
-              y + toSigned(condition.checkPointOrComparePoint.y),
-              width,
-              height
-            );
-            passing += checkIdCount(
-              ids,
-              x,
-              y,
-              checkId,
-              condition.countOrWithId,
-              width,
-              height
-            );
-          } else if (opcode === Opcode.COUNT_KIND) {
-            passing += checkIdsCount(
-              ids,
-              x,
-              y,
-              condition.checkId,
-              condition.countOrWithId,
-              width,
-              height
-            );
-          } else if (opcode === Opcode.IS_ELEMENT) {
-            const compareId = idAt(
-              ids,
-              x + toSigned(condition.checkPointOrComparePoint.x),
-              y + toSigned(condition.checkPointOrComparePoint.y),
-              width,
-              height
-            );
-            passing += matchesElement(compareId, condition.countOrWithId);
-          } else if (opcode === Opcode.IS_POINT) {
-            const compareId = idAt(
-              ids,
-              x + toSigned(condition.checkPointOrComparePoint.x),
-              y + toSigned(condition.checkPointOrComparePoint.y),
-              width,
-              height
-            );
-            const withId = idAt(
-              ids,
-              x + toSigned(condition.withPoint.x),
-              y + toSigned(condition.withPoint.y),
-              width,
-              height
-            );
-            passing += matchesElement(compareId, withId);
-          } else if (opcode === Opcode.IS_KIND) {
-            const compareId = idAt(
-              ids,
-              x + toSigned(condition.checkPointOrComparePoint.x),
-              y + toSigned(condition.checkPointOrComparePoint.y),
-              width,
-              height
-            );
-            passing += matchesPackedIds(compareId, condition.countOrWithId);
-          }
-          // CHANCE is intentionally skipped — tests should use deterministic rules
+          // Resolve compare/with IDs from grid (CPU array access)
+          const compareId = idAt(
+            ids,
+            x + toSigned(condition.checkPointOrComparePoint.x),
+            y + toSigned(condition.checkPointOrComparePoint.y),
+            width,
+            height
+          );
+          const withId = idAt(
+            ids,
+            x + toSigned(condition.withPoint.x),
+            y + toSigned(condition.withPoint.y),
+            width,
+            height
+          );
+
+          passing += evaluateCondition(
+            opcode,
+            n0, n1, n2, n3, n4, n5, n6, n7,
+            condition.checkId,
+            condition.countOrWithId,
+            compareId,
+            withId
+          );
+          // CHANCE is handled as a no-op (returns 0) — tests should use deterministic rules
         }
 
-        if (
-          (accept === Accept.ALL && passing === conditionsCount) ||
-          (accept === Accept.ANY && passing >= 1) ||
-          (accept === Accept.ONE && passing === 1) ||
-          (accept === Accept.NONE && passing === 0)
-        ) {
+        if (accepted(accept, passing, conditionsCount)) {
           let resolvedId = rule.toId;
 
           const toType = rule.toType as To;
