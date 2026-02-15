@@ -11,6 +11,9 @@ import type { AnyNeighbor, BlueprintContext } from "@/blueprint/types";
 import { toRefIdOrPoint } from "@/blueprint/utils";
 import { Accept } from "@/common/constants";
 
+/**
+ * Base class for element and kind blueprints. Provides the {@link RefBlueprint.to | to} method for defining rules.
+ */
 export abstract class RefBlueprint extends BaseBlueprint {
   public id: string;
   public name: string;
@@ -27,6 +30,12 @@ export abstract class RefBlueprint extends BaseBlueprint {
     this.type = ref.type;
   }
 
+  /**
+   * Creates a new rule that transitions cells of this element (or kind) to another element or neighbor reference.
+   *
+   * @param elementBlueprintOrNeighbor - The target element, or a neighbor position reference (e.g. `vi.neighbor.TOP`).
+   * @returns A {@link RuleBlueprint} for chaining conditions.
+   */
   public to(
     elementBlueprintOrNeighbor: ElementBlueprint | AnyNeighbor
   ): RuleBlueprint {
@@ -46,6 +55,10 @@ export abstract class RefBlueprint extends BaseBlueprint {
   }
 }
 
+/**
+ * Blueprint for an element. Returned by {@link VivariumBlueprint.element | vivarium().element()}.
+ * Use {@link RefBlueprint.to | to()} to define rules on this element.
+ */
 export class ElementBlueprint extends RefBlueprint {
   type = "element" as const;
   id: string;
@@ -61,6 +74,10 @@ export class ElementBlueprint extends RefBlueprint {
   }
 }
 
+/**
+ * Blueprint for a kind. Returned by {@link VivariumBlueprint.kind | vivarium().kind()}.
+ * Use {@link RefBlueprint.to | to()} to define shared rules for all elements extending this kind.
+ */
 export class KindBlueprint extends RefBlueprint {
   type = "kind" as const;
   id: string;

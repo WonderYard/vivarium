@@ -322,6 +322,15 @@ export const mainCompute = tgpu["~unstable"].computeFn({
   gridLayout.bound.newColors.$[index] = color;
 });
 
+/**
+ * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
+ * with the defined elements.
+ *
+ * @param options - An object containing the `canvas` element and the compiled `automaton`.
+ * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
+ * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
+ * @returns An object with an `evolve` function that advances the simulation by one step, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
+ */
 export const setup = ({
   canvas,
   automaton,

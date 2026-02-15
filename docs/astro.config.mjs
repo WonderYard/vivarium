@@ -3,6 +3,7 @@
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 
 // https://astro.build/config
 export default defineConfig({
@@ -15,6 +16,17 @@ export default defineConfig({
       },
       favicon: "/favicon.png",
       customCss: ["./src/styles/global.css"],
+      plugins: [
+        starlightTypeDoc({
+          entryPoints: ["../lib/main.ts"],
+          tsconfig: "../tsconfig.json",
+          typeDoc: {
+            excludePrivate: true,
+            excludeProtected: true,
+            excludeInternal: true,
+          },
+        }),
+      ],
       social: [
         {
           icon: "github",
@@ -36,7 +48,7 @@ export default defineConfig({
         {
           label: "Reference",
           collapsed: true,
-          autogenerate: { directory: "reference" },
+          items: [typeDocSidebarGroup],
         },
       ],
     }),
