@@ -43,7 +43,7 @@ Now let's apply one rule: "a blue cell becomes green if it has exactly 1 green n
 
 The simulation processes this in two phases. First, it _counts_: for every cell in the grid, it counts how many green cells are in its neighborhood. The center cell is the only green cell, so only its immediate neighbors will get a count of 1. All other cells, being too far from the center, will get a count of 0.
 
-Then, it _updates_: every cell that got a count of 1 becomes green. The rest stay as they are. After this step, the center cell is still green and all 8 of its neighbors have also turned green — forming a small green square in the middle of our grid.
+Then, it _updates_: every cell that got a count of 1 becomes green. The rest stay as they are. After this step, the center cell is still green and all 8 of its neighbors have also turned green — forming a 3x3 green square in the middle of our grid.
 
 Why two separate phases? Because if we updated cells one at a time as we scanned them, earlier updates would affect later counts. A cell might see some neighbors in their "new" state and others still in their "old" state, producing inconsistent results. By separating counting from updating, every cell makes its decision based on the same snapshot of the grid. This guarantees a fair, simultaneous evolution for every cell at every step.
 
