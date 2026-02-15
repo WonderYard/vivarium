@@ -18,6 +18,10 @@ import {
   setSeed,
 } from "@/webgpu/setup";
 
+// ── Debug ───────────────────────────────────────────────────────────
+
+const DEBUG = import.meta.env.VITE_DEBUG === "1";
+
 // ── Test utility ────────────────────────────────────────────────────
 
 type Grid = {
@@ -38,6 +42,45 @@ const toRows = (g: Grid): number[][] => {
     rows.push(g.ids.slice(y * g.width, (y + 1) * g.width));
   }
   return rows;
+};
+
+// ── ASCII grid visualization ────────────────────────────────────────
+
+const formatGrid = (g: Grid, symbols: string[]): string[] => {
+  const rows: string[] = [];
+  for (let y = 0; y < g.height; y++) {
+    let row = "";
+    for (let x = 0; x < g.width; x++) {
+      row += symbols[g.ids[y * g.width + x]] ?? "?";
+    }
+    rows.push(row);
+  }
+  return rows;
+};
+
+const printEvolution = (
+  before: Grid,
+  after: Grid,
+  automaton: Automaton,
+  label?: string
+): void => {
+  if (!DEBUG) return;
+
+  const symbols = automaton.elements.map((el) => el.name[0].toUpperCase());
+  const beforeRows = formatGrid(before, symbols);
+  const afterRows = formatGrid(after, symbols);
+  const height = Math.max(beforeRows.length, afterRows.length);
+  const pad = before.width;
+
+  const lines: string[] = [];
+  if (label) lines.push(`  ${label}`);
+  for (let y = 0; y < height; y++) {
+    const left = (beforeRows[y] ?? "").padEnd(pad);
+    const arrow = y === Math.floor(height / 2) ? " → " : "   ";
+    const right = afterRows[y] ?? "";
+    lines.push(`  ${left}${arrow}${right}`);
+  }
+  console.log(lines.join("\n"));
 };
 
 /**
@@ -122,8 +165,11 @@ async function gpuEvolve(
 
   // Read back IDs from the output buffer (ids1)
   const resultIds = await ids1.read();
+  const outputGrid = { width, height, ids: Array.from(resultIds) };
 
-  return { width, height, ids: Array.from(resultIds) };
+  printEvolution(inputGrid, outputGrid, automaton);
+
+  return outputGrid;
 }
 
 /**
