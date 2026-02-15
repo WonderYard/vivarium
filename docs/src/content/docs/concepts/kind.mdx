@@ -11,7 +11,7 @@ A kind is a way to group elements that share common behavior. Unlike elements, k
 ## Creating a kind
 
 ```typescript
-const conductor = vi.kind("conductor");
+const creature = vi.kind("creature");
 ```
 
 The name must be unique across all elements and kinds.
@@ -21,20 +21,19 @@ The name must be unique across all elements and kinds.
 Elements extend a kind by passing it in an array when they are created:
 
 ```typescript
-const conductor = vi.kind("conductor");
+const creature = vi.kind("creature");
 
-const wire = vi.element("wire", "orange", [conductor]);
-const head = vi.element("head", "blue", [conductor]);
-const tail = vi.element("tail", "white", [conductor]);
+const fish = vi.element("fish", "blue", [creature]);
+const bird = vi.element("bird", "orange", [creature]);
 ```
 
 An element can extend more than one kind:
 
 ```typescript
-const organic = vi.kind("organic");
-const living = vi.kind("living");
+const creature = vi.kind("creature");
+const flying = vi.kind("flying");
 
-const tree = vi.element("tree", "green", [organic, living]);
+const bird = vi.element("bird", "orange", [creature, flying]);
 ```
 
 ## Defining rules on kinds
@@ -42,27 +41,41 @@ const tree = vi.element("tree", "green", [organic, living]);
 Rules can be defined on a kind just like on an element. When a rule is defined on a kind, it applies to every element that extends that kind, with lower priority than rules defined directly on the element.
 
 ```typescript
-const conductor = vi.kind("conductor");
+const creature = vi.kind("creature");
 
 const empty = vi.element("empty", "black");
-const wire = vi.element("wire", "orange", [conductor]);
-const head = vi.element("head", "blue", [conductor]);
-const tail = vi.element("tail", "white", [conductor]);
+const fish = vi.element("fish", "blue", [creature]);
+const bird = vi.element("bird", "orange", [creature]);
 
-// This rule applies to wire, head, and tail
-conductor.to(empty).count(empty, 8);
+// Any creature dies when completely isolated (no creatures nearby)
+creature.to(empty).count(creature, 0);
 ```
+
+In this example, `fish` and `bird` both inherit the rule: if a creature has zero creatures in its neighborhood, it becomes `empty`. Without kinds, we would have to write this rule separately for each element. This is the key benefit: shared behavior, defined once.
+
+Since kind rules have lower priority than element rules, you can still override them for specific elements:
+
+```typescript
+// Birds have their own specific rule: they survive near other birds
+bird.to(bird).count(bird, 2, 3);
+
+// The kind rule still acts as a fallback for both fish and bird
+creature.to(empty).count(creature, 0);
+```
+
+Here, `bird` checks its own rule first. If that doesn't match, it falls back to the kind rule. `fish` has no element-level rules, so the kind rule is the only one it uses.
 
 ## Using kinds in conditions
 
 Kinds can be used in `count` and `is` conditions. When a condition checks for a kind, it matches any element that extends that kind.
 
 ```typescript
-// Count all conductors in the neighborhood
-empty.to(wire).count(conductor, 2);
+// An empty cell becomes a fish if exactly 3 creatures are nearby
+// (regardless of whether those creatures are fish or birds)
+empty.to(fish).count(creature, 3);
 
-// Check if a specific neighbor is a conductor
-empty.to(wire).is(vi.neighbor.TOP, conductor);
+// Check if the cell above is any creature
+empty.to(fish).is(vi.neighbor.TOP, creature);
 ```
 
 This is useful when you want a condition to match a group of elements without listing each one individually.
