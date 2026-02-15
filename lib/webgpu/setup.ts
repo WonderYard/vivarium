@@ -27,8 +27,12 @@ void device.lost.then(() => {
 let frames = 0;
 let seed: TgpuUniform<d.F32>;
 
+export const setSeed = (s: TgpuUniform<d.F32>) => {
+  seed = s;
+};
+
 // layouts are predefined
-const gridLayout = tgpu.bindGroupLayout({
+export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   colors: { storage: d.arrayOf(d.u32), access: "mutable" },
   newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
@@ -36,7 +40,7 @@ const gridLayout = tgpu.bindGroupLayout({
   newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
 });
 
-const automatonLayout = tgpu.bindGroupLayout({
+export const automatonLayout = tgpu.bindGroupLayout({
   neighborhood: { uniform: d.u32 },
   elements: {
     storage: d.arrayOf(GpuElement),
@@ -222,7 +226,7 @@ const comparePointWithPoint = (
 };
 
 // also the main compute function has no variable dependencies
-const mainCompute = tgpu["~unstable"].computeFn({
+export const mainCompute = tgpu["~unstable"].computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
@@ -392,6 +396,10 @@ export const setup = ({
 
     palette = gpuElements.map((element) => element.color);
 
+    const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
+    const conditions =
+      gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
+
     automatonGroup = root.createBindGroup(automatonLayout, {
       neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
       elements: root
@@ -401,16 +409,10 @@ export const setup = ({
         )
         .$usage("storage"),
       rules: root
-        .createBuffer(
-          d.arrayOf(GpuRule, Math.max(gpuRules.length, 1)),
-          gpuRules
-        )
+        .createBuffer(d.arrayOf(GpuRule, rules.length), rules)
         .$usage("storage"),
       conditions: root
-        .createBuffer(
-          d.arrayOf(GpuCondition, Math.max(gpuConditions.length, 1)),
-          gpuConditions
-        )
+        .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
         .$usage("storage"),
     });
   };

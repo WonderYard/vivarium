@@ -1,6 +1,9 @@
+/// <reference types="vitest/config" />
+
 import { extname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import basicSsl from "@vitejs/plugin-basic-ssl";
+import { playwright } from "@vitest/browser-playwright";
 import { glob } from "glob";
 import typegpu from "unplugin-typegpu/vite";
 import { defineConfig } from "vite";
@@ -39,5 +42,35 @@ export default defineConfig({
     alias: {
       "@/": new URL("./lib/", import.meta.url).pathname,
     },
+  },
+
+  test: {
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["lib/**/*.test.ts"],
+          exclude: ["lib/**/*.browser.test.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "browser",
+          include: ["lib/**/*.browser.test.ts"],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({
+              launchOptions: {
+                args: ["--enable-unsafe-webgpu"],
+              },
+            }),
+            instances: [{ browser: "chromium" }],
+          },
+        },
+      },
+    ],
   },
 });
