@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
-    "@wonderyard/vivarium": "^0.1.9",
+    "@wonderyard/vivarium": "^1.0.0",
     "tailwindcss": "^4.1.18"
   }
 }
