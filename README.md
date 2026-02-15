@@ -70,7 +70,7 @@ const canvas = document.createElement(canvas);
 document.body.appendChild(canvas);
 
 // Set the canvas size. This will be the automaton size as well.
-const size = 512;
+const size = 256;
 canvas.width = size;
 canvas.height = size;
 
