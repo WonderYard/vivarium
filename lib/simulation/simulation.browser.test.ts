@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { describe, expect, test } from "vitest";
