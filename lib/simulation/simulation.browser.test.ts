@@ -329,8 +329,8 @@ describe("GPU simulation", async () => {
       const after = await step(
         root,
         (vi) => {
-          const dead = vi.element("dead", "#000000");
-          const alive = vi.element("alive", "#ffffff");
+          const dead = vi.element(".", "#000000");
+          const alive = vi.element("#", "#ffffff");
           dead.to(alive).count(alive, 3);
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
@@ -351,8 +351,8 @@ describe("GPU simulation", async () => {
       const after = await step(
         root,
         (vi) => {
-          const dead = vi.element("dead", "#000000");
-          const alive = vi.element("alive", "#ffffff");
+          const dead = vi.element(".", "#000000");
+          const alive = vi.element("#", "#ffffff");
           dead.to(alive).count(alive, 3);
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
@@ -373,8 +373,8 @@ describe("GPU simulation", async () => {
       const after = await step(
         root,
         (vi) => {
-          const dead = vi.element("dead", "#000000");
-          const alive = vi.element("alive", "#ffffff");
+          const dead = vi.element(".", "#000000");
+          const alive = vi.element("#", "#ffffff");
           dead.to(alive).count(alive, 3);
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
@@ -395,8 +395,8 @@ describe("GPU simulation", async () => {
       const after = await step(
         root,
         (vi) => {
-          const dead = vi.element("dead", "#000000");
-          const alive = vi.element("alive", "#ffffff");
+          const dead = vi.element(".", "#000000");
+          const alive = vi.element("#", "#ffffff");
           dead.to(alive).count(alive, 3);
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
@@ -917,8 +917,8 @@ describe("GPU simulation", async () => {
 
   describe("Game of Life patterns", () => {
     const buildLife = (vi: ReturnType<typeof vivarium>) => {
-      const dead = vi.element("dead", "#000000");
-      const alive = vi.element("alive", "#ffffff");
+      const dead = vi.element(".", "#000000");
+      const alive = vi.element("#", "#ffffff");
       dead.to(alive).count(alive, 3);
       alive.to(alive).count(alive, 2, 3);
       alive.to(dead);
@@ -1062,8 +1062,8 @@ describe("GPU simulation", async () => {
       const A = 1;
 
       const buildLife = (vi: ReturnType<typeof vivarium>) => {
-        const dead = vi.element("dead", "#000000");
-        const alive = vi.element("alive", "#ffffff");
+        const dead = vi.element(".", "#000000");
+        const alive = vi.element("#", "#ffffff");
         dead.to(alive).count(alive, 3);
         alive.to(alive).count(alive, 2, 3);
         alive.to(dead);
