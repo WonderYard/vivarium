@@ -69,13 +69,19 @@ If you swapped the order, the unconditional `alien.to(space)` would always match
 Rules can also be defined on kinds. When a rule is on a kind, it applies to all elements that extend that kind, but with lower priority than rules defined directly on the element itself.
 
 ```typescript
-const conductor = vi.kind("conductor");
+const creature = vi.kind("creature");
 
-const wire = vi.element("wire", "orange", [conductor]);
-const head = vi.element("head", "blue", [conductor]);
+const empty = vi.element("empty", "black");
+const fish = vi.element("fish", "blue", [creature]);
+const bird = vi.element("bird", "orange", [creature]);
 
-// This rule applies to both wire and head, after their own rules
-conductor.to(vi.element("empty", "black"));
+// Birds have their own specific rule
+bird.to(bird).count(bird, 2, 3);
+
+// This rule applies to both fish and bird, after their own rules
+creature.to(empty).count(creature, 0);
 ```
+
+In this example, `bird` checks its own rule first — if it has 2 or 3 bird neighbors, it stays. If not, it falls back to the kind rule: if there are no creatures nearby, it dies. `fish` has no element-level rules, so it uses the kind rule directly.
 
 See [Kind](/concepts/kind) for more details.
