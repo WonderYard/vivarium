@@ -23,8 +23,8 @@
     "types": ["@webgpu/types"],
 
     "paths": {
-      "@wonderyard/vivarium": ["../../lib/main.ts"],
-      "@/*": ["../../lib/*"]
+      "@wonderyard/vivarium": ["../lib/main.ts"],
+      "@/*": ["../lib/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

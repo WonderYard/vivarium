@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vivarium demo - Forest Fire</title>
+    <title>Vivarium demo - Brian's Brain</title>
   </head>
   <body>
     <div class="flex justify-center">
@@ -13,10 +13,13 @@
         <div
           class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full"
         >
-          <h1 class="text-2xl font-bold">Vivarium demo - Forest Fire</h1>
+          <div class="flex flex-row gap-2 items-center">
+            <a class="btn btn-soft btn-sm" href="/">←</a>
+            <h1 class="text-2xl font-bold">Vivarium demo - Brian's Brain</h1>
+          </div>
           <a
             class="btn btn-soft btn-accent btn-sm"
-            href="https://github.com/WonderYard/vivarium/blob/develop/examples/life/src/forest-fire.ts"
+            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/brians-brain.ts"
           >
             Source
           </a>
@@ -41,28 +44,21 @@
         >
           <pre
             data-prefix="1"
-          ><code>const empty = element("empty", "navy")</code></pre>
+          ><code>const off = element("off", "navy")</code></pre>
           <pre
             data-prefix="2"
-          ><code>const tree = element("tree", "green")</code></pre>
+          ><code>const dying = element("dying", "blue")</code></pre>
           <pre
             data-prefix="3"
-          ><code>const burning = element("burning", "red")</code></pre>
+          ><code>const on = element("on", "white")</code></pre>
           <pre data-prefix="4"></pre>
           <pre
             data-prefix="5"
-          ><code>burning.to(empty)</code></pre>
-          <pre
-            data-prefix="6"
-          ><code>tree.to(burning).count(burning, between(1,8))</code></pre>
-          <pre
-            data-prefix="7"
-          ><code>tree.to(burning).chance(1, 10000)</code></pre>
-          <pre
-            data-prefix="8"
-          ><code>empty.to(tree).chance(1, 100)</code></pre>
-          <pre data-prefix="9"></pre>
-          <pre data-prefix="10"><code>const fire = create()</code></pre>
+          ><code>off.to(on).count(on, 2)</code></pre>
+          <pre data-prefix="6"><code>on.to(dying)</code></pre>
+          <pre data-prefix="7"><code>dying.to(off)</code></pre>
+          <pre data-prefix="8"></pre>
+          <pre data-prefix="9"><code>const brain = create()</code></pre>
         </div>
         <a
           class="btn btn-accent self-center"
@@ -74,13 +70,10 @@
           class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-[400px] left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
         >
           <div class="divider mt-0 mb-0"></div>
-          <div class="flex gap-4 items-center">
-            <a class="link link-hover text-xs" href="/">All examples</a>
-            <code class="text-xs">@wonderyard/vivarium</code>
-          </div>
+          <code class="text-xs">@wonderyard/vivarium</code>
         </div>
       </div>
     </div>
-    <script type="module" src="/src/forest-fire.ts"></script>
+    <script type="module" src="/src/brians-brain.ts"></script>
   </body>
 </html>

@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [tailwindcss(), typegpu({})],
   resolve: {
     alias: {
-      "@wonderyard/vivarium": resolve(__dirname, "../../lib/main.ts"),
-      "@/": resolve(__dirname, "../../lib") + "/",
+      "@wonderyard/vivarium": resolve(__dirname, "../lib/main.ts"),
+      "@/": resolve(__dirname, "../lib") + "/",
     },
   },
   build: {

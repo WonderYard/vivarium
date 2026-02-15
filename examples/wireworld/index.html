@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vivarium demo - Brian's Brain</title>
+    <title>Vivarium demo - Wireworld</title>
   </head>
   <body>
     <div class="flex justify-center">
@@ -13,10 +13,13 @@
         <div
           class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full"
         >
-          <h1 class="text-2xl font-bold">Vivarium demo - Brian's Brain</h1>
+          <div class="flex flex-row gap-2 items-center">
+            <a class="btn btn-soft btn-sm" href="/">←</a>
+            <h1 class="text-2xl font-bold">Vivarium demo - Wireworld</h1>
+          </div>
           <a
             class="btn btn-soft btn-accent btn-sm"
-            href="https://github.com/WonderYard/vivarium/blob/develop/examples/life/src/brians-brain.ts"
+            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/wireworld.ts"
           >
             Source
           </a>
@@ -41,21 +44,27 @@
         >
           <pre
             data-prefix="1"
-          ><code>const off = element("off", "navy")</code></pre>
+          ><code>const empty = element("empty", "navy")</code></pre>
           <pre
             data-prefix="2"
-          ><code>const dying = element("dying", "blue")</code></pre>
+          ><code>const head = element("head", "blue")</code></pre>
           <pre
             data-prefix="3"
-          ><code>const on = element("on", "white")</code></pre>
-          <pre data-prefix="4"></pre>
+          ><code>const tail = element("tail", "red")</code></pre>
           <pre
-            data-prefix="5"
-          ><code>off.to(on).count(on, 2)</code></pre>
-          <pre data-prefix="6"><code>on.to(dying)</code></pre>
-          <pre data-prefix="7"><code>dying.to(off)</code></pre>
-          <pre data-prefix="8"></pre>
-          <pre data-prefix="9"><code>const brain = create()</code></pre>
+            data-prefix="4"
+          ><code>const conductor = element("conductor", "yellow")</code></pre>
+          <pre data-prefix="5"></pre>
+          <pre data-prefix="6"><code>head.to(tail)</code></pre>
+          <pre data-prefix="7"><code>tail.to(conductor)</code></pre>
+          <pre
+            data-prefix="8"
+          ><code>conductor.to(head).count(head, 1, 2)</code></pre>
+          <pre
+            data-prefix="9"
+          ><code>conductor.to(conductor)</code></pre>
+          <pre data-prefix="10"></pre>
+          <pre data-prefix="11"><code>const wireworld = create()</code></pre>
         </div>
         <a
           class="btn btn-accent self-center"
@@ -67,13 +76,10 @@
           class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-[400px] left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
         >
           <div class="divider mt-0 mb-0"></div>
-          <div class="flex gap-4 items-center">
-            <a class="link link-hover text-xs" href="/">All examples</a>
-            <code class="text-xs">@wonderyard/vivarium</code>
-          </div>
+          <code class="text-xs">@wonderyard/vivarium</code>
         </div>
       </div>
     </div>
-    <script type="module" src="/src/brians-brain.ts"></script>
+    <script type="module" src="/src/wireworld.ts"></script>
   </body>
 </html>
