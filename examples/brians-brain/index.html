@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vivarium demo - Life</title>
+    <title>Vivarium demo - Brian's Brain</title>
   </head>
   <body>
     <div class="flex justify-center">
@@ -15,11 +15,11 @@
         >
           <div class="flex flex-row gap-2 items-center">
             <a class="btn btn-soft btn-sm" href="/">←</a>
-            <h1 class="text-2xl font-bold">Life</h1>
+            <h1 class="text-2xl font-bold">Brian's Brain</h1>
           </div>
           <a
             class="btn btn-soft btn-accent btn-sm"
-            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/main.ts"
+            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/brians-brain.ts"
           >
             Source
           </a>
@@ -29,7 +29,7 @@
           class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100"
         >
           <figure class="aspect-square">
-            <canvas class="w-full" id="life-canvas"></canvas>
+            <canvas class="w-full" id="example-canvas"></canvas>
           </figure>
           <button
             class="btn btn-soft btn-accent btn-sm absolute right-0 bottom-0 m-2"
@@ -44,20 +44,19 @@
         >
           <pre
             data-prefix="1"
-          ><code>const space = element("space", "blue")</code></pre>
+          ><code>const off = element("off", "black")</code></pre>
           <pre
             data-prefix="2"
-          ><code>const alien = element("alien", "green")</code></pre>
-          <pre data-prefix="3"></pre>
+          ><code>const dying = element("dying", "blue")</code></pre>
           <pre
-            data-prefix="4"
-          ><code>space.to(alien).count(alien, 3)</code></pre>
-          <pre
-            data-prefix="5"
-          ><code>alien.to(alien).count(alien, 2, 3)</code></pre>
-          <pre data-prefix="6"><code>alien.to(space)</code></pre>
-          <pre data-prefix="7"></pre>
-          <pre data-prefix="8"><code>const life = create()</code></pre>
+            data-prefix="3"
+          ><code>const on = element("on", "white")</code></pre>
+          <pre data-prefix="4"></pre>
+          <pre data-prefix="5"><code>off.to(on).count(on, 2)</code></pre>
+          <pre data-prefix="6"><code>on.to(dying)</code></pre>
+          <pre data-prefix="7"><code>dying.to(off)</code></pre>
+          <pre data-prefix="8"></pre>
+          <pre data-prefix="9"><code>const brain = create()</code></pre>
         </div>
         <a
           class="btn btn-accent self-center"
@@ -73,6 +72,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/brians-brain.ts"></script>
   </body>
 </html>

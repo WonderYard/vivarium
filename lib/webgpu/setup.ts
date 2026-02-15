@@ -324,19 +324,22 @@ export const mainCompute = tgpu["~unstable"].computeFn({
 
 /**
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
- * with the defined elements.
+ * with the defined elements unless an `initialGrid` is provided.
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
+ * @param options.initialGrid - An optional flat array of element indices (one per cell, row-major order) to use instead of random initialization.
  * @returns An object with an `evolve` function that advances the simulation by one step, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
  */
 export const setup = ({
   canvas,
   automaton,
+  initialGrid,
 }: {
   canvas: HTMLCanvasElement;
   automaton: Automaton;
+  initialGrid?: number[];
 }) => {
   const root = tgpu.initFromDevice({ device });
   const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
@@ -431,11 +434,13 @@ export const setup = ({
   const colors = new Uint32Array(width * height);
   const ids = new Uint32Array(width * height);
 
-  // TODO: for now we initialize like this
   for (let i = 0; i < colors.length; i++) {
-    const randomIndex = Math.floor(Math.random() * automaton.elements.length);
-    colors[i] = palette[randomIndex];
-    ids[i] = randomIndex;
+    const index =
+      initialGrid !== undefined
+        ? initialGrid[i]
+        : Math.floor(Math.random() * automaton.elements.length);
+    colors[i] = palette[index];
+    ids[i] = index;
   }
 
   // and we write the inizialization to the buffers
