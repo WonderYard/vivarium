@@ -5,11 +5,15 @@ sidebar:
   order: 0
 ---
 
-Vivarium
+The `vivarium` function is the entry point for building your automaton. It returns a builder object that lets you define elements, kinds, and rules.
 
 ```typescript
+import { vivarium } from "@wonderyard/vivarium";
+
 const vi = vivarium();
 ```
+
+## Neighborhood
 
 By default the neighborhood type is `"square"`. You can decide which neighborhood type to use by passing it as an option:
 
@@ -17,4 +21,45 @@ By default the neighborhood type is `"square"`. You can decide which neighborhoo
 const vi = vivarium("cross");
 ```
 
-The available neighborhood types are [square] and [cross].
+The available neighborhood types are:
+
+- **`"square"`** — The 8 cells surrounding the current cell (top-left, top, top-right, left, right, bottom-left, bottom, bottom-right). Also known as a [Moore neighborhood](https://en.wikipedia.org/wiki/Moore_neighborhood).
+- **`"cross"`** — The 4 cells directly adjacent to the current cell (top, left, right, bottom). Also known as a [von Neumann neighborhood](https://en.wikipedia.org/wiki/Von_Neumann_neighborhood).
+
+The neighborhood type determines which cells are considered when evaluating conditions such as `count` or `is`. It also affects the range of valid values for count conditions — `0` to `8` for square, `0` to `4` for cross.
+
+## Neighbor references
+
+The builder exposes a `neighbor` property that provides named constants for referring to specific cells in the neighborhood. These are used in conditions like `is` and in rules like `to`.
+
+```typescript
+const { neighbor } = vi;
+
+// In a "square" neighborhood, available positions are:
+// neighbor.TOP_LEFT, neighbor.TOP, neighbor.TOP_RIGHT,
+// neighbor.LEFT, neighbor.SELF, neighbor.RIGHT,
+// neighbor.BOTTOM_LEFT, neighbor.BOTTOM, neighbor.BOTTOM_RIGHT
+
+// In a "cross" neighborhood, available positions are:
+// neighbor.TOP, neighbor.LEFT, neighbor.SELF, neighbor.RIGHT, neighbor.BOTTOM
+```
+
+## Helpers
+
+The builder also provides helper functions through `vi.helpers`. These are convenience functions for constructing count arrays:
+
+```typescript
+const { between, not, even, odd } = vi.helpers;
+```
+
+See the [Condition](/concepts/condition#helpers) page for details on each helper.
+
+## Creating the automaton
+
+Once all elements, kinds, and rules are defined, call `create` to produce the automaton object:
+
+```typescript
+const automaton = vi.create();
+```
+
+After calling `create`, no further elements, kinds, or rules can be added to this builder. The returned automaton object is what you pass to the `setup` function to run the simulation.

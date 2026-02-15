@@ -5,26 +5,83 @@ sidebar:
   order: 20
 ---
 
-Rules are a way to define the evolution of elements over time. You can create a new rule on any element or kind with the builder method `to`.
+Rules define how elements evolve over time. At each simulation step, every cell is checked against the rules of its current element (and any kinds it extends). The first rule whose conditions are satisfied is applied.
+
+You create a rule using the `to` method on an element or kind.
 
 ## Evolve to element
 
-```typescript
+The most common form of rule transitions a cell to a specific element:
 
+```typescript
 const space = vi.element("space", "blue");
 const alien = vi.element("alien", "green");
 
 space.to(alien);
 ```
 
-[Image of a cell and 8 neighbors showing the transition between before and after]
+This means: every cell that is currently `space` becomes `alien`. Without any conditions, this happens unconditionally at every step.
 
 ## Evolve to neighbor reference
 
-Instead of passing a predetermined element, you can also pass a neighbor.
+Instead of passing a predetermined element, you can pass a neighbor reference. The cell will become whatever element is at that position in its neighborhood.
 
 ```typescript
 space.to(vi.neighbor.TOP);
 ```
 
-In this example, space is going to evolve to whatever element is above it.
+In this example, every `space` cell becomes a copy of whatever element is directly above it. This is useful for simulating gravity, flow, or other directional effects.
+
+You can also use `vi.neighbor.SELF` to keep the cell as itself, which can be combined with conditions:
+
+```typescript
+alien.to(vi.neighbor.SELF).count(alien, 2, 3);
+```
+
+## Adding conditions
+
+Rules become interesting when combined with conditions. Chain condition methods after `to` to control when the rule is applied:
+
+```typescript
+space.to(alien).count(alien, 3);
+```
+
+See [Condition](/concepts/condition) for all available condition types.
+
+## Rule ordering
+
+Rules are evaluated in the order they are declared, from first to last. The first rule whose conditions pass wins — no further rules are checked for that cell during that step.
+
+This means you should declare specific rules first and general fallback rules last:
+
+```typescript
+// Specific: alien stays if it has 2 or 3 alien neighbors
+alien.to(alien).count(alien, 2, 3);
+
+// Fallback: otherwise the alien disappears
+alien.to(space);
+```
+
+If you swapped the order, the unconditional `alien.to(space)` would always match first and the conditional rule would never be reached.
+
+## Rules on kinds
+
+Rules can also be defined on kinds. When a rule is on a kind, it applies to all elements that extend that kind, but with lower priority than rules defined directly on the element itself.
+
+```typescript
+const creature = vi.kind("creature");
+
+const empty = vi.element("empty", "black");
+const fish = vi.element("fish", "blue", [creature]);
+const bird = vi.element("bird", "orange", [creature]);
+
+// Birds have their own specific rule
+bird.to(bird).count(bird, 2, 3);
+
+// This rule applies to both fish and bird, after their own rules
+creature.to(empty).count(creature, 0);
+```
+
+In this example, `bird` checks its own rule first — if it has 2 or 3 bird neighbors, it stays. If not, it falls back to the kind rule: if there are no creatures nearby, it dies. `fish` has no element-level rules, so it uses the kind rule directly.
+
+See [Kind](/concepts/kind) for more details.

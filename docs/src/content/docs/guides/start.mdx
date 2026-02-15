@@ -6,8 +6,6 @@ description: Entry point for Vivarium documentation.
 import { Aside } from '@astrojs/starlight/components';
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-<Aside type="caution" title="Uncharted territory">This documentation is a work in progress. Content might be missing, incomplete, inaccurate.</Aside>
-
 A _vivarium_ is a set of elements that interact with each other in a grid, changing into other elements over time. With this TypeScript library you can define your vivarium and see it evolve on your screen. A tool for creative coders and learners, based on [cellular automata](https://en.wikipedia.org/wiki/Cellular_automaton) theory.
 
 <Aside type="note" title="A gentler introduction">If you're not familiar with cellular automata, we suggest you to read the [Foundations](/learn/intro) page before getting started writing code with Vivarium.</Aside>
@@ -69,8 +67,8 @@ const sentient = vi.kind("sentient");
 The heart of Vivarium is made of _rules_. A rule is a way to tell elements how to behave in our vivarium. Every step of the simulation, an element can become another element or stay the same. Let's see a simple rule first:
 
 ```typescript
-const space = vi.element("space", "blue");
-const alien = vi.element("alien", "green");
+const space = vi.element("space", "blue"); // or a hex color like "#04153b"
+const alien = vi.element("alien", "green"); // or a hex color like "#34d399"
 
 space.to(alien); // all spaces become aliens
 ```
@@ -125,3 +123,105 @@ Here we compressed the two `alien.to(space)` rules into one inverse rule, and we
 ## Order of rules
 
 Did I mention it already? Order of rules matters! Yes, because the system has to evaluate rules one by one. Whichever rule meets its conditions first, will be the one evolving the cell. No more rules are evaluated for that cell until the next simulation step. In other words, rules are declared in order of priority, high to low. The first rule passing the test is the winner. Every other rule is ignored. So it's important that you design your vivarium with this concept in mind, or your rules won't work as expected.
+
+## Creating the automaton
+
+Once you've defined all your elements, kinds, and rules, you need to finalize the vivarium by calling `create`. This produces the automaton object that can be passed to the simulation.
+
+```typescript
+const life = vi.create();
+```
+
+After calling `create`, no more elements, kinds, or rules can be added. Think of it as locking in your design before running the experiment.
+
+## Running the simulation
+
+You've designed your vivarium — now it's time to bring it to life! Vivarium uses [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) to run the simulation entirely on the GPU, which makes it fast even on large grids. All you need is a `<canvas>` element and a few lines of code.
+
+First, import the `setup` function alongside `vivarium`:
+
+```typescript
+import { vivarium, setup } from "@wonderyard/vivarium";
+```
+
+Then, get or create a canvas element and set its dimensions. The canvas width and height determine the grid size of the automaton — every pixel is a cell.
+
+```typescript
+const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
+canvas.style.imageRendering = "pixelated";
+
+const size = 128;
+canvas.width = size;
+canvas.height = size;
+```
+
+<Aside type="tip" title="Image rendering">Setting `imageRendering` to `"pixelated"` ensures cells appear crisp when the canvas is scaled up in CSS, rather than blurry.</Aside>
+
+Pass the canvas and the automaton to `setup`:
+
+```typescript
+const { evolve } = setup({ canvas, automaton: life });
+```
+
+The `setup` function returns an `evolve` function. Each time you call `evolve`, the simulation advances by one step. To create a continuous animation, call it inside a loop:
+
+```typescript
+const loop = async () => {
+  await evolve();
+  requestAnimationFrame(loop);
+};
+requestAnimationFrame(loop);
+```
+
+That's it! Your vivarium is now running on the screen.
+
+## Putting it all together
+
+Here is a complete example implementing Game of Life from start to finish:
+
+```typescript
+import { setup, vivarium } from "@wonderyard/vivarium";
+
+/* Create */
+
+const vi = vivarium();
+
+const space = vi.element("space", "#04153b");
+const alien = vi.element("alien", "#34d399");
+
+// An alien is born if there's a family of 3 in the area.
+space.to(alien).count(alien, 3);
+
+// The alien stays if the area is neither too empty nor too crowded...
+alien.to(alien).count(alien, 2, 3);
+
+// ...otherwise the alien will leave the area forever.
+alien.to(space);
+
+const life = vi.create();
+
+/* Run */
+
+// Get an existing canvas (or you could create one)
+const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
+canvas.style.imageRendering = "pixelated";
+
+// Set the canvas size. This will be the automaton size as well.
+const size = 128;
+canvas.width = size;
+canvas.height = size;
+
+// Pass the canvas and the automaton you created to the setup function:
+const { evolve } = setup({ canvas, automaton: life });
+
+// Create a simple loop that evolves the canvas:
+const loop = async () => {
+  await evolve();
+  requestAnimationFrame(loop);
+};
+requestAnimationFrame(loop);
+```
+
+## What's next?
+
+Now that you know the basics, explore the [Concepts](/concepts/vivarium) section to learn about all the features Vivarium has to offer, including different neighborhood types, kinds, advanced conditions, helper functions, and accept strategies.

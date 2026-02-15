@@ -32,16 +32,57 @@ By default, the neighborhood of a cell is made of the 8 adjacent (diagonal inclu
 <Aside type="note" title="Square for Moore">This type of neighborhood is often called [Moore neighborhood](https://en.wikipedia.org/wiki/Moore_neighborhood). From now on we'll simply call it "square" neighborhood, since it's easier to remember and visualize.</Aside>
 
 ## Evolution
-To show you how a vivarium works, let's start with a very small image.
 
-This is a 5 pixels by 5 pixels image. If you're not familiar with pixels and how images are represented on a screen, think of this as a grid of little squares. A color is assigned to each square. Often we're going to call these squares "cells".
-In this image we have blue cells all around a central green cell. This is our initial image.
+To understand how a vivarium evolves, let's walk through a single step.
 
-<Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid is, but sometimes we'd like to have a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and have a controlled test case, so we can study and predict what's going to happen.</Aside>
+Imagine a tiny 5 by 5 grid. Every cell in the grid holds an element. Let's say we have two elements: "space" (blue) and "alien" (green). Our starting grid is all blue except for one green cell right in the center.
 
-We are going to update the image in two steps.
-First we're going to fill in the grid with numbers. In each cell we're going to write down the number of green cells that are found in the neighborhood of the current cell.
+<Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid looks like, but sometimes we'd like to start with a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and use a controlled example, so we can study and predict what's going to happen.</Aside>
 
-The second step is to color the cells that have a 1 in them. This is because the rule we're going to apply says that blue cells become green if the number of green neighbors is exactly 1.
+Now let's apply one rule: "a blue cell becomes green if it has exactly 1 green neighbor."
 
-Note how this is made in two steps. It's important to compute first all the numbers we'll write in, and then update the grid with new colors. I'll show you why:
+The simulation processes this in two phases. First, it _counts_: for every cell in the grid, it counts how many green cells are in its neighborhood. The center cell is the only green cell, so only its immediate neighbors will get a count of 1. All other cells, being too far from the center, will get a count of 0.
+
+Then, it _updates_: every cell that got a count of 1 becomes green. The rest stay as they are. After this step, the center cell is still green and all 8 of its neighbors have also turned green — forming a 3x3 green square in the middle of our grid.
+
+Why two separate phases? Because if we updated cells one at a time as we scanned them, earlier updates would affect later counts. A cell might see some neighbors in their "new" state and others still in their "old" state, producing inconsistent results. By separating counting from updating, every cell makes its decision based on the same snapshot of the grid. This guarantees a fair, simultaneous evolution for every cell at every step.
+
+## Rules
+
+A rule describes how a cell should change from one element to another. In its simplest form, a rule says: "every X becomes Y". A rule can also have _conditions_ — checks that must be satisfied before the transition happens.
+
+When a vivarium is evaluated, each cell is checked against the rules of its element, in order. The first rule whose conditions pass is applied. If no rule passes, the cell stays unchanged.
+
+## Conditions
+
+Conditions give rules their power. Without conditions, every cell of a given element would always change in the same way. Conditions let cells react to what is around them.
+
+The most common condition is _counting_: check how many neighbors of a specific type surround the current cell. For example, "a dead cell becomes alive if exactly 3 of its neighbors are alive" is the famous birth rule from [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
+
+Another condition is _checking a specific neighbor_: for example, "a cell becomes sand if the cell above it is sand." This is useful for simulating gravity or flow.
+
+A third condition is _chance_: a probabilistic check. "A tree catches fire with a 1 in 1000 chance." This adds randomness and can create organic-looking patterns.
+
+## Rule priority
+
+When a cell has multiple rules, the order in which they are declared matters. Vivarium evaluates rules from top to bottom and picks the _first_ rule that passes. Once a rule is accepted, no further rules are checked for that cell during that step.
+
+This priority system is what lets you write "default" behaviors. You can place specific conditional rules first, and then a catch-all unconditional rule at the end as a fallback.
+
+## Kinds
+
+A _kind_ is a way to group elements that share something in common. A kind doesn't appear on the grid — it has no color. Instead, elements can _extend_ a kind, meaning they inherit its properties.
+
+Why is this useful? Imagine you have elements like wire, spark, and tail. They are all "conductors." By creating a "conductor" kind and extending it with each of these elements, you can write a single rule that applies to all conductors, rather than writing the same rule three times.
+
+## The grid and wrapping
+
+The grid is a two-dimensional array of cells. Each cell holds one element. When we say "the neighborhood of a cell," we mean the cells that surround it. By default, Vivarium uses a _square_ (Moore) neighborhood: the 8 cells that are directly adjacent, including diagonals.
+
+What happens at the edges? The grid wraps around — the top edge connects to the bottom, and the left edge connects to the right. This creates a _toroidal_ surface (think of a donut). No cell is ever missing a neighbor.
+
+## Emergence
+
+The most fascinating aspect of cellular automata is _emergence_. Simple rules, applied uniformly to every cell, can produce incredibly complex global behavior. Patterns move, grow, reproduce, and interact — all without any instruction telling them to do so.
+
+Game of Life is a classic example: from just three rules, structures like gliders, oscillators, and even logic gates can emerge. This is what makes cellular automata a powerful tool for creative exploration and learning about complex systems.
