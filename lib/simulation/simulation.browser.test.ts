@@ -1,6 +1,6 @@
-import { describe, expect, test } from "vitest";
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
+import { describe, expect, test } from "vitest";
 import type { Automaton } from "@/automaton/types";
 import {
   GpuCondition,
@@ -9,14 +9,14 @@ import {
   Square,
   WORKGROUP_SIZE,
 } from "@/common/constants";
+import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
 import {
-  gridLayout,
   automatonLayout,
+  gridLayout,
   mainCompute,
   setSeed,
 } from "@/webgpu/setup";
-import { vivarium } from "@/vivarium/vivarium";
 
 // ── Test utility ────────────────────────────────────────────────────
 
@@ -49,9 +49,7 @@ async function gpuEvolve(
   inputGrid: Grid
 ): Promise<Grid> {
   const { width, height, ids } = inputGrid;
-  const pipeline = root["~unstable"]
-    .withCompute(mainCompute)
-    .createPipeline();
+  const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
 
   setSeed(root.createUniform(d.f32, 0));
 
@@ -97,12 +95,11 @@ async function gpuEvolve(
   });
 
   const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
-  const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
+  const conditions =
+    gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
 
   const automatonGroup = root.createBindGroup(automatonLayout, {
-    neighborhood: root
-      .createBuffer(d.u32, gpuNeighborhood)
-      .$usage("uniform"),
+    neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
     elements: root
       .createBuffer(
         d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
