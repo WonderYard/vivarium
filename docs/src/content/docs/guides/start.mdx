@@ -125,3 +125,96 @@ Here we compressed the two `alien.to(space)` rules into one inverse rule, and we
 ## Order of rules
 
 Did I mention it already? Order of rules matters! Yes, because the system has to evaluate rules one by one. Whichever rule meets its conditions first, will be the one evolving the cell. No more rules are evaluated for that cell until the next simulation step. In other words, rules are declared in order of priority, high to low. The first rule passing the test is the winner. Every other rule is ignored. So it's important that you design your vivarium with this concept in mind, or your rules won't work as expected.
+
+## Creating the automaton
+
+Once you've defined all your elements, kinds, and rules, you need to finalize the vivarium by calling `create`. This produces the automaton object that can be passed to the simulation.
+
+```typescript
+const life = vi.create();
+```
+
+After calling `create`, no more elements, kinds, or rules can be added. Think of it as locking in your design before running the experiment.
+
+## Running the simulation
+
+You've designed your vivarium — now it's time to bring it to life! Vivarium uses [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) to run the simulation entirely on the GPU, which makes it fast even on large grids. All you need is a `<canvas>` element and a few lines of code.
+
+First, import the `setup` function alongside `vivarium`:
+
+```typescript
+import { vivarium, setup } from "@wonderyard/vivarium";
+```
+
+Then, get or create a canvas element and set its dimensions. The canvas width and height determine the grid size of the automaton — every pixel is a cell.
+
+```typescript
+const canvas = document.getElementById("my-canvas") as HTMLCanvasElement;
+canvas.style.imageRendering = "pixelated";
+
+const size = 128;
+canvas.width = size;
+canvas.height = size;
+```
+
+<Aside type="tip" title="Image rendering">Setting `imageRendering` to `"pixelated"` ensures cells appear crisp when the canvas is scaled up in CSS, rather than blurry.</Aside>
+
+Pass the canvas and the automaton to `setup`:
+
+```typescript
+const { evolve } = setup({ canvas, automaton: life });
+```
+
+The `setup` function returns an `evolve` function. Each time you call `evolve`, the simulation advances by one step. To create a continuous animation, call it inside a loop:
+
+```typescript
+const loop = async () => {
+  await evolve();
+  requestAnimationFrame(loop);
+};
+requestAnimationFrame(loop);
+```
+
+That's it! Your vivarium is now running on the screen.
+
+## Putting it all together
+
+Here is a complete example implementing Game of Life from start to finish:
+
+```typescript
+import { vivarium, setup } from "@wonderyard/vivarium";
+
+// 1. Create the vivarium
+const vi = vivarium();
+
+// 2. Define elements
+const space = vi.element("space", "#04153b");
+const alien = vi.element("alien", "#34d399");
+
+// 3. Define rules
+space.to(alien).count(alien, 3);
+alien.to(alien).count(alien, 2, 3);
+alien.to(space);
+
+// 4. Build the automaton
+const life = vi.create();
+
+// 5. Set up the canvas
+const canvas = document.getElementById("my-canvas") as HTMLCanvasElement;
+canvas.style.imageRendering = "pixelated";
+canvas.width = 128;
+canvas.height = 128;
+
+// 6. Run the simulation
+const { evolve } = setup({ canvas, automaton: life });
+
+const loop = async () => {
+  await evolve();
+  requestAnimationFrame(loop);
+};
+requestAnimationFrame(loop);
+```
+
+## What's next?
+
+Now that you know the basics, explore the [Concepts](/concepts/vivarium) section to learn about all the features Vivarium has to offer, including different neighborhood types, kinds, advanced conditions, helper functions, and accept strategies.

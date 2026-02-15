@@ -45,3 +45,45 @@ First we're going to fill in the grid with numbers. In each cell we're going to 
 The second step is to color the cells that have a 1 in them. This is because the rule we're going to apply says that blue cells become green if the number of green neighbors is exactly 1.
 
 Note how this is made in two steps. It's important to compute first all the numbers we'll write in, and then update the grid with new colors. I'll show you why:
+
+If we updated the grid immediately as we scanned it, cells would see an inconsistent picture. Some neighbors would already be in their "new" state while others would still be in their "old" state. By separating the _counting_ step from the _updating_ step, every cell makes its decision based on the same snapshot of the grid. This guarantees a fair, simultaneous evolution for every cell at every step.
+
+## Rules
+
+A rule describes how a cell should change from one element to another. In its simplest form, a rule says: "every X becomes Y". A rule can also have _conditions_ — checks that must be satisfied before the transition happens.
+
+When a vivarium is evaluated, each cell is checked against the rules of its element, in order. The first rule whose conditions pass is applied. If no rule passes, the cell stays unchanged.
+
+## Conditions
+
+Conditions give rules their power. Without conditions, every cell of a given element would always change in the same way. Conditions let cells react to what is around them.
+
+The most common condition is _counting_: check how many neighbors of a specific type surround the current cell. For example, "a dead cell becomes alive if exactly 3 of its neighbors are alive" is the famous birth rule from [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
+
+Another condition is _checking a specific neighbor_: for example, "a cell becomes sand if the cell above it is sand." This is useful for simulating gravity or flow.
+
+A third condition is _chance_: a probabilistic check. "A tree catches fire with a 1 in 1000 chance." This adds randomness and can create organic-looking patterns.
+
+## Rule priority
+
+When a cell has multiple rules, the order in which they are declared matters. Vivarium evaluates rules from top to bottom and picks the _first_ rule that passes. Once a rule is accepted, no further rules are checked for that cell during that step.
+
+This priority system is what lets you write "default" behaviors. You can place specific conditional rules first, and then a catch-all unconditional rule at the end as a fallback.
+
+## Kinds
+
+A _kind_ is a way to group elements that share something in common. A kind doesn't appear on the grid — it has no color. Instead, elements can _extend_ a kind, meaning they inherit its properties.
+
+Why is this useful? Imagine you have elements like wire, spark, and tail. They are all "conductors." By creating a "conductor" kind and extending it with each of these elements, you can write a single rule that applies to all conductors, rather than writing the same rule three times.
+
+## The grid and wrapping
+
+The grid is a two-dimensional array of cells. Each cell holds one element. When we say "the neighborhood of a cell," we mean the cells that surround it. By default, Vivarium uses a _square_ (Moore) neighborhood: the 8 cells that are directly adjacent, including diagonals.
+
+What happens at the edges? The grid wraps around — the top edge connects to the bottom, and the left edge connects to the right. This creates a _toroidal_ surface (think of a donut). No cell is ever missing a neighbor.
+
+## Emergence
+
+The most fascinating aspect of cellular automata is _emergence_. Simple rules, applied uniformly to every cell, can produce incredibly complex global behavior. Patterns move, grow, reproduce, and interact — all without any instruction telling them to do so.
+
+Game of Life is a classic example: from just three rules, structures like gliders, oscillators, and even logic gates can emerge. This is what makes cellular automata a powerful tool for creative exploration and learning about complex systems.

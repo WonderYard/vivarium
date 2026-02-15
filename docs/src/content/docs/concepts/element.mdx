@@ -5,16 +5,37 @@ sidebar:
   order: 10
 ---
 
+An element is the fundamental building block of a vivarium. It represents something that can exist in a cell of the grid and be drawn on the screen.
+
+## Creating an element
+
+To create an element, call `vi.element` with a name and a color:
+
 ```typescript
 const space = vi.element("space", "blue");
 ```
 
-## Advanced
+- **name** — A unique string that identifies the element. No two elements can share the same name, and the name cannot be empty.
+- **color** — A unique color used to draw the element on the screen. Any [CSS named color](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color#syntax) is accepted, as well as hexadecimal colors in the six-value (`#FF7A45`) or three-value (`#F00`) shorthand format. No two elements can share the same color.
 
-See [Kind]
+The method returns an element blueprint that can be used to define rules:
+
+```typescript
+const alien = vi.element("alien", "green");
+
+// Use the element in rules
+space.to(alien);
+```
+
+## Extending kinds
+
+Elements can optionally extend one or more [kinds](/concepts/kind). This is done by passing an array of kinds as the third argument:
 
 ```typescript
 const sentient = vi.kind("sentient");
+const organic = vi.kind("organic");
 
-const space = vi.element("alien", "green", [sentient]);
+const alien = vi.element("alien", "green", [sentient, organic]);
 ```
+
+When an element extends a kind, it inherits all the rules defined on that kind. It can also be matched when a condition checks for that kind. See [Kind](/concepts/kind) for more details.
