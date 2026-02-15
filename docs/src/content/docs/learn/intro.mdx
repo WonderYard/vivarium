@@ -32,21 +32,20 @@ By default, the neighborhood of a cell is made of the 8 adjacent (diagonal inclu
 <Aside type="note" title="Square for Moore">This type of neighborhood is often called [Moore neighborhood](https://en.wikipedia.org/wiki/Moore_neighborhood). From now on we'll simply call it "square" neighborhood, since it's easier to remember and visualize.</Aside>
 
 ## Evolution
-To show you how a vivarium works, let's start with a very small image.
 
-This is a 5 pixels by 5 pixels image. If you're not familiar with pixels and how images are represented on a screen, think of this as a grid of little squares. A color is assigned to each square. Often we're going to call these squares "cells".
-In this image we have blue cells all around a central green cell. This is our initial image.
+To understand how a vivarium evolves, let's walk through a single step.
 
-<Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid is, but sometimes we'd like to have a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and have a controlled test case, so we can study and predict what's going to happen.</Aside>
+Imagine a tiny 5 by 5 grid. Every cell in the grid holds an element. Let's say we have two elements: "space" (blue) and "alien" (green). Our starting grid is all blue except for one green cell right in the center.
 
-We are going to update the image in two steps.
-First we're going to fill in the grid with numbers. In each cell we're going to write down the number of green cells that are found in the neighborhood of the current cell.
+<Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid looks like, but sometimes we'd like to start with a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and use a controlled example, so we can study and predict what's going to happen.</Aside>
 
-The second step is to color the cells that have a 1 in them. This is because the rule we're going to apply says that blue cells become green if the number of green neighbors is exactly 1.
+Now let's apply one rule: "a blue cell becomes green if it has exactly 1 green neighbor."
 
-Note how this is made in two steps. It's important to compute first all the numbers we'll write in, and then update the grid with new colors. I'll show you why:
+The simulation processes this in two phases. First, it _counts_: for every cell in the grid, it counts how many green cells are in its neighborhood. The center cell is the only green cell, so only its immediate neighbors will get a count of 1. All other cells, being too far from the center, will get a count of 0.
 
-If we updated the grid immediately as we scanned it, cells would see an inconsistent picture. Some neighbors would already be in their "new" state while others would still be in their "old" state. By separating the _counting_ step from the _updating_ step, every cell makes its decision based on the same snapshot of the grid. This guarantees a fair, simultaneous evolution for every cell at every step.
+Then, it _updates_: every cell that got a count of 1 becomes green. The rest stay as they are. After this step, the center cell is still green and all 8 of its neighbors have also turned green — forming a small green square in the middle of our grid.
+
+Why two separate phases? Because if we updated cells one at a time as we scanned them, earlier updates would affect later counts. A cell might see some neighbors in their "new" state and others still in their "old" state, producing inconsistent results. By separating counting from updating, every cell makes its decision based on the same snapshot of the grid. This guarantees a fair, simultaneous evolution for every cell at every step.
 
 ## Rules
 
