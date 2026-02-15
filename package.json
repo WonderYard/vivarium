@@ -24,6 +24,7 @@
     "dev": "vite",
     "dev:https": "ENABLE_BASIC_SSL=true vite --host",
     "build": "tsc && vite build",
+    "build:docs": "cd docs && pnpm i && pnpm build",
     "preview": "vite preview",
     "lint": "biome check --write",
     "format": "biome format --write",
