@@ -70,12 +70,11 @@ const printEvolution = (
   const beforeRows = formatGrid(before, symbols);
   const afterRows = formatGrid(after, symbols);
   const height = Math.max(beforeRows.length, afterRows.length);
-  const pad = before.width;
 
   const lines: string[] = [];
   if (label) lines.push(`  ${label}`);
   for (let y = 0; y < height; y++) {
-    const left = (beforeRows[y] ?? "").padEnd(pad);
+    const left = (beforeRows[y] ?? "").padEnd(before.width);
     const arrow = y === Math.floor(height / 2) ? " → " : "   ";
     const right = afterRows[y] ?? "";
     lines.push(`  ${left}${arrow}${right}`);
