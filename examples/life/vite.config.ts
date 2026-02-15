@@ -1,9 +1,10 @@
 import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
+import typegpu from "unplugin-typegpu/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss(), typegpu({})],
   resolve: {
     alias: {
       "@wonderyard/vivarium": resolve(__dirname, "../../lib/main.ts"),
