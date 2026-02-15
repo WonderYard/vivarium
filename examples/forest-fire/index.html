@@ -8,14 +8,14 @@
   <body>
     <div class="flex justify-center">
       <div
-        class="relative p-4 !pb-16 sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-[400px]"
+        class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100"
       >
         <div
           class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full"
         >
           <div class="flex flex-row gap-2 items-center">
             <a class="btn btn-soft btn-sm" href="/">←</a>
-            <h1 class="text-2xl font-bold">Vivarium demo - Forest Fire</h1>
+            <h1 class="text-2xl font-bold">Forest Fire</h1>
           </div>
           <a
             class="btn btn-soft btn-accent btn-sm"
@@ -26,7 +26,7 @@
         </div>
 
         <div
-          class="card image-full shadow-sm border border-base-300 w-full sm:max-w-[400px]"
+          class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100"
         >
           <figure class="aspect-square">
             <canvas class="w-full" id="example-canvas"></canvas>
@@ -40,32 +40,26 @@
         </div>
 
         <div
-          class="mockup-code w-full bg-gradient-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
+          class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
         >
           <pre
             data-prefix="1"
-          ><code>const empty = element("empty", "navy")</code></pre>
+          ><code>const empty = element("empty", "black")</code></pre>
           <pre
             data-prefix="2"
           ><code>const tree = element("tree", "green")</code></pre>
           <pre
             data-prefix="3"
-          ><code>const burning = element("burning", "red")</code></pre>
+          ><code>const fire = element("fire", "red")</code></pre>
           <pre data-prefix="4"></pre>
-          <pre
-            data-prefix="5"
-          ><code>burning.to(empty)</code></pre>
-          <pre
-            data-prefix="6"
-          ><code>tree.to(burning).count(burning, between(1,8))</code></pre>
-          <pre
-            data-prefix="7"
-          ><code>tree.to(burning).chance(1, 10000)</code></pre>
-          <pre
-            data-prefix="8"
-          ><code>empty.to(tree).chance(1, 100)</code></pre>
-          <pre data-prefix="9"></pre>
-          <pre data-prefix="10"><code>const fire = create()</code></pre>
+          <pre data-prefix="5"><code>empty.to(tree).chance(1, 1000)</code></pre>
+          <pre data-prefix="6"><code>tree.to(fire)
+          .chance(1, 100000)
+          .count(fire)
+          .accept("any")</code></pre>
+          <pre data-prefix="7"><code>fire.to(empty)</code></pre>
+          <pre data-prefix="8"></pre>
+          <pre data-prefix="9"><code>const forest = create()</code></pre>
         </div>
         <a
           class="btn btn-accent self-center"
@@ -74,7 +68,7 @@
           Read the docs
         </a>
         <div
-          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-[400px] left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
+          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-100 left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
         >
           <div class="divider mt-0 mb-0"></div>
           <code class="text-xs">@wonderyard/vivarium</code>

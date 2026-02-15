@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@wonderyard/vivarium": resolve(__dirname, "../lib/main.ts"),
-      "@/": resolve(__dirname, "../lib") + "/",
+      "@/": `${resolve(__dirname, "../lib")}/`,
     },
   },
   build: {

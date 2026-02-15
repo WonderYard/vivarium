@@ -5,9 +5,9 @@ import { setup, vivarium } from "@wonderyard/vivarium";
 
 const vi = vivarium();
 
-const off = vi.element("off", "#04153b");
-const dying = vi.element("dying", "#3b82f6");
-const on = vi.element("on", "#ffffff");
+const off = vi.element("off", "black");
+const on = vi.element("on", "white");
+const dying = vi.element("dying", "blue");
 
 // A cell turns on if exactly 2 neighbors are on.
 off.to(on).count(on, 2);

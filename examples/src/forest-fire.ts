@@ -7,25 +7,18 @@ const vi = vivarium();
 
 const empty = vi.element("empty", "#1a1a2e");
 const tree = vi.element("tree", "#16a34a");
-const burning = vi.element("burning", "#ef4444");
-
-// A burning tree becomes empty.
-burning.to(empty);
-
-// A tree catches fire if any neighbor is burning.
-tree.to(burning).count(burning, vi.helpers.between(1, 8));
-
-// A tree may catch fire by lightning.
-tree.to(burning).chance(1, 10000);
+const fire = vi.element("burning", "#ef4444");
 
 // Empty ground may grow a tree.
-empty.to(tree).chance(1, 100);
+empty.to(tree).chance(1, 1000);
 
-// Otherwise, the tree and empty stay as they are.
-tree.to(tree);
-empty.to(empty);
+// A tree catches fire by lightning (chance) or if any neighbor is burning.
+tree.to(fire).chance(1, 100000).count(fire).accept("any");
 
-const fire = vi.create();
+// A burning tree becomes empty.
+fire.to(empty);
+
+const forest = vi.create();
 
 /* Run */
 
@@ -36,7 +29,7 @@ const size = 256;
 canvas.width = size;
 canvas.height = size;
 
-const { evolve } = setup({ canvas, automaton: fire });
+const { evolve } = setup({ canvas, automaton: forest });
 
 const loop = async () => {
   await evolve();
