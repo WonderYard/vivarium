@@ -26,7 +26,7 @@ const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
 canvas.style.imageRendering = "pixelated";
 
 // Set the canvas size. This will be the automaton size as well.
-const size = 128;
+const size = 256;
 canvas.width = size;
 canvas.height = size;
 
