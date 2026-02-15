@@ -215,8 +215,9 @@ describe("GPU simulation", async () => {
   describe("unconditional rules", () => {
     test("oscillator: every cell toggles between two elements", async () => {
       const before = grid([
-        [0, 1],
-        [1, 0],
+        [0, 1, 0],
+        [1, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -231,8 +232,9 @@ describe("GPU simulation", async () => {
       );
 
       expect(toRows(after)).toEqual([
-        [1, 0],
-        [0, 1],
+        [1, 0, 1],
+        [0, 1, 1],
+        [1, 1, 1],
       ]);
     });
 
@@ -240,6 +242,7 @@ describe("GPU simulation", async () => {
       const original = grid([
         [0, 1, 0],
         [1, 0, 1],
+        [0, 0, 0],
       ]);
 
       const vi = vivarium();
@@ -256,8 +259,9 @@ describe("GPU simulation", async () => {
 
     test("unconditional rule to self keeps grid unchanged", async () => {
       const before = grid([
-        [0, 1],
-        [1, 0],
+        [0, 1, 0],
+        [1, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -280,8 +284,9 @@ describe("GPU simulation", async () => {
   describe("no matching rule", () => {
     test("cells with no rules remain unchanged", async () => {
       const before = grid([
-        [0, 0],
-        [0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -409,8 +414,9 @@ describe("GPU simulation", async () => {
 
     test("count of 0 matches when no neighbors of that type exist", async () => {
       const before = grid([
-        [0, 0],
-        [0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -424,8 +430,9 @@ describe("GPU simulation", async () => {
       );
 
       expect(toRows(after)).toEqual([
-        [1, 1],
-        [1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
       ]);
     });
   });
@@ -487,8 +494,9 @@ describe("GPU simulation", async () => {
   describe("IS_ELEMENT condition", () => {
     test("cell transitions when specific neighbor matches element", async () => {
       const before = grid([
-        [0, 1],
-        [0, 0],
+        [0, 1, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -501,14 +509,15 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(after.ids[3]).toBe(1);
-      expect(after.ids[2]).toBe(0);
+      expect(after.ids[4]).toBe(1);
+      expect(after.ids[3]).toBe(0);
     });
 
     test("is condition does not match when neighbor is different", async () => {
       const before = grid([
-        [0, 0],
-        [0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -596,8 +605,9 @@ describe("GPU simulation", async () => {
 
     test("accept ANY: at least one condition must pass", async () => {
       const before = grid([
-        [1, 0],
-        [0, 0],
+        [1, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -610,13 +620,14 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(after.ids[2]).toBe(1);
+      expect(after.ids[3]).toBe(1);
     });
 
     test("accept ONE: exactly one condition must pass", async () => {
       const before = grid([
-        [1, 0],
-        [0, 0],
+        [1, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -629,13 +640,14 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(after.ids[2]).toBe(1);
+      expect(after.ids[3]).toBe(1);
     });
 
     test("accept ONE: fails when both conditions pass", async () => {
       const before = grid([
-        [1, 0],
-        [0, 0],
+        [1, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -648,13 +660,14 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(after.ids[2]).toBe(0);
+      expect(after.ids[3]).toBe(0);
     });
 
     test("accept NONE: transitions when no conditions pass", async () => {
       const before = grid([
-        [0, 0],
-        [0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -668,15 +681,17 @@ describe("GPU simulation", async () => {
       );
 
       expect(toRows(after)).toEqual([
-        [1, 1],
-        [1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
       ]);
     });
 
     test("accept NONE: does not transition when a condition passes", async () => {
       const before = grid([
-        [1, 0],
-        [0, 0],
+        [1, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -684,7 +699,7 @@ describe("GPU simulation", async () => {
         (vi) => {
           const a = vi.element("a", "#ff0000");
           const b = vi.element("b", "#00ff00");
-          a.to(b).count(b, 2).accept("none");
+          a.to(b).count(b, 1).accept("none");
         },
         before
       );
@@ -762,8 +777,12 @@ describe("GPU simulation", async () => {
   // ── Edge cases ────────────────────────────────────────────────
 
   describe("edge cases", () => {
-    test("single cell grid with unconditional rule transitions", async () => {
-      const before = grid([[0]]);
+    test("uniform grid with unconditional rule transitions all cells", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -775,11 +794,19 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(toRows(after)).toEqual([[1]]);
+      expect(toRows(after)).toEqual([
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+      ]);
     });
 
-    test("single cell grid: all neighbors wrap to self", async () => {
-      const before = grid([[0]]);
+    test("count of 8 matches when all neighbors are the same element", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -791,11 +818,19 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(toRows(after)).toEqual([[1]]);
+      expect(toRows(after)).toEqual([
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+      ]);
     });
 
-    test("single cell grid: count excludes self", async () => {
-      const before = grid([[0]]);
+    test("count of 0 does not match when all neighbors are the same element", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -807,7 +842,11 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(toRows(after)).toEqual([[0]]);
+      expect(toRows(after)).toEqual([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
     });
 
     test("uniform grid: all same element with no matching rule stays unchanged", async () => {
@@ -830,32 +869,11 @@ describe("GPU simulation", async () => {
       expect(toRows(after)).toEqual(toRows(before));
     });
 
-    test("uniform grid: all cells transition when unconditional", async () => {
-      const before = grid([
-        [0, 0],
-        [0, 0],
-      ]);
-
-      const after = await step(
-        root,
-        (vi) => {
-          const a = vi.element("a", "#ff0000");
-          const b = vi.element("b", "#00ff00");
-          a.to(b);
-        },
-        before
-      );
-
-      expect(toRows(after)).toEqual([
-        [1, 1],
-        [1, 1],
-      ]);
-    });
-
     test("to point (SELF) keeps element as itself", async () => {
       const before = grid([
-        [0, 1],
-        [1, 0],
+        [0, 1, 0],
+        [1, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -874,8 +892,9 @@ describe("GPU simulation", async () => {
 
     test("to point copies neighbor's element", async () => {
       const before = grid([
-        [0, 1],
-        [0, 0],
+        [0, 1, 0],
+        [0, 0, 0],
+        [0, 0, 0],
       ]);
 
       const after = await step(
@@ -888,14 +907,19 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(after.ids[0]).toBe(0);
-      expect(after.ids[1]).toBe(1);
-      expect(after.ids[2]).toBe(0);
-      expect(after.ids[3]).toBe(1);
+      expect(toRows(after)).toEqual([
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 0, 0],
+      ]);
     });
 
     test("first matching rule wins (rules are ordered)", async () => {
-      const before = grid([[0]]);
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -909,7 +933,11 @@ describe("GPU simulation", async () => {
         before
       );
 
-      expect(toRows(after)).toEqual([[1]]);
+      expect(toRows(after)).toEqual([
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+      ]);
     });
   });
 
@@ -1036,7 +1064,11 @@ describe("GPU simulation", async () => {
 
   describe("multi-step evolution", () => {
     test("three-element cycle: a→b→c→a", async () => {
-      const before = grid([[0, 1, 2]]);
+      const before = grid([
+        [0, 0, 0],
+        [0, 1, 2],
+        [0, 0, 0],
+      ]);
 
       const vi = vivarium();
       const a = vi.element("a", "#ff0000");
@@ -1048,13 +1080,21 @@ describe("GPU simulation", async () => {
       const automaton = vi.create();
 
       const step1 = await gpuEvolve(root, automaton, before);
-      expect(toRows(step1)).toEqual([[1, 2, 0]]);
+      expect(toRows(step1)).toEqual([
+        [1, 1, 1],
+        [1, 2, 0],
+        [1, 1, 1],
+      ]);
 
       const step2 = await gpuEvolve(root, automaton, step1);
-      expect(toRows(step2)).toEqual([[2, 0, 1]]);
+      expect(toRows(step2)).toEqual([
+        [2, 2, 2],
+        [2, 0, 1],
+        [2, 2, 2],
+      ]);
 
       const step3 = await gpuEvolve(root, automaton, step2);
-      expect(toRows(step3)).toEqual([[0, 1, 2]]);
+      expect(toRows(step3)).toEqual(toRows(before));
     });
 
     test("Game of Life glider moves after 4 steps on large enough grid", async () => {
