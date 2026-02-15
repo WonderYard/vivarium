@@ -12,8 +12,8 @@ importers:
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2))
       '@wonderyard/vivarium':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: ^1.1.0
+        version: 1.1.0
       tailwindcss:
         specifier: ^4.1.18
         version: 4.1.18
@@ -438,8 +438,8 @@ packages:
   '@webgpu/types@0.1.69':
     resolution: {integrity: sha512-RPmm6kgRbI8e98zSD3RVACvnuktIja5+yLgDAkTmxLr90BEwdTXRQWNLF3ETTTyH/8mKhznZuN5AveXYFEsMGQ==}
 
-  '@wonderyard/vivarium@1.0.0':
-    resolution: {integrity: sha512-n4uw9bqnGNjsHFy158A/YVFGXINnyzFSWYq/REqpmhG1uAZ/mBWwPXkuC7nYkc+ospTDKGasIM0QgQiM+7+gqA==}
+  '@wonderyard/vivarium@1.1.0':
+    resolution: {integrity: sha512-9bmRc/yG2xB/9byBOuCa3iIwhxPe4UDy41nFDF2IrY8GYjKqgvfJxnziE9rsmTVVEOYeCiwDcT6Xv6EMNKSGjg==}
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -934,7 +934,7 @@ snapshots:
 
   '@webgpu/types@0.1.69': {}
 
-  '@wonderyard/vivarium@1.0.0':
+  '@wonderyard/vivarium@1.1.0':
     dependencies:
       '@typegpu/noise': 0.9.0(typegpu@0.9.0)
       nanoid: 5.1.6
