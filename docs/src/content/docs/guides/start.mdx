@@ -9,24 +9,30 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
 A _vivarium_ is a set of elements that interact with each other in a grid, changing into other elements over time. With this TypeScript library you can define your vivarium and see it evolve on your screen. A tool for creative coders and learners, based on [cellular automata](https://en.wikipedia.org/wiki/Cellular_automaton) theory.
 
 <Aside type="note" title="A gentler introduction">
-  If you're not familiar with cellular automata, we suggest you to read the
+  If you're not familiar with cellular automata, we suggest reading the
   [Foundations](/learn/intro) page before getting started writing code with
   Vivarium.
 </Aside>
 
 ## Install
 
-Install Vivarium as a dependency. No other dependecies required.
+Install Vivarium as a dependency. No other dependencies required.
 
 <Tabs syncKey="package-manager">
   <TabItem label="npm" icon="seti:npm">
-    ```bash frame=none npm i @wonderyard/vivarium ```
+    ```bash frame=none
+    npm i @wonderyard/vivarium
+    ```
   </TabItem>
   <TabItem label="pnpm" icon="pnpm">
-    ```bash frame=none pnpm add @wonderyard/vivarium ```
+    ```bash frame=none
+    pnpm add @wonderyard/vivarium
+    ```
   </TabItem>
   <TabItem label="yarn" icon="seti:yarn">
-    ```bash frame=none yarn add @wonderyard/vivarium ```
+    ```bash frame=none
+    yarn add @wonderyard/vivarium
+    ```
   </TabItem>
 </Tabs>
 
@@ -172,7 +178,8 @@ To make an example, assuming the canvas has `size = 3`:
 const { evolve } = setup({
   canvas, // size = 3
   automaton: life,
-  initialGrid: [ // list of rows (2d)
+  // list of rows (2d)
+  initialGrid: [
     [0, 0, 0],
     [0, 1, 0], // one alien in the middle of space
     [0, 0, 0],
@@ -183,7 +190,7 @@ const { evolve } = setup({
 You can obtain the index of an element by accessing `.index` from its reference:
 
 ```typescript
-console.log(alien.index); // -> 1`
+console.log(alien.index); // -> 1
 ```
 
 The `setup` function returns an `evolve` function. Each time you call `evolve`, the simulation advances by one step. To create a continuous animation, call it inside a loop:

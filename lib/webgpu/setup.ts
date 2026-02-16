@@ -21,7 +21,7 @@ if (!adapter) {
 const device = await adapter.requestDevice();
 
 void device.lost.then(() => {
-  throw Error("Device lost");
+  throw new Error("Device lost");
 });
 
 let frames = 0;
@@ -331,7 +331,7 @@ export const mainCompute = tgpu["~unstable"].computeFn({
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
- * @param options.initialGrid - An optional flat array of element indices (one per cell, row-major order) to use instead of random initialization.
+ * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
  * @returns An object with an `evolve` function that advances the simulation by one step, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
  */
 export const setup = ({
@@ -452,7 +452,7 @@ export const setup = ({
         rawIndex < 0 ||
         rawIndex >= elementsLength
       ) {
-        throw Error(
+        throw new Error(
           `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`
         );
       }
