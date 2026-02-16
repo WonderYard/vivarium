@@ -441,15 +441,25 @@ export const setup = ({
   const flatGrid = initialGrid?.flat();
 
   for (let i = 0; i < colors.length; i++) {
-    const elementIndex =
-      flatGrid !== undefined
-        ? flatGrid[i] || 0
-        : Math.floor(Math.random() * elementsLength);
+    let elementIndex: number;
 
-    if (elementIndex >= elementsLength) {
-      throw Error(
-        `Element index ${elementIndex} from initialGrid is out of bounds (0, ${elementsLength - 1}). Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`
-      );
+    if (flatGrid !== undefined) {
+      const rawIndex = flatGrid[i] ?? 0;
+
+      if (
+        !Number.isFinite(rawIndex) ||
+        !Number.isInteger(rawIndex) ||
+        rawIndex < 0 ||
+        rawIndex >= elementsLength
+      ) {
+        throw Error(
+          `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`
+        );
+      }
+
+      elementIndex = rawIndex;
+    } else {
+      elementIndex = Math.floor(Math.random() * elementsLength);
     }
     colors[i] = palette[elementIndex];
     ids[i] = elementIndex;
