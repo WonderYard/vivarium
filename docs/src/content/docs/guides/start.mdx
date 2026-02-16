@@ -3,16 +3,20 @@ title: Getting started
 description: Entry point for Vivarium documentation.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside } from "@astrojs/starlight/components";
+import { Tabs, TabItem } from "@astrojs/starlight/components";
 
 A _vivarium_ is a set of elements that interact with each other in a grid, changing into other elements over time. With this TypeScript library you can define your vivarium and see it evolve on your screen. A tool for creative coders and learners, based on [cellular automata](https://en.wikipedia.org/wiki/Cellular_automaton) theory.
 
-<Aside type="note" title="A gentler introduction">If you're not familiar with cellular automata, we suggest you to read the [Foundations](/learn/intro) page before getting started writing code with Vivarium.</Aside>
+<Aside type="note" title="A gentler introduction">
+  If you're not familiar with cellular automata, we suggest reading the
+  [Foundations](/learn/intro) page before getting started writing code with
+  Vivarium.
+</Aside>
 
 ## Install
 
-Install Vivarium as a dependency. No other dependecies required.
+Install Vivarium as a dependency. No other dependencies required.
 
 <Tabs syncKey="package-manager">
   <TabItem label="npm" icon="seti:npm">
@@ -155,12 +159,38 @@ canvas.width = size;
 canvas.height = size;
 ```
 
-<Aside type="tip" title="Image rendering">Setting `imageRendering` to `"pixelated"` ensures cells appear crisp when the canvas is scaled up in CSS, rather than blurry.</Aside>
+<Aside type="tip" title="Image rendering">
+  Setting `imageRendering` to `"pixelated"` ensures cells appear crisp when the
+  canvas is scaled up in CSS, rather than blurry.
+</Aside>
 
 Pass the canvas and the automaton to `setup`:
 
 ```typescript
 const { evolve } = setup({ canvas, automaton: life });
+```
+
+Optionally, you can pass an `initialGrid` to the `setup` function. `initialGrid` is a list of element indices that will pre-populate the canvas. The list can be 1d (flat list of indices) or 2d (list of rows of indices).
+
+To make an example, assuming the canvas has `size = 3`:
+
+```typescript
+const { evolve } = setup({
+  canvas, // size = 3
+  automaton: life,
+  // list of rows (2d)
+  initialGrid: [
+    [0, 0, 0],
+    [0, 1, 0], // one alien in the middle of space
+    [0, 0, 0],
+  ],
+});
+```
+
+You can obtain the index of an element by accessing `.index` from its reference:
+
+```typescript
+console.log(alien.index); // -> 1
 ```
 
 The `setup` function returns an `evolve` function. Each time you call `evolve`, the simulation advances by one step. To create a continuous animation, call it inside a loop:

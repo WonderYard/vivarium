@@ -21,7 +21,7 @@ if (!adapter) {
 const device = await adapter.requestDevice();
 
 void device.lost.then(() => {
-  throw Error("Device lost");
+  throw new Error("Device lost");
 });
 
 let frames = 0;
@@ -326,10 +326,12 @@ export const mainCompute = tgpu["~unstable"].computeFn({
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
  * with the defined elements unless an `initialGrid` is provided.
  *
+ * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
+ *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
- * @param options.initialGrid - An optional flat array of element indices (one per cell, row-major order) to use instead of random initialization.
+ * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
  * @returns An object with an `evolve` function that advances the simulation by one step, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
  */
 export const setup = ({
@@ -339,7 +341,7 @@ export const setup = ({
 }: {
   canvas: HTMLCanvasElement;
   automaton: Automaton;
-  initialGrid?: number[];
+  initialGrid?: number[] | number[][];
 }) => {
   const root = tgpu.initFromDevice({ device });
   const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
@@ -434,13 +436,33 @@ export const setup = ({
   const colors = new Uint32Array(width * height);
   const ids = new Uint32Array(width * height);
 
+  const elementsLength = automaton.elements.length;
+
+  const flatGrid = initialGrid?.flat();
+
   for (let i = 0; i < colors.length; i++) {
-    const index =
-      initialGrid !== undefined
-        ? initialGrid[i]
-        : Math.floor(Math.random() * automaton.elements.length);
-    colors[i] = palette[index];
-    ids[i] = index;
+    let elementIndex: number;
+
+    if (flatGrid !== undefined) {
+      const rawIndex = flatGrid[i] ?? 0;
+
+      if (
+        !Number.isFinite(rawIndex) ||
+        !Number.isInteger(rawIndex) ||
+        rawIndex < 0 ||
+        rawIndex >= elementsLength
+      ) {
+        throw new Error(
+          `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`
+        );
+      }
+
+      elementIndex = rawIndex;
+    } else {
+      elementIndex = Math.floor(Math.random() * elementsLength);
+    }
+    colors[i] = palette[elementIndex];
+    ids[i] = elementIndex;
   }
 
   // and we write the inizialization to the buffers

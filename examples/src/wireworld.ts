@@ -5,7 +5,7 @@ import { setup, vivarium } from "@wonderyard/vivarium";
 
 const vi = vivarium();
 
-vi.element("empty", "#1a1a2e");
+const empty = vi.element("empty", "#1a1a2e");
 const wire = vi.element("wire", "#facc15");
 const head = vi.element("head", "#3b82f6");
 const tail = vi.element("tail", "#ef4444");
@@ -23,18 +23,25 @@ const wireworld = vi.create();
 
 /* Initialize grid */
 
-// Element indices: 0=empty, 1=wire, 2=head, 3=tail
-const E = 0;
-const W = 1;
-const H = 2;
-const T = 3;
+// Element indices
+const E = empty.index;
+const W = wire.index;
+const H = head.index;
+const T = tail.index;
 
 const size = 50;
-const grid = new Array<number>(size * size).fill(E);
+const grid: number[][] = [];
+
+for (let y = 0; y < size; y++) {
+  grid[y] = [];
+  for (let x = 0; x < size; x++) {
+    grid[y].push(E);
+  }
+}
 
 const set = (x: number, y: number, value: number) => {
   if (x >= 0 && x < size && y >= 0 && y < size) {
-    grid[y * size + x] = value;
+    grid[y][x] = value;
   }
 };
 

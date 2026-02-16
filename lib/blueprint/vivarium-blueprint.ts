@@ -79,9 +79,9 @@ export class VivariumBlueprint<
       extensions: extensions.map((element) => element.id),
     } satisfies Element;
 
-    this.automaton.elements.push(element);
+    const index = this.automaton.elements.push(element) - 1;
 
-    return new ElementBlueprint(this.context, this.automaton, element);
+    return new ElementBlueprint(this.context, this.automaton, element, index);
   }
 
   /**
