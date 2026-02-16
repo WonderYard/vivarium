@@ -62,15 +62,18 @@ export abstract class RefBlueprint extends BaseBlueprint {
 export class ElementBlueprint extends RefBlueprint {
   type = "element" as const;
   id: string;
+  index: number;
 
   constructor(
     protected context: BlueprintContext,
     automaton: Automaton,
-    element: Element
+    element: Element,
+    index: number
   ) {
     super(automaton, element);
 
     this.id = element.id;
+    this.index = index;
   }
 }
 

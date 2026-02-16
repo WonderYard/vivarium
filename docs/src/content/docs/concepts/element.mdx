@@ -18,7 +18,7 @@ const space = vi.element("space", "blue");
 - **name** — A unique string that identifies the element. No two elements can share the same name, and the name cannot be empty.
 - **color** — A unique color used to draw the element on the screen. Any [CSS named color](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color#syntax) is accepted, as well as hexadecimal colors in the six-character (`#FF7A45`) or three-character (`#F00`) shorthand format. No two elements can share the same color.
 
-The method returns an element blueprint that can be used to define rules:
+The method returns an element reference that can be used to define rules:
 
 ```typescript
 const alien = vi.element("alien", "green");

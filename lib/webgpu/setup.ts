@@ -326,6 +326,8 @@ export const mainCompute = tgpu["~unstable"].computeFn({
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
  * with the defined elements unless an `initialGrid` is provided.
  *
+ * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
+ *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
@@ -339,7 +341,7 @@ export const setup = ({
 }: {
   canvas: HTMLCanvasElement;
   automaton: Automaton;
-  initialGrid?: number[];
+  initialGrid?: number[] | number[][];
 }) => {
   const root = tgpu.initFromDevice({ device });
   const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
@@ -434,13 +436,23 @@ export const setup = ({
   const colors = new Uint32Array(width * height);
   const ids = new Uint32Array(width * height);
 
+  const elementsLength = automaton.elements.length;
+
+  const flatGrid = initialGrid?.flat();
+
   for (let i = 0; i < colors.length; i++) {
-    const index =
-      initialGrid !== undefined
-        ? initialGrid[i]
-        : Math.floor(Math.random() * automaton.elements.length);
-    colors[i] = palette[index];
-    ids[i] = index;
+    const elementIndex =
+      flatGrid !== undefined
+        ? flatGrid[i] || 0
+        : Math.floor(Math.random() * elementsLength);
+
+    if (elementIndex >= elementsLength) {
+      throw Error(
+        `Element index ${elementIndex} from initialGrid is out of bounds (0, ${elementsLength - 1}). Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`
+      );
+    }
+    colors[i] = palette[elementIndex];
+    ids[i] = elementIndex;
   }
 
   // and we write the inizialization to the buffers
