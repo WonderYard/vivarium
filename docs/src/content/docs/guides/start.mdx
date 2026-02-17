@@ -167,7 +167,7 @@ canvas.height = size;
 Pass the canvas and the automaton to `setup`:
 
 ```typescript
-const { evolve } = setup({ canvas, automaton: life });
+const { update, draw } = setup({ canvas, automaton: life });
 ```
 
 Optionally, you can pass an `initialGrid` to the `setup` function. `initialGrid` is a list of element indices that will pre-populate the canvas. The list can be 1d (flat list of indices) or 2d (list of rows of indices).
@@ -175,7 +175,7 @@ Optionally, you can pass an `initialGrid` to the `setup` function. `initialGrid`
 To make an example, assuming the canvas has `size = 3`:
 
 ```typescript
-const { evolve } = setup({
+const { update, draw } = setup({
   canvas, // size = 3
   automaton: life,
   // list of rows (2d)
@@ -193,15 +193,30 @@ You can obtain the index of an element by accessing `.index` from its reference:
 console.log(alien.index); // -> 1
 ```
 
-The `setup` function returns an `evolve` function. Each time you call `evolve`, the simulation advances by one step. To create a continuous animation, call it inside a loop:
+The `setup` function returns `update` and `draw` functions. `update` advances the simulation by one step on the GPU (synchronous), while `draw` reads the result and renders it to the canvas (asynchronous). To create a continuous animation, call them inside a loop:
 
 ```typescript
 const loop = async () => {
-  await evolve();
+  update();
+  await draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);
 ```
+
+Because `update` and `draw` are independent, you can run multiple simulation steps per frame for faster simulations, or skip `update` calls to pause:
+
+```typescript
+const loop = async () => {
+  for (let i = 0; i < simulationSpeed; i++) {
+    update();
+  }
+  await draw();
+  requestAnimationFrame(loop);
+};
+```
+
+For convenience, `setup` also returns `evolve`, which is a shorthand for calling `update()` + `await draw()`.
 
 That's it! Your vivarium is now running on the screen.
 
@@ -242,11 +257,12 @@ canvas.width = size;
 canvas.height = size;
 
 // Pass the canvas and the automaton you created to the setup function:
-const { evolve } = setup({ canvas, automaton: life });
+const { update, draw } = setup({ canvas, automaton: life });
 
-// Create a simple loop that evolves the canvas:
+// Create a simple loop that updates and draws the simulation:
 const loop = async () => {
-  await evolve();
+  update();
+  await draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

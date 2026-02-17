@@ -332,7 +332,16 @@ export const mainCompute = tgpu["~unstable"].computeFn({
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
- * @returns An object with an `evolve` function that advances the simulation by one step, a `readGrid` function that reads the current grid state, a `writeCell` function that updates a single cell by flat index, a `writeCellAt` function that updates a single cell by grid coordinates, a `writeGrid` function that overwrites the entire grid, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
+ * @returns An object with:
+ * - `update` — advances the simulation by one step (synchronous, GPU only).
+ * - `draw` — reads the latest GPU state and renders it to the canvas (async).
+ * - `evolve` — convenience shorthand for `update()` + `await draw()`.
+ * - `readGrid` — reads the current grid state.
+ * - `writeCell` — updates a single cell by flat index.
+ * - `writeCellAt` — updates a single cell by grid coordinates.
+ * - `writeGrid` — overwrites the entire grid.
+ * - `setAutomaton` — replaces the automaton rules.
+ * - `tgpuRoot` — the underlying TypeGPU root.
  */
 export const setup = ({
   canvas,
@@ -582,7 +591,14 @@ export const setup = ({
     device.queue.writeBuffer(currentColors.buffer, 0, newColors);
   };
 
-  const evolve = async (): Promise<void> => {
+  /**
+   * Advances the simulation by one step on the GPU. This function is synchronous
+   * — it only queues GPU commands without waiting for them to complete.
+   *
+   * Call `update` as many times as needed to run multiple simulation steps,
+   * then call `draw` once to render the latest state to the canvas.
+   */
+  const update = (): void => {
     seed.write(Math.random());
 
     pipeline
@@ -592,6 +608,17 @@ export const setup = ({
 
     colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
 
+    frames++;
+  };
+
+  /**
+   * Reads the latest simulation state from the GPU and renders it to the canvas.
+   * Must be called after at least one `update` call.
+   *
+   * This function is asynchronous because it waits for the GPU to finish
+   * processing before reading the result.
+   */
+  const draw = async (): Promise<void> => {
     // We are manually doing these steps, from map to unmap, even though
     // TgpuBuffer.read exists, because we notice heavy work happening JS-side
     // due to its readers. Since we don't need to parse data other than putting
@@ -605,11 +632,20 @@ export const setup = ({
     g.putImageData(imageData, 0, 0);
 
     rawBuffer.unmap();
+  };
 
-    frames++;
+  /**
+   * Convenience function that advances the simulation by one step and draws
+   * the result. Equivalent to calling `update()` followed by `await draw()`.
+   */
+  const evolve = async (): Promise<void> => {
+    update();
+    await draw();
   };
 
   return {
+    update,
+    draw,
     evolve,
     readGrid,
     writeCell,

@@ -132,7 +132,7 @@ canvas.style.imageRendering = "pixelated";
 canvas.width = size;
 canvas.height = size;
 
-const { evolve, writeCellAt, readGrid } = setup({
+const { update, draw, writeCellAt, readGrid } = setup({
   canvas,
   automaton: wireworld,
   initialGrid,
@@ -155,9 +155,10 @@ canvas.addEventListener("click", (e) => {
 let skip = false;
 
 const loop = async () => {
-  if (!skip) await evolve();
+  if (!skip) update();
   skip = !skip;
 
+  await draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);
