@@ -1186,11 +1186,7 @@ describe("GPU simulation", async () => {
       await evolve();
       const result = await readGrid();
 
-      expect(result).toEqual([
-        1, 0, 1,
-        0, 1, 1,
-        1, 1, 1,
-      ]);
+      expect(result).toEqual([1, 0, 1, 0, 1, 1, 1, 1, 1]);
     });
 
     test("writeCell updates a single cell", async () => {
@@ -1215,11 +1211,7 @@ describe("GPU simulation", async () => {
       writeCell(4, 1);
       const result = await readGrid();
 
-      expect(result).toEqual([
-        0, 0, 0,
-        0, 1, 0,
-        0, 0, 0,
-      ]);
+      expect(result).toEqual([0, 0, 0, 0, 1, 0, 0, 0, 0]);
     });
 
     test("writeCell throws on out-of-bounds index", () => {
@@ -1231,7 +1223,11 @@ describe("GPU simulation", async () => {
       const { writeCell } = setup({
         canvas,
         automaton,
-        initialGrid: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
       });
 
       expect(() => writeCell(9, 0)).toThrow("out of bounds");
@@ -1248,11 +1244,78 @@ describe("GPU simulation", async () => {
       const { writeCell } = setup({
         canvas,
         automaton,
-        initialGrid: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
       });
 
       expect(() => writeCell(0, 2)).toThrow("invalid");
       expect(() => writeCell(0, -1)).toThrow("invalid");
+    });
+
+    test("writeGrid overwrites the entire grid", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { readGrid, writeGrid } = setup({
+        canvas,
+        automaton,
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
+      });
+
+      const snapshot = [1, 0, 1, 0, 1, 0, 1, 0, 1];
+      writeGrid(snapshot);
+      const result = await readGrid();
+
+      expect(result).toEqual(snapshot);
+    });
+
+    test("writeGrid throws on wrong length", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { writeGrid } = setup({
+        canvas,
+        automaton,
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
+      });
+
+      expect(() => writeGrid([0, 0])).toThrow("does not match");
+    });
+
+    test("writeGrid throws on invalid element index", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { writeGrid } = setup({
+        canvas,
+        automaton,
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
+      });
+
+      expect(() => writeGrid([0, 0, 0, 0, 2, 0, 0, 0, 0])).toThrow("invalid");
     });
   });
 });
