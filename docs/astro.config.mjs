@@ -46,6 +46,9 @@ export default defineConfig({
           autogenerate: { directory: "concepts" },
         },
         {
+          slug: "guides/canvas",
+        },
+        {
           label: "Reference",
           collapsed: true,
           items: [typeDocSidebarGroup],

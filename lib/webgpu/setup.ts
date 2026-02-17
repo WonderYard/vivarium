@@ -332,7 +332,7 @@ export const mainCompute = tgpu["~unstable"].computeFn({
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
- * @returns An object with an `evolve` function that advances the simulation by one step, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
+ * @returns An object with an `evolve` function that advances the simulation by one step, a `readGrid` function that reads the current grid state, a `writeCell` function that updates a single cell by flat index, a `writeCellAt` function that updates a single cell by grid coordinates, a `writeGrid` function that overwrites the entire grid, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
  */
 export const setup = ({
   canvas,
@@ -472,6 +472,116 @@ export const setup = ({
   const imageData = g.createImageData(width, height);
   const pixels = new Uint32Array(imageData.data.buffer);
 
+  /**
+   * Reads the current grid state from the GPU and returns a flat array of element indices.
+   */
+  const readGrid = async (): Promise<number[]> => {
+    const currentIds = frames % 2 === 0 ? ids0 : ids1;
+    const result = await currentIds.read();
+    return Array.from(result);
+  };
+
+  /**
+   * Writes a single cell in the current grid, updating both its element index and color.
+   *
+   * @param index - The flat index of the cell to update (row-major order).
+   * @param elementIndex - The element index to assign to the cell.
+   */
+  const writeCell = (index: number, elementIndex: number): void => {
+    if (index < 0 || index >= width * height) {
+      throw new Error(
+        `Cell index ${index} is out of bounds. Expected a value in range [0, ${width * height - 1}].`
+      );
+    }
+
+    if (
+      !Number.isFinite(elementIndex) ||
+      !Number.isInteger(elementIndex) ||
+      elementIndex < 0 ||
+      elementIndex >= palette.length
+    ) {
+      throw new Error(
+        `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`
+      );
+    }
+
+    const currentIds = frames % 2 === 0 ? ids0 : ids1;
+    const currentColors = frames % 2 === 0 ? colors0 : colors1;
+
+    const data = new Uint32Array([elementIndex]);
+    device.queue.writeBuffer(currentIds.buffer, index * 4, data);
+
+    const colorData = new Uint32Array([palette[elementIndex]]);
+    device.queue.writeBuffer(currentColors.buffer, index * 4, colorData);
+  };
+
+  /**
+   * Writes a single cell by grid coordinates, updating both its element index and color.
+   *
+   * @param x - The column of the cell (0-based, from left).
+   * @param y - The row of the cell (0-based, from top).
+   * @param elementIndex - The element index to assign to the cell.
+   */
+  const writeCellAt = (x: number, y: number, elementIndex: number): void => {
+    if (x < 0 || x >= width) {
+      throw new Error(
+        `Column ${x} is out of bounds. Expected a value in range [0, ${width - 1}].`
+      );
+    }
+
+    if (y < 0 || y >= height) {
+      throw new Error(
+        `Row ${y} is out of bounds. Expected a value in range [0, ${height - 1}].`
+      );
+    }
+
+    writeCell(y * width + x, elementIndex);
+  };
+
+  /**
+   * Overwrites the entire grid with the given flat array of element indices,
+   * updating both the ids and colors buffers. Useful for restoring a snapshot
+   * or painting the grid in bulk.
+   *
+   * @param grid - A flat array of element indices (row-major order) whose length must equal `width * height`.
+   */
+  const writeGrid = (grid: number[]): void => {
+    const totalCells = width * height;
+
+    if (grid.length !== totalCells) {
+      throw new Error(
+        `Grid length ${grid.length} does not match the expected length of ${totalCells}.`
+      );
+    }
+
+    const newIds = new Uint32Array(totalCells);
+    const newColors = new Uint32Array(totalCells);
+
+    for (let i = 0; i < totalCells; i++) {
+      const elementIndex = grid[i];
+
+      if (
+        !Number.isFinite(elementIndex) ||
+        !Number.isInteger(elementIndex) ||
+        elementIndex < 0 ||
+        elementIndex >= palette.length
+      ) {
+        throw new Error(
+          `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`
+        );
+      }
+
+      newIds[i] = elementIndex;
+      newColors[i] = palette[elementIndex];
+    }
+
+    const currentIds = frames % 2 === 0 ? ids0 : ids1;
+    const currentColors = frames % 2 === 0 ? colors0 : colors1;
+
+    device.queue.writeBuffer(currentIds.buffer, 0, newIds);
+    device.queue.writeBuffer(currentColors.buffer, 0, newColors);
+  };
+
   const evolve = async (): Promise<void> => {
     seed.write(Math.random());
 
@@ -499,5 +609,13 @@ export const setup = ({
     frames++;
   };
 
-  return { evolve, setAutomaton, tgpuRoot: root };
+  return {
+    evolve,
+    readGrid,
+    writeCell,
+    writeCellAt,
+    writeGrid,
+    setAutomaton,
+    tgpuRoot: root,
+  };
 };
