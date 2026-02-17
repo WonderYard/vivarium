@@ -155,7 +155,7 @@ canvas.addEventListener("click", (e) => {
 
 let before = performance.now();
 
-const TIME_FRAME_MS = 1000 / 0.5; // 20 updates per second
+const TIME_FRAME_MS = 1000 / 20; // 20 updates per second
 
 const loop = async () => {
   const now = performance.now();
