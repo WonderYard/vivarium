@@ -1,0 +1,121 @@
+---
+title: Canvas interaction
+description: Learn how to programmatically read and write the grid at runtime.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The `setup` function returns several utilities for interacting with the grid at runtime. Beyond `evolve`, you can read the current state, overwrite the entire grid, or update individual cells — all while the simulation is running.
+
+```typescript
+const { evolve, readGrid, writeGrid, writeCell } = setup({
+  canvas,
+  automaton,
+});
+```
+
+## Reading the grid
+
+`readGrid` returns a `Promise` that resolves to a flat array of element indices, in row-major order (left to right, top to bottom). Each value corresponds to an element's `.index`.
+
+```typescript
+const snapshot = await readGrid();
+// snapshot is a number[] of length width * height
+```
+
+This is useful for inspecting the current state, running analytics, or saving a snapshot that can be restored later.
+
+## Writing the entire grid
+
+`writeGrid` replaces every cell at once. Pass a flat array of element indices whose length must equal `width * height`:
+
+```typescript
+writeGrid(snapshot); // restore a previously saved snapshot
+```
+
+The function validates every index in the array and throws if any value is out of range.
+
+<Aside type="tip" title="Snapshot and restore">
+  Combine `readGrid` and `writeGrid` to implement undo/redo, save/load, or
+  A/B comparisons between different rule sets.
+</Aside>
+
+## Writing a single cell
+
+`writeCell` updates one cell without touching the rest of the grid. Pass the flat index of the cell and the element index to assign:
+
+```typescript
+writeCell(index, alien.index);
+```
+
+The flat index for a cell at column `x` and row `y` in a grid of width `w` is `y * w + x`.
+
+## Practical examples
+
+### Click to paint
+
+Let users draw on the canvas by converting mouse coordinates to a cell index and calling `writeCell`:
+
+```typescript
+const { evolve, writeCell } = setup({ canvas, automaton });
+
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+
+  // Scale from CSS pixels to grid cells
+  const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+  const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+
+  writeCell(y * canvas.width + x, alien.index);
+});
+```
+
+### Pause, snapshot, resume
+
+Save the grid state so you can rewind:
+
+```typescript
+const { evolve, readGrid, writeGrid } = setup({ canvas, automaton });
+
+let saved: number[] | null = null;
+
+document.getElementById("save")!.addEventListener("click", async () => {
+  saved = await readGrid();
+});
+
+document.getElementById("restore")!.addEventListener("click", () => {
+  if (saved) writeGrid(saved);
+});
+```
+
+### Programmatic patterns
+
+Build a grid in code and load it before the simulation starts:
+
+```typescript
+const width = 128;
+const height = 128;
+const grid = new Array(width * height).fill(space.index);
+
+// Place a glider
+const glider = [
+  [0, 1],
+  [1, 2],
+  [2, 0],
+  [2, 1],
+  [2, 2],
+];
+
+for (const [dy, dx] of glider) {
+  grid[(10 + dy) * width + (10 + dx)] = alive.index;
+}
+
+const { evolve, writeGrid } = setup({ canvas, automaton });
+writeGrid(grid);
+```
+
+<Aside type="note" title="initialGrid vs writeGrid">
+  You can also pass an `initialGrid` option to `setup` for the very first
+  frame. `writeGrid` is useful when you want to replace the grid *after* setup,
+  for example in response to a user action.
+</Aside>

@@ -42,6 +42,9 @@ export default defineConfig({
           slug: "guides/start",
         },
         {
+          slug: "guides/canvas",
+        },
+        {
           label: "Building blocks",
           autogenerate: { directory: "concepts" },
         },
