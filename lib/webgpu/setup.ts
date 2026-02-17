@@ -332,7 +332,7 @@ export const mainCompute = tgpu["~unstable"].computeFn({
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
- * @returns An object with an `evolve` function that advances the simulation by one step, a `readGrid` function that reads the current grid state, a `writeCell` function that updates a single cell, a `writeGrid` function that overwrites the entire grid, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
+ * @returns An object with an `evolve` function that advances the simulation by one step, a `readGrid` function that reads the current grid state, a `writeCell` function that updates a single cell by flat index, a `writeCellAt` function that updates a single cell by grid coordinates, a `writeGrid` function that overwrites the entire grid, a `setAutomaton` function to update the automaton, and the underlying `tgpuRoot`.
  */
 export const setup = ({
   canvas,
@@ -516,6 +516,29 @@ export const setup = ({
   };
 
   /**
+   * Writes a single cell by grid coordinates, updating both its element index and color.
+   *
+   * @param x - The column of the cell (0-based, from left).
+   * @param y - The row of the cell (0-based, from top).
+   * @param elementIndex - The element index to assign to the cell.
+   */
+  const writeCellAt = (x: number, y: number, elementIndex: number): void => {
+    if (x < 0 || x >= width) {
+      throw new Error(
+        `Column ${x} is out of bounds. Expected a value in range [0, ${width - 1}].`
+      );
+    }
+
+    if (y < 0 || y >= height) {
+      throw new Error(
+        `Row ${y} is out of bounds. Expected a value in range [0, ${height - 1}].`
+      );
+    }
+
+    writeCell(y * width + x, elementIndex);
+  };
+
+  /**
    * Overwrites the entire grid with the given flat array of element indices,
    * updating both the ids and colors buffers. Useful for restoring a snapshot
    * or painting the grid in bulk.
@@ -590,6 +613,7 @@ export const setup = ({
     evolve,
     readGrid,
     writeCell,
+    writeCellAt,
     writeGrid,
     setAutomaton,
     tgpuRoot: root,

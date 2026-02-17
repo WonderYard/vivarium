@@ -1317,5 +1317,50 @@ describe("GPU simulation", async () => {
 
       expect(() => writeGrid([0, 0, 0, 0, 2, 0, 0, 0, 0])).toThrow("invalid");
     });
+
+    test("writeCellAt updates a cell by coordinates", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { readGrid, writeCellAt } = setup({
+        canvas,
+        automaton,
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
+      });
+
+      writeCellAt(1, 1, 1); // center cell
+      const result = await readGrid();
+
+      expect(result).toEqual([0, 0, 0, 0, 1, 0, 0, 0, 0]);
+    });
+
+    test("writeCellAt throws on out-of-bounds coordinates", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { writeCellAt } = setup({
+        canvas,
+        automaton,
+        initialGrid: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
+      });
+
+      expect(() => writeCellAt(3, 0, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(-1, 0, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(0, 3, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(0, -1, 0)).toThrow("out of bounds");
+    });
   });
 });

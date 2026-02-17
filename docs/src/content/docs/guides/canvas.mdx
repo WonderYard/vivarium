@@ -8,7 +8,7 @@ import { Aside } from "@astrojs/starlight/components";
 The `setup` function returns several utilities for interacting with the grid at runtime. Beyond `evolve`, you can read the current state, overwrite the entire grid, or update individual cells — all while the simulation is running.
 
 ```typescript
-const { evolve, readGrid, writeGrid, writeCell } = setup({
+const { evolve, readGrid, writeGrid, writeCell, writeCellAt } = setup({
   canvas,
   automaton,
 });
@@ -50,14 +50,20 @@ writeCell(index, alien.index);
 
 The flat index for a cell at column `x` and row `y` in a grid of width `w` is `y * w + x`.
 
+If you prefer working with grid coordinates instead of flat indices, use `writeCellAt`:
+
+```typescript
+writeCellAt(x, y, alien.index);
+```
+
 ## Practical examples
 
 ### Click to paint
 
-Let users draw on the canvas by converting mouse coordinates to a cell index and calling `writeCell`:
+Let users draw on the canvas by converting mouse coordinates to cell coordinates and calling `writeCellAt`:
 
 ```typescript
-const { evolve, writeCell } = setup({ canvas, automaton });
+const { evolve, writeCellAt } = setup({ canvas, automaton });
 
 canvas.addEventListener("click", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -66,7 +72,7 @@ canvas.addEventListener("click", (e) => {
   const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
   const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
 
-  writeCell(y * canvas.width + x, alien.index);
+  writeCellAt(x, y, alien.index);
 });
 ```
 
