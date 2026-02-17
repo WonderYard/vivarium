@@ -18,6 +18,7 @@ import {
   gridLayout,
   mainCompute,
   setSeed,
+  setup,
 } from "@/webgpu/setup";
 
 // ── Debug ───────────────────────────────────────────────────────────
@@ -1134,6 +1135,124 @@ describe("GPU simulation", async () => {
         [D, D, D, D, D, D],
         [D, D, D, D, D, D],
       ]);
+    });
+  });
+
+  // ── readGrid and writeCell ───────────────────────────────────
+
+  describe("readGrid and writeCell", () => {
+    const createCanvas = (width: number, height: number): HTMLCanvasElement => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      return canvas;
+    };
+
+    test("readGrid returns the initial grid", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const initialGrid = [
+        [0, 1, 0],
+        [1, 0, 1],
+        [0, 0, 0],
+      ];
+
+      const canvas = createCanvas(3, 3);
+      const { readGrid } = setup({ canvas, automaton, initialGrid });
+      const result = await readGrid();
+
+      expect(result).toEqual(initialGrid.flat());
+    });
+
+    test("readGrid returns evolved state after evolve", async () => {
+      const vi = vivarium();
+      const a = vi.element("a", "#ff0000");
+      const b = vi.element("b", "#00ff00");
+      a.to(b);
+      b.to(a);
+      const automaton = vi.create();
+
+      const initialGrid = [
+        [0, 1, 0],
+        [1, 0, 0],
+        [0, 0, 0],
+      ];
+
+      const canvas = createCanvas(3, 3);
+      const { evolve, readGrid } = setup({ canvas, automaton, initialGrid });
+      await evolve();
+      const result = await readGrid();
+
+      expect(result).toEqual([
+        1, 0, 1,
+        0, 1, 1,
+        1, 1, 1,
+      ]);
+    });
+
+    test("writeCell updates a single cell", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const initialGrid = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ];
+
+      const canvas = createCanvas(3, 3);
+      const { readGrid, writeCell } = setup({
+        canvas,
+        automaton,
+        initialGrid,
+      });
+
+      writeCell(4, 1);
+      const result = await readGrid();
+
+      expect(result).toEqual([
+        0, 0, 0,
+        0, 1, 0,
+        0, 0, 0,
+      ]);
+    });
+
+    test("writeCell throws on out-of-bounds index", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { writeCell } = setup({
+        canvas,
+        automaton,
+        initialGrid: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+      });
+
+      expect(() => writeCell(9, 0)).toThrow("out of bounds");
+      expect(() => writeCell(-1, 0)).toThrow("out of bounds");
+    });
+
+    test("writeCell throws on invalid element index", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+      const { writeCell } = setup({
+        canvas,
+        automaton,
+        initialGrid: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+      });
+
+      expect(() => writeCell(0, 2)).toThrow("invalid");
+      expect(() => writeCell(0, -1)).toThrow("invalid");
     });
   });
 });
