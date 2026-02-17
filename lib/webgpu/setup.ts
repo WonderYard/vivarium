@@ -606,8 +606,6 @@ export const setup = ({
       .with(frames % 2 === 0 ? gridGroup0 : gridGroup1)
       .dispatchWorkgroups(WORKGROUP_COUNT_W, WORKGROUP_COUNT_H);
 
-    colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
-
     frames++;
   };
 
@@ -619,6 +617,14 @@ export const setup = ({
    * processing before reading the result.
    */
   const draw = async (): Promise<void> => {
+    // In <=1.3.0 there was a bug in the evolve function that would cause the drawing
+    // of old data instead of new one. `frames` was updated after updating + drawing.
+    // Now we determine which colors buffer to read using the *updated* frames value
+    // (updated at the end of the update function). For instance, after an update
+    // if frames has become odd (from even), colors1 is going to hold the new colors,
+    // because gridGroup0 (even-frame update) uses colors0 as old and colors1 as new.
+    colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
+
     // We are manually doing these steps, from map to unmap, even though
     // TgpuBuffer.read exists, because we notice heavy work happening JS-side
     // due to its readers. Since we don't need to parse data other than putting
