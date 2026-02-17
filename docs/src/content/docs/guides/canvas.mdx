@@ -36,8 +36,13 @@ writeGrid(snapshot); // restore a previously saved snapshot
 The function validates every index in the array and throws if any value is out of range.
 
 <Aside type="tip" title="Snapshot and restore">
-  Combine `readGrid` and `writeGrid` to implement undo/redo, save/load, or
-  A/B comparisons between different rule sets.
+  Combine `readGrid` and `writeGrid` to implement undo/redo, save/load, or A/B
+  comparisons between different rule sets.
+</Aside>
+<Aside type="note" title="initialGrid vs writeGrid">
+  Consider passing an `initialGrid` to `setup` if you just want to
+  initialize the grid. `writeGrid` is useful when you want to replace the grid
+  *after* setup, for example in response to a user action.
 </Aside>
 
 ## Writing a single cell
@@ -48,7 +53,7 @@ The function validates every index in the array and throws if any value is out o
 writeCell(index, alien.index);
 ```
 
-The flat index for a cell at column `x` and row `y` in a grid of width `w` is `y * w + x`.
+The flat index for a cell at column `x` and row `y` in a grid of width `width` is `y * width + x`.
 
 If you prefer working with grid coordinates instead of flat indices, use `writeCellAt`:
 
@@ -93,35 +98,3 @@ document.getElementById("restore")!.addEventListener("click", () => {
   if (saved) writeGrid(saved);
 });
 ```
-
-### Programmatic patterns
-
-Build a grid in code and load it before the simulation starts:
-
-```typescript
-const width = 128;
-const height = 128;
-const grid = new Array(width * height).fill(space.index);
-
-// Place a glider
-const glider = [
-  [0, 1],
-  [1, 2],
-  [2, 0],
-  [2, 1],
-  [2, 2],
-];
-
-for (const [dy, dx] of glider) {
-  grid[(10 + dy) * width + (10 + dx)] = alive.index;
-}
-
-const { evolve, writeGrid } = setup({ canvas, automaton });
-writeGrid(grid);
-```
-
-<Aside type="note" title="initialGrid vs writeGrid">
-  You can also pass an `initialGrid` option to `setup` for the very first
-  frame. `writeGrid` is useful when you want to replace the grid *after* setup,
-  for example in response to a user action.
-</Aside>
