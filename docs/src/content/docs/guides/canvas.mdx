@@ -5,10 +5,10 @@ description: Learn how to programmatically read and write the grid at runtime.
 
 import { Aside } from "@astrojs/starlight/components";
 
-The `setup` function returns several utilities for interacting with the grid at runtime. Beyond `evolve`, you can read the current state, overwrite the entire grid, or update individual cells — all while the simulation is running.
+The `setup` function returns several utilities for interacting with the grid at runtime. Beyond `update` and `draw`, you can read the current state, overwrite the entire grid, or update individual cells — all while the simulation is running.
 
 ```typescript
-const { evolve, readGrid, writeGrid, writeCell, writeCellAt } = setup({
+const { update, draw, readGrid, writeGrid, writeCell, writeCellAt } = setup({
   canvas,
   automaton,
 });
@@ -68,7 +68,7 @@ writeCellAt(x, y, alien.index);
 Let users draw on the canvas by converting mouse coordinates to cell coordinates and calling `writeCellAt`:
 
 ```typescript
-const { evolve, writeCellAt } = setup({ canvas, automaton });
+const { update, draw, writeCellAt } = setup({ canvas, automaton });
 
 canvas.addEventListener("click", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -86,7 +86,7 @@ canvas.addEventListener("click", (e) => {
 Save the grid state so you can rewind:
 
 ```typescript
-const { evolve, readGrid, writeGrid } = setup({ canvas, automaton });
+const { update, draw, readGrid, writeGrid } = setup({ canvas, automaton });
 
 let saved: number[] | null = null;
 

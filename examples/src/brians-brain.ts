@@ -29,10 +29,11 @@ const size = 256;
 canvas.width = size;
 canvas.height = size;
 
-const { evolve } = setup({ canvas, automaton: brain });
+const { update, draw } = setup({ canvas, automaton: brain });
 
 const loop = async () => {
-  await evolve();
+  update();
+  await draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

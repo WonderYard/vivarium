@@ -132,7 +132,7 @@ canvas.style.imageRendering = "pixelated";
 canvas.width = size;
 canvas.height = size;
 
-const { evolve, writeCellAt, readGrid } = setup({
+const { update, draw, writeCellAt, readGrid } = setup({
   canvas,
   automaton: wireworld,
   initialGrid,
@@ -150,14 +150,22 @@ canvas.addEventListener("click", (e) => {
   const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
 
   writeCellAt(x, y, wire.index);
+  draw();
 });
 
-let skip = false;
+let before = performance.now();
+
+const TIME_FRAME_MS = 1000 / 0.5; // 20 updates per second
 
 const loop = async () => {
-  if (!skip) await evolve();
-  skip = !skip;
-
+  const now = performance.now();
+  let i = 0;
+  while (now - before >= TIME_FRAME_MS && i < 10 /* to avoid freezes */) {
+    update();
+    before += TIME_FRAME_MS;
+    i++;
+  }
+  await draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);
