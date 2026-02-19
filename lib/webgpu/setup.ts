@@ -15,12 +15,10 @@ import {
 import { compileGpuAutomaton } from "./compiler";
 
 const adapter = await navigator.gpu.requestAdapter();
-if (!adapter) {
-  throw new Error("No adapter");
-}
-const device = await adapter.requestDevice();
 
-void device.lost.then(() => {
+const device = await adapter?.requestDevice();
+
+void device?.lost.then(() => {
   throw new Error("Device lost");
 });
 
@@ -352,6 +350,10 @@ export const setup = ({
   automaton: Automaton;
   initialGrid?: number[] | number[][];
 }) => {
+  if (!device) {
+    throw Error("No adapter");
+  }
+
   const root = tgpu.initFromDevice({ device });
   const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
 
