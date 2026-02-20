@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "jsdoc", "promise", "vitest"],
+  "ignorePatterns": [],
+  "jsPlugins": [],
+  "rules": {}
+}
