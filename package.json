@@ -23,13 +23,12 @@
   "scripts": {
     "dev": "vite",
     "dev:https": "ENABLE_BASIC_SSL=true vite --host",
-    "build": "tsc && vite build",
+    "build": "pnpm lint && vite build",
     "preview": "vite preview",
     "lint": "oxlint --type-aware --type-check",
     "lint:fix": "oxlint --fix --type-aware --type-check",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "typecheck": "tsc --noEmit",
     "test": "vitest"
   },
   "dependencies": {
