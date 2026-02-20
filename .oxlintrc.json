@@ -3,5 +3,7 @@
   "plugins": ["import", "jsdoc", "promise", "vitest"],
   "ignorePatterns": [],
   "jsPlugins": [],
-  "rules": {}
+  "rules": {
+    "vitest/no-conditional-expect": "off"
+  }
 }

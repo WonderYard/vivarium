@@ -61,6 +61,7 @@ export default defineConfig({
     ssr: {
       noExternal: ["nanoid"],
     },
+    // @ts-expect-error astro is using vite 6 while we have vite 7
     plugins: [tailwindcss()],
   },
 });
