@@ -4,7 +4,7 @@ import { neighborhoodPoints } from "@/common/constants";
 import type { AnyNeighbor } from "./types";
 
 export const toRefIdOrPoint = (
-  refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor
+  refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
 ): string | Point => {
   return typeof refBlueprintOrNeighbor === "string"
     ? neighborhoodPoints[refBlueprintOrNeighbor]

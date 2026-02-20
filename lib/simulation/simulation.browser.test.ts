@@ -1,25 +1,13 @@
 /// <reference types="vite/client" />
 
-import tgpu from "typegpu";
-import * as d from "typegpu/data";
-import { describe, expect, test } from "vitest";
 import type { Automaton } from "@/automaton/types";
-import {
-  GpuCondition,
-  GpuElement,
-  GpuRule,
-  Square,
-  WORKGROUP_SIZE,
-} from "@/common/constants";
+import { GpuCondition, GpuElement, GpuRule, Square, WORKGROUP_SIZE } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
-import {
-  automatonLayout,
-  gridLayout,
-  mainCompute,
-  setSeed,
-  setup,
-} from "@/webgpu/setup";
+import { automatonLayout, gridLayout, mainCompute, setSeed, setup } from "@/webgpu/setup";
+import tgpu, { type TgpuRoot } from "typegpu";
+import * as d from "typegpu/data";
+import { beforeAll, describe, expect, test } from "vitest";
 
 // ── Debug ───────────────────────────────────────────────────────────
 
@@ -61,12 +49,7 @@ const formatGrid = (g: Grid, symbols: string[]): string[] => {
   return rows;
 };
 
-const printEvolution = (
-  before: Grid,
-  after: Grid,
-  automaton: Automaton,
-  label?: string
-): void => {
+const printEvolution = (before: Grid, after: Grid, automaton: Automaton, label?: string): void => {
   if (!DEBUG) return;
 
   const symbols = automaton.elements.map((el) => el.name[0].toUpperCase());
@@ -91,7 +74,7 @@ const printEvolution = (
 async function gpuEvolve(
   root: ReturnType<typeof tgpu.initFromDevice>,
   automaton: Automaton,
-  inputGrid: Grid
+  inputGrid: Grid,
 ): Promise<Grid> {
   const { width, height, ids } = inputGrid;
   const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
@@ -101,30 +84,19 @@ async function gpuEvolve(
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
-  const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } =
-    compileGpuAutomaton(automaton);
+  const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } = compileGpuAutomaton(automaton);
 
   const palette = gpuElements.map((el) => el.color);
 
-  const dimensions = root
-    .createBuffer(d.vec2u, d.vec2u(width, height))
-    .$usage("uniform");
+  const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
-  const colors0 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
-  const colors1 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const colors1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
-  const ids0 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const ids0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
-  const ids1 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const ids1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
   // Initialize with controlled data
   const initialColors = ids.map((id) => palette[id] ?? 0);
@@ -140,20 +112,14 @@ async function gpuEvolve(
   });
 
   const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
-  const conditions =
-    gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
+  const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
 
   const automatonGroup = root.createBindGroup(automatonLayout, {
     neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
     elements: root
-      .createBuffer(
-        d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
-        gpuElements
-      )
+      .createBuffer(d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)), gpuElements)
       .$usage("storage"),
-    rules: root
-      .createBuffer(d.arrayOf(GpuRule, rules.length), rules)
-      .$usage("storage"),
+    rules: root.createBuffer(d.arrayOf(GpuRule, rules.length), rules).$usage("storage"),
     conditions: root
       .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
       .$usage("storage"),
@@ -181,7 +147,7 @@ async function gpuEvolveMulti(
   root: ReturnType<typeof tgpu.initFromDevice>,
   automaton: Automaton,
   inputGrid: Grid,
-  steps: number
+  steps: number,
 ): Promise<Grid> {
   let current = inputGrid;
   for (let i = 0; i < steps; i++) {
@@ -196,7 +162,7 @@ const step = async (
   root: ReturnType<typeof tgpu.initFromDevice>,
   build: (vi: ReturnType<typeof vivarium>) => void,
   inputGrid: Grid,
-  neighborhood?: "square" | "cross"
+  neighborhood?: "square" | "cross",
 ): Promise<Grid> => {
   const vi = vivarium(neighborhood);
   build(vi);
@@ -205,13 +171,17 @@ const step = async (
 
 // ── Tests ───────────────────────────────────────────────────────────
 
-describe("GPU simulation", async () => {
-  const adapter = await navigator.gpu.requestAdapter();
-  if (!adapter) {
-    throw new Error("WebGPU adapter not available");
-  }
-  const device = await adapter.requestDevice();
-  const root = tgpu.initFromDevice({ device });
+describe("GPU simulation", () => {
+  let root: TgpuRoot;
+
+  beforeAll(async () => {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error("WebGPU adapter not available");
+    }
+    const device = await adapter.requestDevice();
+    root = tgpu.initFromDevice({ device });
+  });
 
   // ── Unconditional rules ─────────────────────────────────────────
 
@@ -231,7 +201,7 @@ describe("GPU simulation", async () => {
           a.to(b);
           b.to(a);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -275,7 +245,7 @@ describe("GPU simulation", async () => {
           a.to(a);
           b.to(b);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual(toRows(before));
@@ -297,7 +267,7 @@ describe("GPU simulation", async () => {
         (vi) => {
           vi.element("a", "#ff0000");
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual(toRows(before));
@@ -317,7 +287,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 5);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual(toRows(before));
@@ -343,7 +313,7 @@ describe("GPU simulation", async () => {
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(1);
@@ -365,7 +335,7 @@ describe("GPU simulation", async () => {
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(1);
@@ -387,7 +357,7 @@ describe("GPU simulation", async () => {
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(0);
@@ -409,7 +379,7 @@ describe("GPU simulation", async () => {
           alive.to(alive).count(alive, 2, 3);
           alive.to(dead);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(0);
@@ -429,7 +399,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 0);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -461,7 +431,7 @@ describe("GPU simulation", async () => {
           head.to(head).count(head, 8);
           wire.to(head).count(head, 1, 2);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(2);
@@ -485,7 +455,7 @@ describe("GPU simulation", async () => {
 
           empty.to(wire).count(conductor, 2);
         },
-        before
+        before,
       );
 
       expect(after.ids[1]).toBe(1);
@@ -509,7 +479,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.TOP, b);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(1);
@@ -530,7 +500,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.TOP, b);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual(toRows(before));
@@ -554,7 +524,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.LEFT, Square.RIGHT);
         },
-        before
+        before,
       );
 
       expect(after.ids[1]).toBe(1);
@@ -575,7 +545,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.LEFT, Square.RIGHT);
         },
-        before
+        before,
       );
 
       expect(after.ids[1]).toBe(0);
@@ -599,7 +569,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 1).is(Square.TOP, b);
         },
-        before
+        before,
       );
 
       expect(after.ids[3]).toBe(1);
@@ -620,7 +590,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 3).is(Square.TOP, b).accept("any");
         },
-        before
+        before,
       );
 
       expect(after.ids[3]).toBe(1);
@@ -640,7 +610,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 3).is(Square.TOP, b).accept("one");
         },
-        before
+        before,
       );
 
       expect(after.ids[3]).toBe(1);
@@ -660,7 +630,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.TOP, b).is(Square.RIGHT, a).accept("one");
         },
-        before
+        before,
       );
 
       expect(after.ids[3]).toBe(0);
@@ -680,7 +650,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 1).accept("none");
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -704,7 +674,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 1).accept("none");
         },
-        before
+        before,
       );
 
       expect(after.ids[1]).toBe(0);
@@ -728,7 +698,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.BOTTOM, b);
         },
-        before
+        before,
       );
 
       expect(after.ids[7]).toBe(1);
@@ -749,7 +719,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.RIGHT, b);
         },
-        before
+        before,
       );
 
       expect(after.ids[1]).toBe(1);
@@ -769,7 +739,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).is(Square.BOTTOM_RIGHT, b);
         },
-        before
+        before,
       );
 
       expect(after.ids[4]).toBe(1);
@@ -794,7 +764,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -818,7 +788,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(a, 8);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -842,7 +812,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(a, 0);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -866,7 +836,7 @@ describe("GPU simulation", async () => {
           const b = vi.element("b", "#00ff00");
           a.to(b).count(b, 1);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual(toRows(before));
@@ -887,7 +857,7 @@ describe("GPU simulation", async () => {
           a.to(Square.SELF);
           b.to(Square.SELF);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual(toRows(before));
@@ -907,7 +877,7 @@ describe("GPU simulation", async () => {
           vi.element("b", "#00ff00");
           a.to(Square.TOP);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([
@@ -933,7 +903,7 @@ describe("GPU simulation", async () => {
           a.to(b);
           a.to(c);
         },
-        before
+        before,
       );
 
       expect(toRows(after)).toEqual([

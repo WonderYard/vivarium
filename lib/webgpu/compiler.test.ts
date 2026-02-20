@@ -14,7 +14,7 @@ const NEG1 = -1 >>> 0;
  */
 const compile = (
   build: (vi: ReturnType<typeof vivarium>) => void,
-  neighborhood?: "square" | "cross"
+  neighborhood?: "square" | "cross",
 ) => {
   const vi = vivarium(neighborhood);
   build(vi);

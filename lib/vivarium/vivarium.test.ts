@@ -21,16 +21,12 @@ test("throws on building after closing with create", () => {
   }).toThrow(/^Blueprint methods can no longer be called after create/);
 
   expect(() => rule.count(alive)).toThrow(
-    /^Blueprint methods can no longer be called after create/
+    /^Blueprint methods can no longer be called after create/,
   );
 
-  expect(() => alive.to(alive)).toThrow(
-    /^Blueprint methods can no longer be called after create/
-  );
+  expect(() => alive.to(alive)).toThrow(/^Blueprint methods can no longer be called after create/);
 
-  expect(() => vi.create()).toThrow(
-    /^Blueprint methods can no longer be called after create/
-  );
+  expect(() => vi.create()).toThrow(/^Blueprint methods can no longer be called after create/);
 });
 
 test("creates an element", () => {
@@ -54,9 +50,7 @@ test("throws on duplicate element name", () => {
   const vi = vivarium();
   vi.element("alive", "#ffffff");
 
-  expect(() => vi.element("alive", "#000000")).toThrow(
-    /^Element with name "alive" already exists/
-  );
+  expect(() => vi.element("alive", "#000000")).toThrow(/^Element with name "alive" already exists/);
 });
 
 test("creates a kind", () => {
@@ -79,18 +73,14 @@ test("throws on duplicate kind name", () => {
   const vi = vivarium();
   vi.kind("flammable");
 
-  expect(() => vi.kind("flammable")).toThrow(
-    /^Kind with name "flammable" already exists/
-  );
+  expect(() => vi.kind("flammable")).toThrow(/^Kind with name "flammable" already exists/);
 });
 
 test("throws on element and kind with same name", () => {
   const vi = vivarium();
   vi.element("alive", "#ffffff");
 
-  expect(() => vi.kind("alive")).toThrow(
-    /^Element with name "alive" already exists/
-  );
+  expect(() => vi.kind("alive")).toThrow(/^Element with name "alive" already exists/);
 });
 
 test("creates a rule on an element", () => {
@@ -104,9 +94,7 @@ test("creates a rule on an element", () => {
   expect(automaton.rules).toHaveLength(1);
   const rule = automaton.rules[0];
 
-  expect(rule.to).toBe(
-    automaton.elements.find((element) => element.name === "alive")?.id
-  );
+  expect(rule.to).toBe(automaton.elements.find((element) => element.name === "alive")?.id);
   expect(rule.when).toStrictEqual([]);
   expect(rule.accept).toBe(Accept.ALL);
 });
@@ -124,9 +112,7 @@ test("creates a rule on a kind", () => {
   expect(automaton.rules).toHaveLength(1);
   const rule = automaton.rules[0];
 
-  expect(rule.to).toBe(
-    automaton.elements.find((element) => element.name === "alive")?.id
-  );
+  expect(rule.to).toBe(automaton.elements.find((element) => element.name === "alive")?.id);
   expect(rule.when).toStrictEqual([]);
   expect(rule.accept).toBe(Accept.ALL);
 });
@@ -145,7 +131,7 @@ test("creates a count condition", () => {
 
   if (typeof checkCondition === "object" && checkCondition.type === "count") {
     expect(checkCondition.check).toBe(
-      automaton.elements.find((element) => element.name === "alive")?.id
+      automaton.elements.find((element) => element.name === "alive")?.id,
     );
     expect(checkCondition.count).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   }
@@ -249,18 +235,14 @@ test("throws on duplicate element color", () => {
   const vi = vivarium();
   vi.element("a", "#ffffff");
 
-  expect(() => vi.element("b", "#ffffff")).toThrow(
-    /^Element with color "#ffffff" already exists/
-  );
+  expect(() => vi.element("b", "#ffffff")).toThrow(/^Element with color "#ffffff" already exists/);
 });
 
 test("throws on kind and element with same name (kind first)", () => {
   const vi = vivarium();
   vi.kind("shared");
 
-  expect(() => vi.element("shared", "#ffffff")).toThrow(
-    /^Kind with name "shared" already exists/
-  );
+  expect(() => vi.element("shared", "#ffffff")).toThrow(/^Kind with name "shared" already exists/);
 });
 
 // ── Element creation with extensions ────────────────────────────────
@@ -299,11 +281,7 @@ test("creates multiple elements", () => {
   const automaton = vi.create();
 
   expect(automaton.elements).toHaveLength(3);
-  expect(automaton.elements.map((e) => e.name)).toStrictEqual([
-    "alive",
-    "dead",
-    "zombie",
-  ]);
+  expect(automaton.elements.map((e) => e.name)).toStrictEqual(["alive", "dead", "zombie"]);
 });
 
 // ── Kind properties ─────────────────────────────────────────────────
@@ -328,10 +306,7 @@ test("creates multiple kinds", () => {
   const automaton = vi.create();
 
   expect(automaton.kinds).toHaveLength(2);
-  expect(automaton.kinds.map((k) => k.name)).toStrictEqual([
-    "flammable",
-    "organic",
-  ]);
+  expect(automaton.kinds.map((k) => k.name)).toStrictEqual(["flammable", "organic"]);
 });
 
 // ── Rules: fromId and fromType ──────────────────────────────────────
@@ -824,17 +799,13 @@ test("helpers.between throws when max is greater than 8", () => {
 test("helpers.between throws when max equals min", () => {
   const vi = vivarium();
 
-  expect(() => vi.helpers.between(3, 3)).toThrow(
-    /^max cannot be less or equal than min/
-  );
+  expect(() => vi.helpers.between(3, 3)).toThrow(/^max cannot be less or equal than min/);
 });
 
 test("helpers.between throws when max is less than min", () => {
   const vi = vivarium();
 
-  expect(() => vi.helpers.between(5, 2)).toThrow(
-    /^max cannot be less or equal than min/
-  );
+  expect(() => vi.helpers.between(5, 2)).toThrow(/^max cannot be less or equal than min/);
 });
 
 // ── Helpers: even() and odd() ───────────────────────────────────────
@@ -929,7 +900,7 @@ test("throws on creating element after create", () => {
   vi.create();
 
   expect(() => vi.element("dead", "#000000")).toThrow(
-    /^Blueprint methods can no longer be called after create/
+    /^Blueprint methods can no longer be called after create/,
   );
 });
 
@@ -939,7 +910,7 @@ test("throws on creating kind after create", () => {
   vi.create();
 
   expect(() => vi.kind("flammable")).toThrow(
-    /^Blueprint methods can no longer be called after create/
+    /^Blueprint methods can no longer be called after create/,
   );
 });
 
@@ -951,7 +922,7 @@ test("throws on is condition after create", () => {
   vi.create();
 
   expect(() => ruleChain.is(Square.TOP, alive)).toThrow(
-    /^Blueprint methods can no longer be called after create/
+    /^Blueprint methods can no longer be called after create/,
   );
 });
 
@@ -963,7 +934,7 @@ test("throws on chance condition after create", () => {
   vi.create();
 
   expect(() => ruleChain.chance(50)).toThrow(
-    /^Blueprint methods can no longer be called after create/
+    /^Blueprint methods can no longer be called after create/,
   );
 });
 
@@ -1197,9 +1168,7 @@ test("stochastic automaton with chance and count", () => {
   // Rule 1: tree -> fire with count and accept any
   expect(automaton.rules[1].accept).toBe(Accept.ANY);
   if (automaton.rules[1].when[0].type === "count") {
-    expect(automaton.rules[1].when[0].count).toStrictEqual([
-      1, 2, 3, 4, 5, 6, 7, 8,
-    ]);
+    expect(automaton.rules[1].when[0].count).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   }
 
   // Rule 2: tree -> fire with 1/10000 chance

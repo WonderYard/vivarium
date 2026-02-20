@@ -20,9 +20,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["lib/*"]
+      "@/*": ["./lib/*"]
     }
   },
   "include": ["lib", "vite.config.ts"]

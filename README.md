@@ -81,7 +81,7 @@ const { evolve } = setup({ canvas, automaton: life });
 const loop = async () => {
   await evolve();
   requestAnimationFrame(loop);
-}
+};
 requestAnimationFrame(loop);
 ```
 
@@ -92,4 +92,5 @@ requestAnimationFrame(loop);
 Vivarium runs its simulation entirely on the GPU thanks to the WebGPU API and its compute shaders. WebGPU is a relatively new technology. It is available since Chrome 113, Safari 26. See implementation status in other browsers [here](https://github.com/gpuweb/gpuweb/wiki/Implementation-Status). Vivarium has been tested on Chrome 139 for macOS and Safari 26.0 for macOS, showing better performances on Chrome overall.
 
 ## Contributing
+
 Although I've been researching and experimenting with cellular automata for years, this is my first WebGPU-based project, so it might be rough around the edges. With WebGPU I've been able to achieve something it wouldn't be possible in a browser otherwise: to build something simple, customizable, and accessible for the end user, without compromising on performance. The intent is to offer this library as a learning tool and something other people can build on top of. If you share the vision and you would like to improve this software, PRs are welcome.

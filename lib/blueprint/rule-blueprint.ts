@@ -13,7 +13,7 @@ export class RuleBlueprint extends BaseBlueprint {
   constructor(
     protected context: BlueprintContext,
     protected automaton: Automaton,
-    protected rule: Rule
+    protected rule: Rule,
   ) {
     super();
   }
@@ -39,9 +39,7 @@ export class RuleBlueprint extends BaseBlueprint {
     ...count: (number | number[])[]
   ): RuleBlueprintWithAccept {
     let flatCount =
-      this.automaton.neighborhood === "cross"
-        ? [1, 2, 3, 4]
-        : [1, 2, 3, 4, 5, 6, 7, 8];
+      this.automaton.neighborhood === "cross" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6, 7, 8];
 
     if (count.length !== 0) {
       flatCount = count.flat();
@@ -64,7 +62,7 @@ export class RuleBlueprint extends BaseBlueprint {
    */
   public is(
     neighbor: AnyNeighbor,
-    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor
+    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
   ): RuleBlueprintWithAccept {
     return this.condition({
       type: "is",
