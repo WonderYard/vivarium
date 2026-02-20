@@ -5,10 +5,6 @@ export type Neighbor<N> = N extends "cross" ? Cross : Square;
 
 export type ConditionStrategy = "all" | "any" | "one" | "none";
 
-export type ConditionExpression = (
-  neighborhood: Uint8Array,
-  x: number,
-  y: number
-) => boolean;
+export type ConditionExpression = (neighborhood: Uint8Array, x: number, y: number) => boolean;
 
 export type BlueprintContext = { created: boolean };

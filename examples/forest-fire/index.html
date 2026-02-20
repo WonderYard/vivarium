@@ -1,18 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vivarium demo - Forest Fire</title>
   </head>
   <body>
     <div class="flex justify-center">
-      <div
-        class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100"
-      >
-        <div
-          class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full"
-        >
+      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100">
+        <div class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full">
           <div class="flex flex-row gap-2 items-center">
             <a class="btn btn-soft btn-sm" href="/">←</a>
             <h1 class="text-2xl font-bold">Forest Fire</h1>
@@ -25,9 +21,7 @@
           </a>
         </div>
 
-        <div
-          class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100"
-        >
+        <div class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100">
           <figure class="aspect-square">
             <canvas class="w-full" id="example-canvas"></canvas>
           </figure>
@@ -42,15 +36,9 @@
         <div
           class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
         >
-          <pre
-            data-prefix="1"
-          ><code>const empty = element("empty", "black")</code></pre>
-          <pre
-            data-prefix="2"
-          ><code>const tree = element("tree", "green")</code></pre>
-          <pre
-            data-prefix="3"
-          ><code>const fire = element("fire", "red")</code></pre>
+          <pre data-prefix="1"><code>const empty = element("empty", "black")</code></pre>
+          <pre data-prefix="2"><code>const tree = element("tree", "green")</code></pre>
+          <pre data-prefix="3"><code>const fire = element("fire", "red")</code></pre>
           <pre data-prefix="4"></pre>
           <pre data-prefix="5"><code>empty.to(tree).chance(1, 1000)</code></pre>
           <pre data-prefix="6"><code>tree.to(fire)
@@ -61,10 +49,7 @@
           <pre data-prefix="8"></pre>
           <pre data-prefix="9"><code>const forest = create()</code></pre>
         </div>
-        <a
-          class="btn btn-accent self-center"
-          href="https://vivarium.orangenote.dev"
-        >
+        <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
           Read the docs
         </a>
         <div

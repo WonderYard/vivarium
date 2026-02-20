@@ -36,13 +36,13 @@ writeGrid(snapshot); // restore a previously saved snapshot
 The function validates every index in the array and throws if any value is out of range.
 
 <Aside type="tip" title="Snapshot and restore">
-  Combine `readGrid` and `writeGrid` to implement undo/redo, save/load, or A/B
-  comparisons between different rule sets.
+  Combine `readGrid` and `writeGrid` to implement undo/redo, save/load, or A/B comparisons between
+  different rule sets.
 </Aside>
 <Aside type="note" title="initialGrid vs writeGrid">
-  Consider passing an `initialGrid` to `setup` if you just want to
-  initialize the grid. `writeGrid` is useful when you want to replace the grid
-  *after* setup, for example in response to a user action.
+  Consider passing an `initialGrid` to `setup` if you just want to initialize the grid. `writeGrid`
+  is useful when you want to replace the grid *after* setup, for example in response to a user
+  action.
 </Aside>
 
 ## Writing a single cell

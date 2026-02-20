@@ -437,7 +437,7 @@ export const colorToABGR = (color: string) => {
   const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
   color = color.replace(
     shorthandRegex,
-    (_, r: string, g: string, b: string) => r + r + g + g + b + b
+    (_, r: string, g: string, b: string) => r + r + g + g + b + b,
   );
 
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);

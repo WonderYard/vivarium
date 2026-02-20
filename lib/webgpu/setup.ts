@@ -72,11 +72,7 @@ const pointToIndex = (x: number, y: number) => {
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.bound.ids.$[pointToIndex(x, y)] === checkId
-  );
+  return std.select(d.u32(0), d.u32(1), gridLayout.bound.ids.$[pointToIndex(x, y)] === checkId);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
@@ -91,19 +87,14 @@ const testIdInPack = (packedIds: number, x: number, y: number) => {
     // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
     // so we cannot allow ids greater than 31 here. However no error is thrown,
     // so to keep gpu logic simple we do the check during the compile step.
-    (packedIds & (d.u32(1) << idMask)) !== d.u32(0)
+    (packedIds & (d.u32(1) << idMask)) !== d.u32(0),
   );
 };
 
 /**
  * Compare the occurrences of checkId in the square neighborhood with count.
  */
-const checkIdCount = (
-  x: number,
-  y: number,
-  checkId: number,
-  packedCount: number
-) => {
+const checkIdCount = (x: number, y: number, checkId: number, packedCount: number) => {
   "use gpu";
 
   const countMask =
@@ -122,19 +113,10 @@ const checkIdCount = (
   // if mask is 3, it means we will check if the 4th LSB is a 1.
   // We are checking "!= 0u" and not "== 1u" because we are moving
   // the bit of the mask, and NOT the bit we are reading.
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
-  );
+  return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkIdsCount = (
-  x: number,
-  y: number,
-  packedIds: number,
-  packedCount: number
-) => {
+const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number) => {
   "use gpu";
 
   const countMask =
@@ -147,79 +129,41 @@ const checkIdsCount = (
     testIdInPack(packedIds, x, y + 1) +
     testIdInPack(packedIds, x + 1, y + 1);
 
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    (packedCount & (d.u32(1) << countMask)) !== d.u32(0)
-  );
+  return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkPointCount = (
-  x: number,
-  y: number,
-  checkPoint: d.v2u,
-  packedCount: number
-) => {
+const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
   "use gpu";
 
-  const pointIndex = pointToIndex(
-    x + d.u32(checkPoint.x),
-    y + d.u32(checkPoint.y)
-  );
+  const pointIndex = pointToIndex(x + d.u32(checkPoint.x), y + d.u32(checkPoint.y));
   const checkId = gridLayout.bound.ids.$[pointIndex];
   return checkIdCount(x, y, checkId, packedCount);
 };
 
-const comparePointWithId = (
-  x: number,
-  y: number,
-  comparePoint: d.v2u,
-  withId: number
-) => {
+const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
   "use gpu";
 
-  const comparePointIndex = pointToIndex(
-    x + comparePoint.x,
-    y + comparePoint.y
-  );
+  const comparePointIndex = pointToIndex(x + comparePoint.x, y + comparePoint.y);
 
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.bound.ids.$[comparePointIndex] === withId
-  );
+  return std.select(d.u32(0), d.u32(1), gridLayout.bound.ids.$[comparePointIndex] === withId);
 };
 
-const comparePointWithKindId = (
-  x: number,
-  y: number,
-  comparePoint: d.v2u,
-  packedIds: number
-) => {
+const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
   "use gpu";
 
   return testIdInPack(packedIds, x + comparePoint.x, y + comparePoint.y);
 };
 
-const comparePointWithPoint = (
-  x: number,
-  y: number,
-  comparePoint: d.v2u,
-  withPoint: d.v2u
-) => {
+const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPoint: d.v2u) => {
   "use gpu";
 
-  const comparePointIndex = pointToIndex(
-    x + comparePoint.x,
-    y + comparePoint.y
-  );
+  const comparePointIndex = pointToIndex(x + comparePoint.x, y + comparePoint.y);
   const withPointIndex = pointToIndex(x + withPoint.x, y + withPoint.y);
 
   return std.select(
     d.u32(0),
     d.u32(1),
-    gridLayout.bound.ids.$[comparePointIndex] ===
-      gridLayout.bound.ids.$[withPointIndex]
+    gridLayout.bound.ids.$[comparePointIndex] === gridLayout.bound.ids.$[withPointIndex],
   );
 };
 
@@ -281,10 +225,7 @@ export const mainCompute = tgpu["~unstable"].computeFn({
       } else if (opcode === Opcode.CHANCE) {
         const chance = condition.chance;
         randf.seed3(
-          d.vec3f(
-            std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.bound.dimensions.$.xy)),
-            seed.$
-          )
+          d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.bound.dimensions.$.xy)), seed.$),
         );
         passing += std.select(d.u32(0), d.u32(1), randf.sample() < chance);
       }
@@ -301,16 +242,12 @@ export const mainCompute = tgpu["~unstable"].computeFn({
       const toType = rule.toType as To;
 
       if (toType === To.POINT) {
-        const pointIndex = pointToIndex(
-          x + d.u32(rule.toNeighbor.x),
-          y + d.u32(rule.toNeighbor.y)
-        );
+        const pointIndex = pointToIndex(x + d.u32(rule.toNeighbor.x), y + d.u32(rule.toNeighbor.y));
         resolvedId = gridLayout.bound.ids.$[pointIndex];
       }
 
       gridLayout.bound.newIds.$[index] = resolvedId;
-      gridLayout.bound.newColors.$[index] =
-        automatonLayout.bound.elements.$[resolvedId].color;
+      gridLayout.bound.newColors.$[index] = automatonLayout.bound.elements.$[resolvedId].color;
 
       return;
     }
@@ -369,25 +306,15 @@ export const setup = ({
   // Define all the buffers. Creating them depends on width and height only.
   // When automaton changes we don't need to recreate them.
 
-  const dimensions = root
-    .createBuffer(d.vec2u, d.vec2u(width, height))
-    .$usage("uniform");
+  const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
-  const colors0 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
-  const colors1 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const colors1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
-  const ids0 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const ids0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
-  const ids1 = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$usage("storage");
+  const ids1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
   const colorsStagingBuffer = root
     .createBuffer(d.arrayOf(d.u32, width * height))
@@ -422,20 +349,14 @@ export const setup = ({
     palette = gpuElements.map((element) => element.color);
 
     const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
-    const conditions =
-      gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
+    const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
 
     automatonGroup = root.createBindGroup(automatonLayout, {
       neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
       elements: root
-        .createBuffer(
-          d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
-          gpuElements
-        )
+        .createBuffer(d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)), gpuElements)
         .$usage("storage"),
-      rules: root
-        .createBuffer(d.arrayOf(GpuRule, rules.length), rules)
-        .$usage("storage"),
+      rules: root.createBuffer(d.arrayOf(GpuRule, rules.length), rules).$usage("storage"),
       conditions: root
         .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
         .$usage("storage"),
@@ -464,7 +385,7 @@ export const setup = ({
         rawIndex >= elementsLength
       ) {
         throw new Error(
-          `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`
+          `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`,
         );
       }
 
@@ -501,7 +422,7 @@ export const setup = ({
   const writeCell = (index: number, elementIndex: number): void => {
     if (index < 0 || index >= width * height) {
       throw new Error(
-        `Cell index ${index} is out of bounds. Expected a value in range [0, ${width * height - 1}].`
+        `Cell index ${index} is out of bounds. Expected a value in range [0, ${width * height - 1}].`,
       );
     }
 
@@ -512,7 +433,7 @@ export const setup = ({
       elementIndex >= palette.length
     ) {
       throw new Error(
-        `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`
+        `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`,
       );
     }
 
@@ -535,15 +456,11 @@ export const setup = ({
    */
   const writeCellAt = (x: number, y: number, elementIndex: number): void => {
     if (x < 0 || x >= width) {
-      throw new Error(
-        `Column ${x} is out of bounds. Expected a value in range [0, ${width - 1}].`
-      );
+      throw new Error(`Column ${x} is out of bounds. Expected a value in range [0, ${width - 1}].`);
     }
 
     if (y < 0 || y >= height) {
-      throw new Error(
-        `Row ${y} is out of bounds. Expected a value in range [0, ${height - 1}].`
-      );
+      throw new Error(`Row ${y} is out of bounds. Expected a value in range [0, ${height - 1}].`);
     }
 
     writeCell(y * width + x, elementIndex);
@@ -561,7 +478,7 @@ export const setup = ({
 
     if (grid.length !== totalCells) {
       throw new Error(
-        `Grid length ${grid.length} does not match the expected length of ${totalCells}.`
+        `Grid length ${grid.length} does not match the expected length of ${totalCells}.`,
       );
     }
 
@@ -578,7 +495,7 @@ export const setup = ({
         elementIndex >= palette.length
       ) {
         throw new Error(
-          `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`
+          `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`,
         );
       }
 

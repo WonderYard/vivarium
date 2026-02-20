@@ -36,9 +36,7 @@ export abstract class BaseBlueprint {
 
   protected assertNotEmpty(): void {
     if (!this.automaton.elements.length) {
-      throw new Error(
-        "No elements found in automaton, at least one element is required"
-      );
+      throw new Error("No elements found in automaton, at least one element is required");
     }
   }
 }

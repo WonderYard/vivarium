@@ -1,10 +1,4 @@
-import type {
-  Automaton,
-  Element,
-  Kind,
-  RefType,
-  Rule,
-} from "@/automaton/types";
+import type { Automaton, Element, Kind, RefType, Rule } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { RuleBlueprint } from "@/blueprint/rule-blueprint";
 import type { AnyNeighbor, BlueprintContext } from "@/blueprint/types";
@@ -21,7 +15,7 @@ export abstract class RefBlueprint extends BaseBlueprint {
 
   constructor(
     protected automaton: Automaton,
-    ref: Element | Kind
+    ref: Element | Kind,
   ) {
     super();
 
@@ -36,9 +30,7 @@ export abstract class RefBlueprint extends BaseBlueprint {
    * @param elementBlueprintOrNeighbor - The target element, or a neighbor position reference (e.g. `vi.neighbor.TOP`).
    * @returns A {@link RuleBlueprint} for chaining conditions.
    */
-  public to(
-    elementBlueprintOrNeighbor: ElementBlueprint | AnyNeighbor
-  ): RuleBlueprint {
+  public to(elementBlueprintOrNeighbor: ElementBlueprint | AnyNeighbor): RuleBlueprint {
     this.assertNotCreated();
 
     const rule = {
@@ -68,7 +60,7 @@ export class ElementBlueprint extends RefBlueprint {
     protected context: BlueprintContext,
     automaton: Automaton,
     element: Element,
-    index: number
+    index: number,
   ) {
     super(automaton, element);
 
@@ -88,7 +80,7 @@ export class KindBlueprint extends RefBlueprint {
   constructor(
     protected context: BlueprintContext,
     automaton: Automaton,
-    kind: Kind
+    kind: Kind,
   ) {
     super(automaton, kind);
 

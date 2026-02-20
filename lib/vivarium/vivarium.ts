@@ -8,7 +8,7 @@ import { VivariumBlueprint } from "@/blueprint/vivarium-blueprint";
  * @returns A {@link VivariumBlueprint} instance.
  */
 export function vivarium<N extends Neighborhood = "square">(
-  neighborhoodName?: N
+  neighborhoodName?: N,
 ): VivariumBlueprint<N> {
   return new VivariumBlueprint(neighborhoodName);
 }

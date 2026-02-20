@@ -1,18 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vivarium demo - Wireworld</title>
   </head>
   <body>
     <div class="flex justify-center">
-      <div
-        class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100"
-      >
-        <div
-          class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full"
-        >
+      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100">
+        <div class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full">
           <div class="flex flex-row gap-2 items-center">
             <a class="btn btn-soft btn-sm" href="/">←</a>
             <h1 class="text-2xl font-bold">Wireworld</h1>
@@ -25,9 +21,7 @@
           </a>
         </div>
 
-        <div
-          class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100"
-        >
+        <div class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100">
           <figure class="aspect-square">
             <canvas class="w-full" id="example-canvas"></canvas>
           </figure>
@@ -42,31 +36,18 @@
         <div
           class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
         >
-          <pre
-            data-prefix="1"
-          ><code>const empty = element("empty", "black")</code></pre>
-          <pre
-            data-prefix="2"
-          ><code>const wire = element("wire", "yellow")</code></pre>
-          <pre
-            data-prefix="3"
-          ><code>const head = element("head", "blue")</code></pre>
-          <pre
-            data-prefix="4"
-          ><code>const tail = element("tail", "red")</code></pre>
+          <pre data-prefix="1"><code>const empty = element("empty", "black")</code></pre>
+          <pre data-prefix="2"><code>const wire = element("wire", "yellow")</code></pre>
+          <pre data-prefix="3"><code>const head = element("head", "blue")</code></pre>
+          <pre data-prefix="4"><code>const tail = element("tail", "red")</code></pre>
           <pre data-prefix="5"></pre>
-          <pre
-            data-prefix="6"
-          ><code>wire.to(head).count(head, 1, 2)</code></pre>
+          <pre data-prefix="6"><code>wire.to(head).count(head, 1, 2)</code></pre>
           <pre data-prefix="7"><code>head.to(tail)</code></pre>
           <pre data-prefix="8"><code>tail.to(wire)</code></pre>
           <pre data-prefix="9"></pre>
           <pre data-prefix="10"><code>const wireworld = create()</code></pre>
         </div>
-        <a
-          class="btn btn-accent self-center"
-          href="https://vivarium.orangenote.dev"
-        >
+        <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
           Read the docs
         </a>
         <div

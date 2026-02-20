@@ -1,11 +1,5 @@
 import { nanoid } from "nanoid";
-import type {
-  Automaton,
-  Color,
-  Element,
-  Kind,
-  Neighborhood,
-} from "@/automaton/types";
+import type { Automaton, Color, Element, Kind, Neighborhood } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { Helpers } from "@/blueprint/helpers";
 import { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
@@ -15,9 +9,7 @@ import { Cross, Square } from "@/common/constants";
  * The main builder for defining a vivarium. Use it to create elements, kinds, and rules,
  * then call {@link VivariumBlueprint.create | create} to produce an {@link Automaton} that can be passed to {@link setup}.
  */
-export class VivariumBlueprint<
-  N extends Neighborhood = "square",
-> extends BaseBlueprint {
+export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBlueprint {
   protected automaton: Automaton;
   protected context = { created: false };
 
@@ -42,9 +34,9 @@ export class VivariumBlueprint<
 
     this.helpers = new Helpers(this.neighborhoodName);
 
-    this.neighbor = (
-      this.neighborhoodName === "cross" ? Cross : Square
-    ) as N extends "cross" ? typeof Cross : typeof Square;
+    this.neighbor = (this.neighborhoodName === "cross" ? Cross : Square) as N extends "cross"
+      ? typeof Cross
+      : typeof Square;
 
     this.automaton = {
       neighborhood: neighborhoodName ?? "square",
@@ -62,11 +54,7 @@ export class VivariumBlueprint<
    * @param extensions - An optional array of kinds this element extends.
    * @returns An {@link ElementBlueprint} that can be used to define rules.
    */
-  public element(
-    name: string,
-    color: Color,
-    extensions: KindBlueprint[] = []
-  ): ElementBlueprint {
+  public element(name: string, color: Color, extensions: KindBlueprint[] = []): ElementBlueprint {
     this.assertNotCreated();
     this.assertUniqueName(name);
     this.assertUniqueColor(color);

@@ -5,23 +5,34 @@ sidebar:
   order: 10
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside } from "@astrojs/starlight/components";
 
 To those who are not familiar with cellular automata, here's a guide to introduce you to Vivarium. For now just know that a vivarium is an abstraction we created to describe cellular automata in a way that is easy and fun to learn for those who wouldn't know exactly where to start.
 
 ## Vivarium
 
-<Aside type="tip" icon="open-book" title="A place for living things">A vivarium (Latin for "place of life") is an enclosed area with living entities in a simulated environment, designed for observation and study.</Aside>
+<Aside type="tip" icon="open-book" title="A place for living things">
+  A vivarium (Latin for "place of life") is an enclosed area with living entities in a simulated
+  environment, designed for observation and study.
+</Aside>
 
 In the digital world, think of a vivarium like a 2d image in motion. The movement happens in steps, each step is a consequence of the previous one. This motion is the result of a simulation driven by a set of rules that are unique to each vivarium. These rules are simple, but can create complex behaviors when combined together, making the image evolve over time. We'll talk about rules in a bit. Now let's define our building blocks.
 
 ## Elements
 
 An element is an abstract way to represent anything we want to put in our vivarium. Dogs, cats, aliens, trees, sand, electricity, hot air balloons... are all valid elements. It's up to you what an element represents. All is needed is:
+
 - a name — like "alien" — to know what it is (how to distinguish it _logically_ from other elements)
 - a color — like "green" — to know how to draw it on the screen (how to distinguish it _visually_ from other elements)
 
-<Aside type="note" title="Technical note on colors">Vivarium understands all CSS named colors found in [these tables](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color#syntax). In case you want to use colors that don't have a name assigned, you can use the six-value [hexadecimal color syntax](https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color#syntax). For instance, you can write `#FF7A45` to represent a specific shade of orange. The three-value syntax shorthand is also accepted. Vivarium does not represent colors with transparency.</Aside>
+<Aside type="note" title="Technical note on colors">
+  Vivarium understands all CSS named colors found in [these
+  tables](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color#syntax). In case you want to
+  use colors that don't have a name assigned, you can use the six-value [hexadecimal color
+  syntax](https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color#syntax). For instance, you can
+  write `#FF7A45` to represent a specific shade of orange. The three-value syntax shorthand is also
+  accepted. Vivarium does not represent colors with transparency.
+</Aside>
 
 ## Neighborhood
 
@@ -29,7 +40,11 @@ Elements exists in a world we call _the grid_. Every element occupies a _cell_ o
 
 By default, the neighborhood of a cell is made of the 8 adjacent (diagonal included) cells surrounding it. In Vivarium, technically speaking, the central cell does not belong to its neighborhood.
 
-<Aside type="note" title="Square for Moore">This type of neighborhood is often called [Moore neighborhood](https://en.wikipedia.org/wiki/Moore_neighborhood). From now on we'll simply call it "square" neighborhood, since it's easier to remember and visualize.</Aside>
+<Aside type="note" title="Square for Moore">
+  This type of neighborhood is often called [Moore
+  neighborhood](https://en.wikipedia.org/wiki/Moore_neighborhood). From now on we'll simply call it
+  "square" neighborhood, since it's easier to remember and visualize.
+</Aside>
 
 ## Evolution
 
@@ -37,7 +52,12 @@ To understand how a vivarium evolves, let's walk through a single step.
 
 Imagine a tiny 5 by 5 grid. Every cell in the grid holds an element. Let's say we have two elements: "space" (blue) and "alien" (green). Our starting grid is all blue except for one green cell right in the center.
 
-<Aside type="note" title="A controlled study">In this case we want to be in control of what our initial grid looks like, but sometimes we'd like to start with a random configuration and see what might happen each run. That's the default configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple and use a controlled example, so we can study and predict what's going to happen.</Aside>
+<Aside type="note" title="A controlled study">
+  In this case we want to be in control of what our initial grid looks like, but sometimes we'd like
+  to start with a random configuration and see what might happen each run. That's the default
+  configuration for a new vivarium. However, for the sake of this introduction, we'll keep it simple
+  and use a controlled example, so we can study and predict what's going to happen.
+</Aside>
 
 Now let's apply one rule: "a blue cell becomes green if it has exactly 1 green neighbor."
 
