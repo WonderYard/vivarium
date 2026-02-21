@@ -14,6 +14,7 @@ Browser Support: Chrome 113+, Safari 26+ (requires WebGPU support)
 This repository is a workspace of: the root project, `docs`, and `examples`.
 
 Key folders and files:
+
 - lib/ # Source code directory
 - examples/ # Example projects (Vite vanilla app with DaisyUI)
 - docs/ # Documentation powered by Astro and Starlight

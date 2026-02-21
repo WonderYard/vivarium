@@ -52,7 +52,7 @@ An _element_ is the basic bit of your simulation. It can be represented with a l
 Here's how to define one.
 
 ```typescript
-const alien = vi.element("alien", "green");
+const alien = vi.element("alien", "green"); // or a hex color like "#34d399"
 ```
 
 We're not drawing it on the screen yet. For now we are just defining what an alien is, so that our system is aware of its existence in the vivarium.
@@ -70,8 +70,8 @@ const sentient = vi.kind("sentient");
 The heart of Vivarium is made of _rules_. A rule is a way to tell elements how to behave in our vivarium. Every step of the simulation, an element can become another element or stay the same. Let's see a simple rule first:
 
 ```typescript
-const space = vi.element("space", "blue"); // or a hex color like "#04153b"
-const alien = vi.element("alien", "green"); // or a hex color like "#34d399"
+const space = vi.element("space", "blue");
+const alien = vi.element("alien", "green");
 
 space.to(alien); // all spaces become aliens
 ```
