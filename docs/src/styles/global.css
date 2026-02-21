@@ -40,7 +40,8 @@ h6,
   font-family: "Funnel Display Variable", serif;
 }
 
-h1 {
+h1,
+.site-title {
   color: #2db998;
 }
 
