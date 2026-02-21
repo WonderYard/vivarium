@@ -1,8 +1,8 @@
 <p align="center">
-  <img width="128" height="128" src="docs/public/favicon.png" />
+  <img width="128" height="128" src="docs/src/assets/glider.png" />
 </p>
 
-<h1 style="text-align: center">Vivarium</h1>
+<h1 align="center">Vivarium</h1>
 
 <p align="center">
   <img src="docs/banner.png" />

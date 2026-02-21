@@ -5,7 +5,7 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 
 @theme {
-  --font-sans: "Funnel Sans Variable", serif;
+  --font-sans: "Funnel Sans Variable", sans-serif;
   --font-mono: "Source Code Pro Variable", monospace;
 
   /* Generated accent color palettes. */
@@ -37,7 +37,7 @@ h4,
 h5,
 h6,
 .title-wrapper {
-  font-family: "Funnel Display Variable", serif;
+  font-family: "Funnel Display Variable", sans-serif;
 }
 
 h1,
@@ -47,7 +47,7 @@ h1,
 
 .sl-link-button {
   font-weight: 600;
-  font-family: "Funnel Display Variable", serif;
+  font-family: "Funnel Display Variable", sans-serif;
 
   &.primary {
     background-color: #2db998;
