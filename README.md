@@ -1,4 +1,8 @@
-# Vivarium
+<p align="center">
+  <img width="128" height="128" src="docs/public/favicon.png" />
+</p>
+
+<h1 style="text-align: center">Vivarium</h1>
 
 <p align="center">
   <img src="docs/banner.png" />
