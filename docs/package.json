@@ -13,6 +13,9 @@
   "dependencies": {
     "@astrojs/starlight": "^0.37.6",
     "@astrojs/starlight-tailwind": "^4.0.2",
+    "@fontsource-variable/funnel-display": "^5.2.8",
+    "@fontsource-variable/funnel-sans": "^5.2.8",
+    "@fontsource-variable/source-code-pro": "^5.2.7",
     "@tailwindcss/vite": "^4.1.18",
     "@wonderyard/vivarium": "workspace:*",
     "astro": "^5.17.3",

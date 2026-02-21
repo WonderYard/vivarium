@@ -15,7 +15,12 @@ export default defineConfig({
         alt: "Glider logo",
       },
       favicon: "/favicon.png",
-      customCss: ["./src/styles/global.css"],
+      customCss: [
+        "./src/styles/global.css",
+        "@fontsource-variable/funnel-display",
+        "@fontsource-variable/funnel-sans",
+        "@fontsource-variable/source-code-pro",
+      ],
       plugins: [
         starlightTypeDoc({
           entryPoints: ["../lib/main.ts"],
