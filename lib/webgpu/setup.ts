@@ -64,21 +64,20 @@ const pointToIndex = (x: number, y: number) => {
   // The modulo here is the only thing that allows us to use unsigned ints everywhere.
   // Example 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
   return (
-    (y % gridLayout.bound.dimensions.$.y) * gridLayout.bound.dimensions.$.x +
-    (x % gridLayout.bound.dimensions.$.x)
+    (y % gridLayout.$.dimensions.y) * gridLayout.$.dimensions.x + (x % gridLayout.$.dimensions.x)
   );
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  return std.select(d.u32(0), d.u32(1), gridLayout.bound.ids.$[pointToIndex(x, y)] === checkId);
+  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
 
-  const idMask = gridLayout.bound.ids.$[pointToIndex(x, y)];
+  const idMask = gridLayout.$.ids[pointToIndex(x, y)];
 
   // check if id is in the bits
   return std.select(
@@ -136,7 +135,7 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
   "use gpu";
 
   const pointIndex = pointToIndex(x + d.u32(checkPoint.x), y + d.u32(checkPoint.y));
-  const checkId = gridLayout.bound.ids.$[pointIndex];
+  const checkId = gridLayout.$.ids[pointIndex];
   return checkIdCount(x, y, checkId, packedCount);
 };
 
@@ -145,7 +144,7 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
 
   const comparePointIndex = pointToIndex(x + comparePoint.x, y + comparePoint.y);
 
-  return std.select(d.u32(0), d.u32(1), gridLayout.bound.ids.$[comparePointIndex] === withId);
+  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
 };
 
 const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
@@ -163,7 +162,7 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
   return std.select(
     d.u32(0),
     d.u32(1),
-    gridLayout.bound.ids.$[comparePointIndex] === gridLayout.bound.ids.$[withPointIndex],
+    gridLayout.$.ids[comparePointIndex] === gridLayout.$.ids[withPointIndex],
   );
 };
 
@@ -176,16 +175,16 @@ export const compute = tgpu.computeFn({
   const y = pos.y;
   const index = pointToIndex(x, y);
 
-  const color = gridLayout.bound.colors.$[index];
-  const id = gridLayout.bound.ids.$[index];
+  const color = gridLayout.$.colors[index];
+  const id = gridLayout.$.ids[index];
 
-  const element = automatonLayout.bound.elements.$[id];
+  const element = automatonLayout.$.elements[id];
 
   const ruleStart = element.ruleStart;
   const ruleEnd = element.ruleEnd;
 
   for (let i = ruleStart; i < ruleEnd; i++) {
-    const rule = automatonLayout.bound.rules.$[i];
+    const rule = automatonLayout.$.rules[i];
     const accept = rule.accept as Accept;
 
     let passing = d.u32(0);
@@ -195,7 +194,7 @@ export const compute = tgpu.computeFn({
     const conditionsCount = conditionsEnd - conditionsStart;
 
     for (let j = conditionsStart; j < conditionsEnd; j++) {
-      const condition = automatonLayout.bound.conditions.$[j];
+      const condition = automatonLayout.$.conditions[j];
       const opcode = condition.opcode as Opcode;
 
       if (opcode === Opcode.COUNT_ELEMENT) {
@@ -224,9 +223,7 @@ export const compute = tgpu.computeFn({
         passing += comparePointWithKindId(x, y, comparePoint, packedIds);
       } else if (opcode === Opcode.CHANCE) {
         const chance = condition.chance;
-        randf.seed3(
-          d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.bound.dimensions.$.xy)), seed.$),
-        );
+        randf.seed3(d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), seed.$));
         passing += std.select(d.u32(0), d.u32(1), randf.sample() < chance);
       }
     }
@@ -243,18 +240,18 @@ export const compute = tgpu.computeFn({
 
       if (toType === To.POINT) {
         const pointIndex = pointToIndex(x + d.u32(rule.toNeighbor.x), y + d.u32(rule.toNeighbor.y));
-        resolvedId = gridLayout.bound.ids.$[pointIndex];
+        resolvedId = gridLayout.$.ids[pointIndex];
       }
 
-      gridLayout.bound.newIds.$[index] = resolvedId;
-      gridLayout.bound.newColors.$[index] = automatonLayout.bound.elements.$[resolvedId].color;
+      gridLayout.$.newIds[index] = resolvedId;
+      gridLayout.$.newColors[index] = automatonLayout.$.elements[resolvedId].color;
 
       return;
     }
   }
 
-  gridLayout.bound.newIds.$[index] = id;
-  gridLayout.bound.newColors.$[index] = color;
+  gridLayout.$.newIds[index] = id;
+  gridLayout.$.newColors[index] = color;
 });
 
 /**
