@@ -91,20 +91,25 @@ const testIdInPack = (packedIds: number, x: number, y: number) => {
 };
 
 /**
- * Compare the occurrences of checkId in the square neighborhood with count.
+ * Compare the occurrences of checkId in the neighborhood with count.
+ * When the neighborhood is cross (4), only cardinal directions are counted.
+ * When the neighborhood is square (8), all eight directions are counted.
  */
 const checkIdCount = (x: number, y: number, checkId: number, packedCount: number) => {
   "use gpu";
 
+  // 1 when square (8 neighbors), 0 when cross (4 neighbors)
+  const diag = std.select(d.u32(0), d.u32(1), automatonLayout.$.neighborhood === d.u32(8));
+
   const countMask =
-    testNeighbor(checkId, x - 1, y - 1) +
+    diag * testNeighbor(checkId, x - 1, y - 1) +
     testNeighbor(checkId, x, y - 1) +
-    testNeighbor(checkId, x + 1, y - 1) +
+    diag * testNeighbor(checkId, x + 1, y - 1) +
     testNeighbor(checkId, x - 1, y) +
     testNeighbor(checkId, x + 1, y) +
-    testNeighbor(checkId, x - 1, y + 1) +
+    diag * testNeighbor(checkId, x - 1, y + 1) +
     testNeighbor(checkId, x, y + 1) +
-    testNeighbor(checkId, x + 1, y + 1);
+    diag * testNeighbor(checkId, x + 1, y + 1);
 
   // We select the bit in count using the number of occurrences as a mask
   // packedCount is representing a 9 bit array of flags
@@ -118,15 +123,18 @@ const checkIdCount = (x: number, y: number, checkId: number, packedCount: number
 const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number) => {
   "use gpu";
 
+  // 1 when square (8 neighbors), 0 when cross (4 neighbors)
+  const diag = std.select(d.u32(0), d.u32(1), automatonLayout.$.neighborhood === d.u32(8));
+
   const countMask =
-    testIdInPack(packedIds, x - 1, y - 1) +
+    diag * testIdInPack(packedIds, x - 1, y - 1) +
     testIdInPack(packedIds, x, y - 1) +
-    testIdInPack(packedIds, x + 1, y - 1) +
+    diag * testIdInPack(packedIds, x + 1, y - 1) +
     testIdInPack(packedIds, x - 1, y) +
     testIdInPack(packedIds, x + 1, y) +
-    testIdInPack(packedIds, x - 1, y + 1) +
+    diag * testIdInPack(packedIds, x - 1, y + 1) +
     testIdInPack(packedIds, x, y + 1) +
-    testIdInPack(packedIds, x + 1, y + 1);
+    diag * testIdInPack(packedIds, x + 1, y + 1);
 
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };

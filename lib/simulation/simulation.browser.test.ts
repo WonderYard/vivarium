@@ -1033,6 +1033,87 @@ describe("GPU simulation", () => {
     });
   });
 
+  // ── Cross neighborhood ────────────────────────────────────────
+
+  describe("cross neighborhood", () => {
+    test("cross neighborhood counts only cardinal neighbors (COUNT_ELEMENT)", async () => {
+      // Center cell has 4 cardinal neighbors that are 'b' (top, left, right, bottom)
+      // and 4 diagonal neighbors that are also 'b'. With cross neighborhood,
+      // only the 4 cardinal ones should be counted.
+      const before = grid([
+        [1, 1, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          // With cross neighborhood, center has exactly 4 'b' cardinal neighbors
+          a.to(b).count(b, 4);
+        },
+        before,
+        "cross",
+      );
+
+      // Center cell (index 4) should transition because it has exactly 4 'b' cardinal neighbors
+      expect(after.ids[4]).toBe(1);
+    });
+
+    test("cross neighborhood ignores diagonal neighbors (COUNT_ELEMENT)", async () => {
+      // Only diagonals have 'b', no cardinal neighbors are 'b'
+      const before = grid([
+        [1, 0, 1],
+        [0, 0, 0],
+        [1, 0, 1],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          // With cross neighborhood, center has 0 'b' cardinal neighbors (diagonals don't count)
+          a.to(b).count(b, 0);
+        },
+        before,
+        "cross",
+      );
+
+      // Center cell should transition because it has 0 'b' neighbors in cross mode
+      expect(after.ids[4]).toBe(1);
+    });
+
+    test("cross neighborhood counts only cardinal neighbors (COUNT_KIND)", async () => {
+      // Center cell has 'empty'. Cardinal neighbors are 'wire'(1) and 'head'(2).
+      const before = grid([
+        [0, 1, 0],
+        [2, 0, 1],
+        [0, 2, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const conductor = vi.kind("conductor");
+          const empty = vi.element("empty", "#000000");
+          const wire = vi.element("wire", "#ff8800", [conductor]);
+          vi.element("head", "#0088ff", [conductor]);
+
+          // Center has 4 cardinal conductor neighbors (cross mode)
+          empty.to(wire).count(conductor, 4);
+        },
+        before,
+        "cross",
+      );
+
+      // Center (index 4) should transition to wire
+      expect(after.ids[4]).toBe(1);
+    });
+  });
+
   // ── Multi-step evolution ──────────────────────────────────────
 
   describe("multi-step evolution", () => {
