@@ -168,7 +168,7 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
 };
 
 // also the main compute function has no variable dependencies
-export const mainCompute = tgpu["~unstable"].computeFn({
+export const compute = tgpu.computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
@@ -292,7 +292,7 @@ export const setup = ({
   }
 
   const root = tgpu.initFromDevice({ device });
-  const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
+  const pipeline = root.createComputePipeline({ compute });
 
   frames = 0;
   seed = root.createUniform(d.f32);

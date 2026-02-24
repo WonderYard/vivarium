@@ -4,7 +4,7 @@ import type { Automaton } from "@/automaton/types";
 import { GpuCondition, GpuElement, GpuRule, Square, WORKGROUP_SIZE } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
-import { automatonLayout, gridLayout, mainCompute, setSeed, setup } from "@/webgpu/setup";
+import { automatonLayout, gridLayout, compute, setSeed, setup } from "@/webgpu/setup";
 import tgpu, { type TgpuRoot } from "typegpu";
 import * as d from "typegpu/data";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -77,7 +77,7 @@ async function gpuEvolve(
   inputGrid: Grid,
 ): Promise<Grid> {
   const { width, height, ids } = inputGrid;
-  const pipeline = root["~unstable"].withCompute(mainCompute).createPipeline();
+  const pipeline = root.createComputePipeline({ compute });
 
   setSeed(root.createUniform(d.f32, 0));
 
