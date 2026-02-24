@@ -16,12 +16,12 @@
     "@fontsource-variable/funnel-display": "^5.2.8",
     "@fontsource-variable/funnel-sans": "^5.2.8",
     "@fontsource-variable/source-code-pro": "^5.2.7",
-    "@tailwindcss/vite": "^4.1.18",
+    "@tailwindcss/vite": "^4.2.1",
     "@wonderyard/vivarium": "workspace:*",
     "astro": "^5.17.3",
     "sharp": "^0.34.5",
     "starlight-typedoc": "^0.21.5",
-    "tailwindcss": "^4.1.18",
+    "tailwindcss": "^4.2.1",
     "typedoc": "^0.28.17",
     "typedoc-plugin-markdown": "^4.10.0"
   }

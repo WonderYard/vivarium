@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.18",
+    "@tailwindcss/vite": "^4.2.1",
     "@wonderyard/vivarium": "workspace:*",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
-    "daisyui": "^5.5.18",
+    "daisyui": "^5.5.19",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
   }

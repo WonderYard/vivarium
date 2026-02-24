@@ -32,24 +32,22 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@typegpu/noise": "^0.9.0",
+    "@typegpu/noise": "^0.10.0",
     "nanoid": "^5.1.6",
-    "typegpu": "^0.9.0"
+    "typegpu": "^0.10.0"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
     "@vitejs/plugin-basic-ssl": "^2.1.4",
     "@vitest/browser-playwright": "^4.0.18",
     "@webgpu/types": "^0.1.69",
-    "glob": "^13.0.3",
-    "globals": "^17.3.0",
-    "jiti": "^2.6.1",
-    "oxfmt": "^0.34.0",
-    "oxlint": "^1.49.0",
-    "oxlint-tsgolint": "^0.14.2",
+    "glob": "^13.0.6",
+    "oxfmt": "^0.35.0",
+    "oxlint": "^1.50.0",
+    "oxlint-tsgolint": "^0.15.0",
     "playwright": "^1.58.2",
     "typescript": "~5.9.3",
-    "unplugin-typegpu": "^0.9.0",
+    "unplugin-typegpu": "^0.10.0",
     "vite": "^7.3.1",
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.0.18"
