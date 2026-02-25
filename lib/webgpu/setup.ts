@@ -1,7 +1,3 @@
-import { randf } from "@typegpu/noise";
-import tgpu, { type TgpuBindGroup, type TgpuUniform } from "typegpu";
-import * as d from "typegpu/data";
-import * as std from "typegpu/std";
 import type { Automaton } from "@/automaton/types";
 import {
   Accept,
@@ -12,6 +8,10 @@ import {
   To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
+import { randf } from "@typegpu/noise";
+import tgpu, { type TgpuBindGroup, type TgpuUniform } from "typegpu";
+import * as d from "typegpu/data";
+import * as std from "typegpu/std";
 import { compileGpuAutomaton } from "./compiler";
 
 const adapter = await navigator.gpu.requestAdapter();
@@ -91,20 +91,27 @@ const testIdInPack = (packedIds: number, x: number, y: number) => {
 };
 
 /**
- * Compare the occurrences of checkId in the square neighborhood with count.
+ * Compare the occurrences of checkId in the neighborhood with count.
+ * When the neighborhood is cross, only cardinal directions are counted.
+ * When the neighborhood is square, all eight directions are counted.
  */
 const checkIdCount = (x: number, y: number, checkId: number, packedCount: number) => {
   "use gpu";
 
-  const countMask =
-    testNeighbor(checkId, x - 1, y - 1) +
+  const crossCountMask =
     testNeighbor(checkId, x, y - 1) +
-    testNeighbor(checkId, x + 1, y - 1) +
     testNeighbor(checkId, x - 1, y) +
     testNeighbor(checkId, x + 1, y) +
+    testNeighbor(checkId, x, y + 1);
+
+  const squareCountMask =
+    testNeighbor(checkId, x - 1, y - 1) +
+    testNeighbor(checkId, x + 1, y - 1) +
     testNeighbor(checkId, x - 1, y + 1) +
-    testNeighbor(checkId, x, y + 1) +
     testNeighbor(checkId, x + 1, y + 1);
+
+  // neighborhood is 0 when cross, 1 when square
+  const countMask = crossCountMask + automatonLayout.$.neighborhood * squareCountMask;
 
   // We select the bit in count using the number of occurrences as a mask
   // packedCount is representing a 9 bit array of flags
@@ -118,15 +125,19 @@ const checkIdCount = (x: number, y: number, checkId: number, packedCount: number
 const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number) => {
   "use gpu";
 
-  const countMask =
-    testIdInPack(packedIds, x - 1, y - 1) +
+  const crossCountMask =
     testIdInPack(packedIds, x, y - 1) +
-    testIdInPack(packedIds, x + 1, y - 1) +
     testIdInPack(packedIds, x - 1, y) +
     testIdInPack(packedIds, x + 1, y) +
+    testIdInPack(packedIds, x, y + 1);
+
+  const squareCountMask =
+    testIdInPack(packedIds, x - 1, y - 1) +
+    testIdInPack(packedIds, x + 1, y - 1) +
     testIdInPack(packedIds, x - 1, y + 1) +
-    testIdInPack(packedIds, x, y + 1) +
     testIdInPack(packedIds, x + 1, y + 1);
+
+  const countMask = crossCountMask + automatonLayout.$.neighborhood * squareCountMask;
 
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
