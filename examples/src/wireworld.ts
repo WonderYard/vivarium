@@ -129,22 +129,28 @@ canvas.addEventListener("click", (e) => {
   const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
 
   writeCellAt(x, y, wire.index);
-  draw();
+  shouldDraw = true;
 });
 
 let before = performance.now();
 
 const TIME_FRAME_MS = 1000 / 20; // 20 updates per second
 
+let shouldDraw = true;
+
 const loop = async () => {
   const now = performance.now();
   let i = 0;
   while (now - before >= TIME_FRAME_MS && i < 10 /* to avoid freezes */) {
     update();
+    shouldDraw = true;
     before += TIME_FRAME_MS;
     i++;
   }
-  await draw();
+  if (shouldDraw) {
+    await draw();
+    shouldDraw = false;
+  }
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);
