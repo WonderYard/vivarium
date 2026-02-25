@@ -443,7 +443,7 @@ export const colorToABGR = (color: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
 
   if (!result) {
-    throw new Error("Bad color");
+    throw new Error(`Bad color: ${color}`);
   }
 
   const r = parseInt(result[1], 16);

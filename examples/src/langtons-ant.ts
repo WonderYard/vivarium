@@ -1,79 +1,61 @@
+import { ElementBlueprint, setup, vivarium } from "@wonderyard/vivarium";
 import "/src/style.css";
-import { setup, vivarium } from "@wonderyard/vivarium";
 
 /* Create */
 
 const vi = vivarium("cross");
 
-// Ground states
-const white = vi.element("white", "#ffffff");
-const black = vi.element("black", "#1a1a2e");
+const neighbors = [vi.neighbor.RIGHT, vi.neighbor.BOTTOM, vi.neighbor.LEFT, vi.neighbor.TOP];
 
-// Ant states: encode direction + underlying cell color (all red)
-const antUpWhite = vi.element("ant-up-white", "#ef4444");
-const antRightWhite = vi.element("ant-right-white", "#ef4444");
-const antDownWhite = vi.element("ant-down-white", "#ef4444");
-const antLeftWhite = vi.element("ant-left-white", "#ef4444");
-const antUpBlack = vi.element("ant-up-black", "#ef4444");
-const antRightBlack = vi.element("ant-right-black", "#ef4444");
-const antDownBlack = vi.element("ant-down-black", "#ef4444");
-const antLeftBlack = vi.element("ant-left-black", "#ef4444");
+// Clockwise and counter-clockwise helper functions
+const cw = (i: number) => (i + 1) % neighbors.length;
+const ccw = (i: number) => (i - 1 + neighbors.length) % neighbors.length;
+
+// Ground states
+const white = vi.element("white", "#99bbee");
+const black = vi.element("black", "#000000");
+
+// Kinds to generalize ant departure rules no matter the ant's orientation
+const antOnWhite = vi.kind("antOnWhite");
+const antOnBlack = vi.kind("antOnBlack");
+
+const antsOnWhite: ElementBlueprint[] = [];
+const antsOnBlack: ElementBlueprint[] = [];
+
+for (let i = 0; i < neighbors.length; i++) {
+  antsOnWhite.push(vi.element(`antOnWhite${i}`, "#ff000" + i, [antOnWhite]));
+  antsOnBlack.push(vi.element(`antOnBlack${i}`, "#ff000" + (neighbors.length + i), [antOnBlack]));
+}
 
 // --- Ant departure rules ---
-// On white: turn clockwise, flip to black, move forward
-antUpWhite.to(black);
-antRightWhite.to(black);
-antDownWhite.to(black);
-antLeftWhite.to(black);
-
-// On black: turn counter-clockwise, flip to white, move forward
-antUpBlack.to(white);
-antRightBlack.to(white);
-antDownBlack.to(white);
-antLeftBlack.to(white);
+// On white: turn clockwise (90 degrees), flip to black, move forward
+antOnWhite.to(black);
+// On black: turn counter-clockwise (90 degrees), flip to white, move forward
+antOnBlack.to(white);
 
 // --- Ant arrival rules ---
-// A white cell becomes an ant if a neighbor ant is about to move into it.
-//
-// On white, the ant turns clockwise:
-//   ant-up-white    → faces right, moves right (arrives from LEFT)
-//   ant-right-white → faces down, moves down   (arrives from TOP)
-//   ant-down-white  → faces left, moves left   (arrives from RIGHT)
-//   ant-left-white  → faces up, moves up        (arrives from BOTTOM)
-//
-// On black, the ant turns counter-clockwise:
-//   ant-up-black    → faces left, moves left   (arrives from RIGHT)
-//   ant-right-black → faces up, moves up        (arrives from BOTTOM)
-//   ant-down-black  → faces right, moves right (arrives from LEFT)
-//   ant-left-black  → faces down, moves down   (arrives from TOP)
+// A cell becomes an ant if a neighbor ant is about to move into it.
+for (let i = 0; i < neighbors.length; i++) {
+  const from = cw(cw(i)); // origin is opposite (180 degrees) of destination
+  const fromWhiteTurn = ccw(i); // inverse turn for white (-90 degrees)
+  const fromBlackTurn = cw(i); // inverse turn for black (+90 degrees)
 
-// White cell receives ant (keeps white color encoding)
-white.to(antRightWhite).is(vi.neighbor.LEFT, antUpWhite);
-white.to(antRightWhite).is(vi.neighbor.LEFT, antDownBlack);
-white.to(antDownWhite).is(vi.neighbor.TOP, antRightWhite);
-white.to(antDownWhite).is(vi.neighbor.TOP, antLeftBlack);
-white.to(antLeftWhite).is(vi.neighbor.RIGHT, antDownWhite);
-white.to(antLeftWhite).is(vi.neighbor.RIGHT, antUpBlack);
-white.to(antUpWhite).is(vi.neighbor.BOTTOM, antLeftWhite);
-white.to(antUpWhite).is(vi.neighbor.BOTTOM, antRightBlack);
+  // Ant enters white/black facing i if it comes from i-180 and it was on white facing i-90 or black facing i+90
+  white.to(antsOnWhite[i]).is(neighbors[from], antsOnWhite[fromWhiteTurn]);
+  white.to(antsOnWhite[i]).is(neighbors[from], antsOnBlack[fromBlackTurn]);
 
-// Black cell receives ant (keeps black color encoding)
-black.to(antRightBlack).is(vi.neighbor.LEFT, antUpWhite);
-black.to(antRightBlack).is(vi.neighbor.LEFT, antDownBlack);
-black.to(antDownBlack).is(vi.neighbor.TOP, antRightWhite);
-black.to(antDownBlack).is(vi.neighbor.TOP, antLeftBlack);
-black.to(antLeftBlack).is(vi.neighbor.RIGHT, antDownWhite);
-black.to(antLeftBlack).is(vi.neighbor.RIGHT, antUpBlack);
-black.to(antUpBlack).is(vi.neighbor.BOTTOM, antLeftWhite);
-black.to(antUpBlack).is(vi.neighbor.BOTTOM, antRightBlack);
+  black.to(antsOnBlack[i]).is(neighbors[from], antsOnWhite[fromWhiteTurn]);
+  black.to(antsOnBlack[i]).is(neighbors[from], antsOnBlack[fromBlackTurn]);
+}
 
-const ant = vi.create();
+const langtonsAnt = vi.create();
 
-/* Initialize grid — place ant facing up on a white cell at the center */
+/* Initialize grid — place ant facing left on a white cell at the center */
 
 const size = 128;
 const initialGrid: number[] = new Array(size * size).fill(white.index);
-initialGrid[Math.floor(size / 2) * size + Math.floor(size / 2)] = antUpWhite.index;
+const leftIndex = neighbors.indexOf(vi.neighbor.LEFT);
+initialGrid[Math.floor(size / 2) * size + Math.floor(size / 2)] = antsOnWhite[leftIndex].index; // start facing left
 
 /* Run */
 
@@ -83,10 +65,20 @@ canvas.style.imageRendering = "pixelated";
 canvas.width = size;
 canvas.height = size;
 
-const { update, draw } = setup({ canvas, automaton: ant, initialGrid });
+const { update, draw } = setup({ canvas, automaton: langtonsAnt, initialGrid });
+
+let before = performance.now();
+
+const TIME_FRAME_MS = 1000 / (60 * 10); // 600 updates per second
 
 const loop = async () => {
-  update();
+  const now = performance.now();
+  let i = 0;
+  while (now - before >= TIME_FRAME_MS && i < 10 /* to avoid freezes */) {
+    update();
+    before += TIME_FRAME_MS;
+    i++;
+  }
   await draw();
   requestAnimationFrame(loop);
 };

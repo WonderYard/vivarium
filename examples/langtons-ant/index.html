@@ -10,7 +10,21 @@
       <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100">
         <div class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full">
           <div class="flex flex-row gap-2 items-center">
-            <a class="btn btn-soft btn-sm" href="/">←</a>
+            <a class="btn btn-soft btn-square btn-sm" href="/"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m12 19-7-7 7-7" />
+                <path d="M19 12H5" /></svg
+            ></a>
             <h1 class="text-2xl font-bold">Langton's Ant</h1>
           </div>
           <a
@@ -36,16 +50,23 @@
         <div
           class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
         >
-          <pre data-prefix="1"><code>const white = element("white", "white")</code></pre>
-          <pre data-prefix="2"><code>const black = element("black", "black")</code></pre>
-          <pre data-prefix="3"><code>const antUpW = element("ant-up-white", "red")</code></pre>
-          <pre data-prefix="4"><code>// ... 7 more ant states (direction × color)</code></pre>
-          <pre data-prefix="5"></pre>
-          <pre data-prefix="6"><code>antUpW.to(black) // leave: flip color</code></pre>
-          <pre data-prefix="7"><code>white.to(antRightW).is(LEFT, antUpW)</code></pre>
-          <pre data-prefix="8"><code>// ... arrive: turn + move forward</code></pre>
-          <pre data-prefix="9"></pre>
-          <pre data-prefix="10"><code>const ant = create()</code></pre>
+          <pre data-prefix="1"><code>const w = element("w", "white")</code></pre>
+          <pre data-prefix="2"><code>const b = element("b", "black")</code></pre>
+          <pre data-prefix="3"></pre>
+          <pre data-prefix="4"><code>const wAnt = kind("wAnt")</code></pre>
+          <pre data-prefix="5"><code>const bAnt = kind("bAnt")</code></pre>
+          <pre data-prefix="6"></pre>
+          <pre data-prefix="7">// R=Right, B=Bottom, L=Left, T=Top</pre>
+          <pre data-prefix="8"><code>const wL = element("wL", "red", [wAnt])</code></pre>
+          <pre data-prefix="9"><code>// ...7 more elements (color/facing)</code></pre>
+          <pre data-prefix="10"></pre>
+          <pre data-prefix="11"><code>wAnt.to(b)</code></pre>
+          <pre data-prefix="12"><code>bAnt.to(w)</code></pre>
+          <pre data-prefix="13"></pre>
+          <pre data-prefix="14"><code>w.to(wL).is(RIGHT, wB)</code></pre>
+          <pre data-prefix="15"><code>// ...15 more rules (color/facing/turn)</code></pre>
+          <pre data-prefix="16"></pre>
+          <pre data-prefix="17"><code>const langtonsAnt = create()</code></pre>
         </div>
         <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
           Read the docs
