@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vivarium demo - Life</title>
+    <title>Vivarium demo - Langton's Ant</title>
   </head>
   <body>
     <div class="flex justify-center">
@@ -25,11 +25,11 @@
                 <path d="m12 19-7-7 7-7" />
                 <path d="M19 12H5" /></svg
             ></a>
-            <h1 class="text-2xl font-bold">Life</h1>
+            <h1 class="text-2xl font-bold">Langton's Ant</h1>
           </div>
           <a
             class="btn btn-soft btn-accent btn-sm"
-            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/main.ts"
+            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/langtons-ant.ts"
           >
             Source
           </a>
@@ -37,7 +37,7 @@
 
         <div class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100">
           <figure class="aspect-square">
-            <canvas class="w-full" id="life-canvas"></canvas>
+            <canvas class="w-full" id="example-canvas"></canvas>
           </figure>
           <button
             class="btn btn-soft btn-accent btn-sm absolute right-0 bottom-0 m-2"
@@ -50,14 +50,23 @@
         <div
           class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
         >
-          <pre data-prefix="1"><code>const space = element("space", "blue")</code></pre>
-          <pre data-prefix="2"><code>const alien = element("alien", "green")</code></pre>
+          <pre data-prefix="1"><code>const w = element("w", "white")</code></pre>
+          <pre data-prefix="2"><code>const b = element("b", "black")</code></pre>
           <pre data-prefix="3"></pre>
-          <pre data-prefix="4"><code>space.to(alien).count(alien, 3)</code></pre>
-          <pre data-prefix="5"><code>alien.to(alien).count(alien, 2, 3)</code></pre>
-          <pre data-prefix="6"><code>alien.to(space)</code></pre>
-          <pre data-prefix="7"></pre>
-          <pre data-prefix="8"><code>const life = create()</code></pre>
+          <pre data-prefix="4"><code>const wAnt = kind("wAnt")</code></pre>
+          <pre data-prefix="5"><code>const bAnt = kind("bAnt")</code></pre>
+          <pre data-prefix="6"></pre>
+          <pre data-prefix="7">// R=Right, B=Bottom, L=Left, T=Top</pre>
+          <pre data-prefix="8"><code>const wL = element("wL", "red", [wAnt])</code></pre>
+          <pre data-prefix="9"><code>// ...7 more elements (color/facing)</code></pre>
+          <pre data-prefix="10"></pre>
+          <pre data-prefix="11"><code>wAnt.to(b)</code></pre>
+          <pre data-prefix="12"><code>bAnt.to(w)</code></pre>
+          <pre data-prefix="13"></pre>
+          <pre data-prefix="14"><code>w.to(wL).is(RIGHT, wB)</code></pre>
+          <pre data-prefix="15"><code>// ...15 more rules (color/facing/turn)</code></pre>
+          <pre data-prefix="16"></pre>
+          <pre data-prefix="17"><code>const langtonsAnt = create()</code></pre>
         </div>
         <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
           Read the docs
@@ -70,6 +79,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/langtons-ant.ts"></script>
   </body>
 </html>
