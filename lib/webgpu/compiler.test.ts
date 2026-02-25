@@ -38,20 +38,20 @@ describe("basic compilation", () => {
     expect(gpu.gpuElements[0].ruleEnd).toBe(0);
   });
 
-  test("square neighborhood compiles to 8", () => {
+  test("square neighborhood compiles to 1", () => {
     const gpu = compile((vi) => {
       vi.element("a", "#000000");
     });
 
-    expect(gpu.gpuNeighborhood).toBe(8);
+    expect(gpu.gpuNeighborhood).toBe(1);
   });
 
-  test("cross neighborhood compiles to 4", () => {
+  test("cross neighborhood compiles to 0", () => {
     const gpu = compile((vi) => {
       vi.element("a", "#000000");
     }, "cross");
 
-    expect(gpu.gpuNeighborhood).toBe(4);
+    expect(gpu.gpuNeighborhood).toBe(0);
   });
 
   test("element colors are converted to ABGR format", () => {
@@ -620,7 +620,7 @@ describe("real-world automata compilation", () => {
       alive.to(dead);
     });
 
-    expect(gpu.gpuNeighborhood).toBe(8);
+    expect(gpu.gpuNeighborhood).toBe(1);
     expect(gpu.gpuElements).toHaveLength(2);
     expect(gpu.gpuRules).toHaveLength(3);
     expect(gpu.gpuConditions).toHaveLength(2);

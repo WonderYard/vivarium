@@ -92,24 +92,31 @@ const testIdInPack = (packedIds: number, x: number, y: number) => {
 
 /**
  * Compare the occurrences of checkId in the neighborhood with count.
- * When the neighborhood is cross (4), only cardinal directions are counted.
- * When the neighborhood is square (8), all eight directions are counted.
+ * When the neighborhood is cross, only cardinal directions are counted.
+ * When the neighborhood is square, all eight directions are counted.
  */
-const checkIdCount = (x: number, y: number, checkId: number, packedCount: number) => {
+const checkIdCount = (
+  x: number,
+  y: number,
+  checkId: number,
+  packedCount: number,
+  isSquare: number,
+) => {
   "use gpu";
 
-  // 1 when square (8 neighbors), 0 when cross (4 neighbors)
-  const diag = std.select(d.u32(0), d.u32(1), automatonLayout.$.neighborhood === d.u32(8));
-
-  const countMask =
-    diag * testNeighbor(checkId, x - 1, y - 1) +
+  const crossCountMask =
     testNeighbor(checkId, x, y - 1) +
-    diag * testNeighbor(checkId, x + 1, y - 1) +
     testNeighbor(checkId, x - 1, y) +
     testNeighbor(checkId, x + 1, y) +
-    diag * testNeighbor(checkId, x - 1, y + 1) +
-    testNeighbor(checkId, x, y + 1) +
-    diag * testNeighbor(checkId, x + 1, y + 1);
+    testNeighbor(checkId, x, y + 1);
+
+  const squareCountMask =
+    testNeighbor(checkId, x - 1, y - 1) +
+    testNeighbor(checkId, x + 1, y - 1) +
+    testNeighbor(checkId, x - 1, y + 1) +
+    testNeighbor(checkId, x + 1, y + 1);
+
+  const countMask = crossCountMask + isSquare * squareCountMask;
 
   // We select the bit in count using the number of occurrences as a mask
   // packedCount is representing a 9 bit array of flags
@@ -120,31 +127,44 @@ const checkIdCount = (x: number, y: number, checkId: number, packedCount: number
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number) => {
+const checkIdsCount = (
+  x: number,
+  y: number,
+  packedIds: number,
+  packedCount: number,
+  isSquare: number,
+) => {
   "use gpu";
 
-  // 1 when square (8 neighbors), 0 when cross (4 neighbors)
-  const diag = std.select(d.u32(0), d.u32(1), automatonLayout.$.neighborhood === d.u32(8));
-
-  const countMask =
-    diag * testIdInPack(packedIds, x - 1, y - 1) +
+  const crossCountMask =
     testIdInPack(packedIds, x, y - 1) +
-    diag * testIdInPack(packedIds, x + 1, y - 1) +
     testIdInPack(packedIds, x - 1, y) +
     testIdInPack(packedIds, x + 1, y) +
-    diag * testIdInPack(packedIds, x - 1, y + 1) +
-    testIdInPack(packedIds, x, y + 1) +
-    diag * testIdInPack(packedIds, x + 1, y + 1);
+    testIdInPack(packedIds, x, y + 1);
+
+  const squareCountMask =
+    testIdInPack(packedIds, x - 1, y - 1) +
+    testIdInPack(packedIds, x + 1, y - 1) +
+    testIdInPack(packedIds, x - 1, y + 1) +
+    testIdInPack(packedIds, x + 1, y + 1);
+
+  const countMask = crossCountMask + isSquare * squareCountMask;
 
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
+const checkPointCount = (
+  x: number,
+  y: number,
+  checkPoint: d.v2u,
+  packedCount: number,
+  isSquare: number,
+) => {
   "use gpu";
 
   const pointIndex = pointToIndex(x + d.u32(checkPoint.x), y + d.u32(checkPoint.y));
   const checkId = gridLayout.$.ids[pointIndex];
-  return checkIdCount(x, y, checkId, packedCount);
+  return checkIdCount(x, y, checkId, packedCount, isSquare);
 };
 
 const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
@@ -191,6 +211,8 @@ export const compute = tgpu.computeFn({
   const ruleStart = element.ruleStart;
   const ruleEnd = element.ruleEnd;
 
+  const isSquare = automatonLayout.$.neighborhood;
+
   for (let i = ruleStart; i < ruleEnd; i++) {
     const rule = automatonLayout.$.rules[i];
     const accept = rule.accept as Accept;
@@ -208,15 +230,15 @@ export const compute = tgpu.computeFn({
       if (opcode === Opcode.COUNT_ELEMENT) {
         const checkId = condition.checkId;
         const count = condition.countOrWithId;
-        passing += checkIdCount(x, y, checkId, count);
+        passing += checkIdCount(x, y, checkId, count, isSquare);
       } else if (opcode === Opcode.COUNT_POINT) {
         const checkPoint = condition.checkPointOrComparePoint;
         const count = condition.countOrWithId;
-        passing += checkPointCount(x, y, checkPoint, count);
+        passing += checkPointCount(x, y, checkPoint, count, isSquare);
       } else if (opcode === Opcode.COUNT_KIND) {
         const packedIds = condition.checkId;
         const count = condition.countOrWithId;
-        passing += checkIdsCount(x, y, packedIds, count);
+        passing += checkIdsCount(x, y, packedIds, count, isSquare);
       } else if (opcode === Opcode.IS_ELEMENT) {
         const comparePoint = condition.checkPointOrComparePoint;
         const withId = condition.countOrWithId;

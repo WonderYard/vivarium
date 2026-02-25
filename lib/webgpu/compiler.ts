@@ -1,11 +1,12 @@
-import * as d from "typegpu/data";
 import type { Automaton, Condition, Count, Is, Point, Rule } from "@/automaton/types";
 import { GpuCondition, GpuElement, GpuRule, Opcode, To } from "@/common/constants";
 import { colorToABGR } from "@/common/utils";
+import * as d from "typegpu/data";
 
 type GpuRuleType = d.Infer<typeof GpuRule>;
 type GpuElementType = d.Infer<typeof GpuElement>;
 type GpuConditionType = d.Infer<typeof GpuCondition>;
+type GpuNeighborhoodType = 0 | 1;
 
 const assertMaxSupportedId = (elementIds: number[]) => {
   if (elementIds.some((index) => index > 31)) {
@@ -120,7 +121,7 @@ const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Aut
 };
 
 export type GpuAutomaton = {
-  gpuNeighborhood: number;
+  gpuNeighborhood: GpuNeighborhoodType;
   gpuElements: GpuElementType[];
   gpuRules: GpuRuleType[];
   gpuConditions: GpuConditionType[];
@@ -267,7 +268,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
   });
 
   return {
-    gpuNeighborhood: automaton.neighborhood === "cross" ? 4 : 8,
+    gpuNeighborhood: automaton.neighborhood === "square" ? 1 : 0,
     gpuElements,
     gpuRules,
     gpuConditions,
