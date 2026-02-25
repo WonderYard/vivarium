@@ -19,6 +19,7 @@ export default defineConfig({
         "brians-brain": resolve(__dirname, "brians-brain/index.html"),
         wireworld: resolve(__dirname, "wireworld/index.html"),
         "forest-fire": resolve(__dirname, "forest-fire/index.html"),
+        "langtons-ant": resolve(__dirname, "langtons-ant/index.html"),
       },
     },
   },
