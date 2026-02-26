@@ -164,9 +164,9 @@ const step = async (
   build: (vi: ReturnType<typeof vivarium>) => void,
   inputGrid: Grid,
   neighborhood?: "square" | "cross",
-  wrapping?: boolean,
+  options?: { wrapping?: boolean },
 ): Promise<Grid> => {
-  const vi = vivarium(neighborhood, wrapping !== undefined ? { wrapping } : undefined);
+  const vi = vivarium(neighborhood, options);
   build(vi);
   return gpuEvolve(root, vi.create(), inputGrid);
 };
@@ -701,6 +701,8 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.BOTTOM, b);
         },
         before,
+        undefined,
+        { wrapping: true },
       );
 
       expect(after.ids[7]).toBe(1);
@@ -722,6 +724,8 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.RIGHT, b);
         },
         before,
+        undefined,
+        { wrapping: true },
       );
 
       expect(after.ids[1]).toBe(1);
@@ -742,6 +746,8 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.BOTTOM_RIGHT, b);
         },
         before,
+        undefined,
+        { wrapping: true },
       );
 
       expect(after.ids[4]).toBe(1);
@@ -767,8 +773,6 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.BOTTOM, b);
         },
         before,
-        undefined,
-        false,
       );
 
       // In non-wrapping mode, top row cells do not see bottom row as neighbor
@@ -790,8 +794,6 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.RIGHT, b);
         },
         before,
-        undefined,
-        false,
       );
 
       // In non-wrapping mode, leftmost column cells do not see rightmost column as neighbor
@@ -813,8 +815,6 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.BOTTOM_RIGHT, b);
         },
         before,
-        undefined,
-        false,
       );
 
       // In non-wrapping mode, top-left corner does not see bottom-right as diagonal neighbor
@@ -839,8 +839,6 @@ describe("GPU simulation", () => {
           a.to(b).count(b, 3);
         },
         before,
-        undefined,
-        false,
       );
 
       // Top-left corner (index 0) should transition: it has exactly 3 b-neighbors in bounds
@@ -864,8 +862,6 @@ describe("GPU simulation", () => {
           a.to(b).count(a, 8);
         },
         before,
-        undefined,
-        false,
       );
 
       // In non-wrapping mode, corner cells have fewer than 8 neighbors,
