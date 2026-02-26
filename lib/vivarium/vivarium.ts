@@ -1,14 +1,16 @@
-import type { Neighborhood } from "@/automaton/types";
+import type { Neighborhood, VivariumOptions } from "@/automaton/types";
 import { VivariumBlueprint } from "@/blueprint/vivarium-blueprint";
 
 /**
  * Creates a new vivarium builder used to define elements, kinds, and rules.
  *
- * @param neighborhoodName - The neighborhood type to use. Defaults to `"square"` (Moore neighborhood, 8 neighbors). Use `"cross"` for a von Neumann neighborhood (4 neighbors).
+ * @param neighborhoodName - The neighborhood type to use. Defaults to `"square"` (Moore neighborhood, 8 neighbors). Use `"cross"` for a von Neumann neighborhood (4 neighbors) or `"hexagonal"` for a hexagonal grid (6 neighbors).
+ * @param options - Optional configuration object. Use `{ wrap: false }` to disable toroidal wrapping.
  * @returns A {@link VivariumBlueprint} instance.
  */
 export function vivarium<N extends Neighborhood = "square">(
   neighborhoodName?: N,
+  options?: VivariumOptions,
 ): VivariumBlueprint<N> {
-  return new VivariumBlueprint(neighborhoodName);
+  return new VivariumBlueprint(neighborhoodName, options);
 }

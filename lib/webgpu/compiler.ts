@@ -6,7 +6,7 @@ import * as d from "typegpu/data";
 type GpuRuleType = d.Infer<typeof GpuRule>;
 type GpuElementType = d.Infer<typeof GpuElement>;
 type GpuConditionType = d.Infer<typeof GpuCondition>;
-type GpuNeighborhoodType = 0 | 1;
+type GpuNeighborhoodType = 0 | 1 | 2;
 
 const assertMaxSupportedId = (elementIds: number[]) => {
   if (elementIds.some((index) => index > 31)) {
@@ -125,6 +125,7 @@ export type GpuAutomaton = {
   gpuElements: GpuElementType[];
   gpuRules: GpuRuleType[];
   gpuConditions: GpuConditionType[];
+  gpuWrapping: number;
 };
 
 export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
@@ -268,9 +269,14 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
   });
 
   return {
-    gpuNeighborhood: automaton.neighborhood === "square" ? 1 : 0,
+    gpuNeighborhood: (automaton.neighborhood === "square"
+      ? 1
+      : automaton.neighborhood === "hexagonal"
+        ? 2
+        : 0) as GpuNeighborhoodType,
     gpuElements,
     gpuRules,
     gpuConditions,
+    gpuWrapping: automaton.wrap ? 1 : 0,
   };
 };

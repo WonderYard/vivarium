@@ -84,11 +84,13 @@ async function gpuEvolve(
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
-  const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } = compileGpuAutomaton(automaton);
+  const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions, gpuWrapping } = compileGpuAutomaton(automaton);
 
   const palette = gpuElements.map((el) => el.color);
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
+
+  const wrapping = root.createBuffer(d.u32, gpuWrapping).$usage("uniform");
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
@@ -105,6 +107,7 @@ async function gpuEvolve(
 
   const gridGroup = root.createBindGroup(gridLayout, {
     dimensions,
+    wrapping,
     colors: colors0,
     newColors: colors1,
     ids: ids0,

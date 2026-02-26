@@ -1,6 +1,6 @@
 import type { Accept } from "@/common/constants";
 
-export type Neighborhood = "square" | "cross";
+export type Neighborhood = "square" | "cross" | "hexagonal";
 
 export type RefType = "element" | "kind";
 
@@ -12,8 +12,18 @@ export type Kind = {
 
 export type Color = string;
 
+/**
+ * Options for configuring a vivarium.
+ */
+export type VivariumOptions = {
+  /** Whether the grid wraps (toroidal). Defaults to `true`. */
+  wrap?: boolean;
+};
+
 export type Automaton = {
   neighborhood: Neighborhood;
+  /** Whether the grid wraps at the edges (toroidal). */
+  wrap: boolean;
   elements: Element[];
   kinds: Kind[];
   rules: Rule[];

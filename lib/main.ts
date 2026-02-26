@@ -4,3 +4,4 @@ export { RuleBlueprint, RuleBlueprintWithAccept } from "@/blueprint/rule-bluepri
 export { VivariumBlueprint } from "@/blueprint/vivarium-blueprint";
 export { vivarium } from "@/vivarium/vivarium";
 export { setup } from "@/webgpu/setup";
+export type { VivariumOptions } from "@/automaton/types";
