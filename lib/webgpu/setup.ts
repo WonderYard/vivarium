@@ -68,60 +68,26 @@ const pointToIndex = (x: number, y: number) => {
   );
 };
 
-/**
- * Tests whether the cell at (x, y) has the given element id.
- * When wrapping is disabled and (x, y) is out of bounds, returns 0.
- *
- * Uses pure integer arithmetic for the wrapping/bounds check because
- * TypeGPU's "use gpu" helper functions do not reliably support early returns
- * or complex boolean expressions with std.select.
- */
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  const normalResult = std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.$.ids[pointToIndex(x, y)] === checkId,
-  );
-
-  // Pure arithmetic bounds check:
-  // ibx, iby = 1 if in bounds, 0 if out of bounds
-  const ibx = std.select(d.u32(0), d.u32(1), x < gridLayout.$.dimensions.x);
-  const iby = std.select(d.u32(0), d.u32(1), y < gridLayout.$.dimensions.y);
-  const ib = ibx * iby;
-
-  // mask = wrapping + (1 - wrapping) * inBounds
-  // wrapping=1: 1 + 0*ib = 1 → normalResult * 1 = normalResult
-  // wrapping=0, in bounds: 0 + 1*1 = 1 → normalResult * 1 = normalResult
-  // wrapping=0, OOB: 0 + 1*0 = 0 → normalResult * 0 = 0
-  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-  const mask = wrp + (d.u32(1) - wrp) * ib;
-
-  return normalResult * mask;
+  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
 };
 
-/**
- * Tests whether the cell at (x, y) has an element id present in packedIds.
- * When wrapping is disabled and (x, y) is out of bounds, returns 0.
- */
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
 
   const idMask = gridLayout.$.ids[pointToIndex(x, y)];
-  const normalResult = std.select(
+
+  // check if id is in the bits
+  return std.select(
     d.u32(0),
     d.u32(1),
+    // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
+    // so we cannot allow ids greater than 31 here. However no error is thrown,
+    // so to keep gpu logic simple we do the check during the compile step.
     (packedIds & (d.u32(1) << idMask)) !== d.u32(0),
   );
-
-  const ibx = std.select(d.u32(0), d.u32(1), x < gridLayout.$.dimensions.x);
-  const iby = std.select(d.u32(0), d.u32(1), y < gridLayout.$.dimensions.y);
-  const ib = ibx * iby;
-  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-  const mask = wrp + (d.u32(1) - wrp) * ib;
-
-  return normalResult * mask;
 };
 
 /**
@@ -142,7 +108,6 @@ const hexAdjustX = (x: number, y: number, dx: number, dy: number) => {
  * Compare the occurrences of checkId in the neighborhood with count.
  * When the neighborhood is cross, only cardinal directions are counted.
  * When the neighborhood is square, all eight directions are counted.
- * When the neighborhood is hexagonal, six hex neighbors are counted.
  */
 const checkIdCount = (x: number, y: number, checkId: number, packedCount: number) => {
   "use gpu";
@@ -180,10 +145,6 @@ const checkIdCount = (x: number, y: number, checkId: number, packedCount: number
 
   // We select the bit in count using the number of occurrences as a mask
   // packedCount is representing a 9 bit array of flags
-  // example: count = [2, 3] -> packedCount = 0b000001100
-  // if mask is 3, it means we will check if the 4th LSB is a 1.
-  // We are checking "!= 0u" and not "== 1u" because we are moving
-  // the bit of the mask, and NOT the bit we are reading.
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
@@ -233,7 +194,6 @@ const resolveNeighborCoords = (x: number, y: number, px: number, py: number) => 
   const ay = y + py;
 
   if (isHex) {
-    // For hex grids, apply the odd-row shift to the x coordinate
     ax = hexAdjustX(x, y, px, py);
   }
 
@@ -244,92 +204,41 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
   "use gpu";
 
   const resolved = resolveNeighborCoords(x, y, d.u32(checkPoint.x), d.u32(checkPoint.y));
-  const px = resolved.x;
-  const py = resolved.y;
-
-  const pointIndex = pointToIndex(px, py);
+  const pointIndex = pointToIndex(resolved.x, resolved.y);
   const checkId = gridLayout.$.ids[pointIndex];
-  const normalResult = checkIdCount(x, y, checkId, packedCount);
-
-  const ibx = std.select(d.u32(0), d.u32(1), px < gridLayout.$.dimensions.x);
-  const iby = std.select(d.u32(0), d.u32(1), py < gridLayout.$.dimensions.y);
-  const ib = ibx * iby;
-  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-  const mask = wrp + (d.u32(1) - wrp) * ib;
-
-  return normalResult * mask;
+  return checkIdCount(x, y, checkId, packedCount);
 };
 
 const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
   "use gpu";
 
   const resolved = resolveNeighborCoords(x, y, comparePoint.x, comparePoint.y);
-  const cx = resolved.x;
-  const cy = resolved.y;
+  const comparePointIndex = pointToIndex(resolved.x, resolved.y);
 
-  const comparePointIndex = pointToIndex(cx, cy);
-  const normalResult = std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.$.ids[comparePointIndex] === withId,
-  );
-
-  const ibx = std.select(d.u32(0), d.u32(1), cx < gridLayout.$.dimensions.x);
-  const iby = std.select(d.u32(0), d.u32(1), cy < gridLayout.$.dimensions.y);
-  const ib = ibx * iby;
-  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-  const mask = wrp + (d.u32(1) - wrp) * ib;
-
-  return normalResult * mask;
+  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
 };
 
 const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
   "use gpu";
 
   const resolved = resolveNeighborCoords(x, y, comparePoint.x, comparePoint.y);
-  const cx = resolved.x;
-  const cy = resolved.y;
-
-  const normalResult = testIdInPack(packedIds, cx, cy);
-
-  const ibx = std.select(d.u32(0), d.u32(1), cx < gridLayout.$.dimensions.x);
-  const iby = std.select(d.u32(0), d.u32(1), cy < gridLayout.$.dimensions.y);
-  const ib = ibx * iby;
-  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-  const mask = wrp + (d.u32(1) - wrp) * ib;
-
-  return normalResult * mask;
+  return testIdInPack(packedIds, resolved.x, resolved.y);
 };
 
 const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPoint: d.v2u) => {
   "use gpu";
 
   const resolvedCompare = resolveNeighborCoords(x, y, comparePoint.x, comparePoint.y);
-  const cx = resolvedCompare.x;
-  const cy = resolvedCompare.y;
-
   const resolvedWith = resolveNeighborCoords(x, y, withPoint.x, withPoint.y);
-  const wx = resolvedWith.x;
-  const wy = resolvedWith.y;
 
-  const comparePointIndex = pointToIndex(cx, cy);
-  const withPointIndex = pointToIndex(wx, wy);
+  const comparePointIndex = pointToIndex(resolvedCompare.x, resolvedCompare.y);
+  const withPointIndex = pointToIndex(resolvedWith.x, resolvedWith.y);
 
-  const normalResult = std.select(
+  return std.select(
     d.u32(0),
     d.u32(1),
     gridLayout.$.ids[comparePointIndex] === gridLayout.$.ids[withPointIndex],
   );
-
-  const cibx = std.select(d.u32(0), d.u32(1), cx < gridLayout.$.dimensions.x);
-  const ciby = std.select(d.u32(0), d.u32(1), cy < gridLayout.$.dimensions.y);
-  const wibx = std.select(d.u32(0), d.u32(1), wx < gridLayout.$.dimensions.x);
-  const wiby = std.select(d.u32(0), d.u32(1), wy < gridLayout.$.dimensions.y);
-  const ib = cibx * ciby * wibx * wiby;
-  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-  const mask = wrp + (d.u32(1) - wrp) * ib;
-
-  return normalResult * mask;
 };
 
 // also the main compute function has no variable dependencies
@@ -401,41 +310,24 @@ export const compute = tgpu.computeFn({
       (accept === Accept.NONE && passing === d.u32(0))
     ) {
       let resolvedId = rule.toId;
-      let canApply = d.u32(1);
 
       const toType = rule.toType as To;
 
       if (toType === To.POINT) {
-        // Resolve the neighbor coordinates, adjusting for hexagonal grids
         const resolved = resolveNeighborCoords(
           x,
           y,
           d.u32(rule.toNeighbor.x),
           d.u32(rule.toNeighbor.y),
         );
-        const nx = resolved.x;
-        const ny = resolved.y;
-
-        // When wrapping is disabled and the target point is out of bounds,
-        // skip this rule and try the next one.
-        const nibx = std.select(d.u32(0), d.u32(1), nx < gridLayout.$.dimensions.x);
-        const niby = std.select(d.u32(0), d.u32(1), ny < gridLayout.$.dimensions.y);
-        const nib = nibx * niby;
-        const nwrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
-        canApply = nwrp + (d.u32(1) - nwrp) * nib;
-
-        if (canApply === d.u32(1)) {
-          const pointIndex = pointToIndex(nx, ny);
-          resolvedId = gridLayout.$.ids[pointIndex];
-        }
+        const pointIndex = pointToIndex(resolved.x, resolved.y);
+        resolvedId = gridLayout.$.ids[pointIndex];
       }
 
-      if (canApply === d.u32(1)) {
-        gridLayout.$.newIds[index] = resolvedId;
-        gridLayout.$.newColors[index] = automatonLayout.$.elements[resolvedId].color;
+      gridLayout.$.newIds[index] = resolvedId;
+      gridLayout.$.newColors[index] = automatonLayout.$.elements[resolvedId].color;
 
-        return;
-      }
+      return;
     }
   }
 
@@ -443,22 +335,6 @@ export const compute = tgpu.computeFn({
   gridLayout.$.newColors[index] = color;
 });
 
-/**
- * WGSL shader module for the drawShader render pipeline.
- *
- * Why we use ABGR color buffers:
- * The simulation stores pixel colors as packed 32-bit unsigned integers in ABGR format
- * (Alpha, Blue, Green, Red from MSB to LSB). This matches the byte order used by
- * Canvas 2D ImageData on little-endian systems, allowing zero-copy transfers when
- * rendering via the CPU path (putImageData). Each element must have a unique color
- * because the GPU compute shader identifies elements by their color buffer values
- * during rendering — duplicate colors would make visually distinct elements
- * indistinguishable on screen.
- *
- * The drawShader avoids the expensive GPU→CPU→Canvas round trip by rendering
- * the color buffer directly on the GPU via a full-screen triangle. The fragment
- * shader reads ABGR values from the storage buffer and converts them to RGBA for output.
- */
 const DRAW_SHADER_SOURCE = /* wgsl */ `
   struct VertexOutput {
     @builtin(position) position: vec4f,
@@ -467,9 +343,9 @@ const DRAW_SHADER_SOURCE = /* wgsl */ `
 
   @group(0) @binding(0) var<uniform> dimensions: vec2u;
   @group(0) @binding(1) var<storage, read> colors: array<u32>;
+  @group(0) @binding(2) var<uniform> neighborhood: u32;
 
   @vertex fn vs(@builtin(vertex_index) vi: u32) -> VertexOutput {
-    // Full-screen triangle: three vertices that cover the entire clip space
     var pos = array<vec2f, 3>(
       vec2f(-1.0, -1.0),
       vec2f( 3.0, -1.0),
@@ -486,26 +362,144 @@ const DRAW_SHADER_SOURCE = /* wgsl */ `
     return out;
   }
 
+  fn abgrToRgba(abgr: u32) -> vec4f {
+    let r = f32((abgr >>  0u) & 0xFFu) / 255.0;
+    let g = f32((abgr >>  8u) & 0xFFu) / 255.0;
+    let b = f32((abgr >> 16u) & 0xFFu) / 255.0;
+    let a = f32((abgr >> 24u) & 0xFFu) / 255.0;
+    return vec4f(r, g, b, a);
+  }
+
+  fn gridColor(col: u32, row: u32) -> vec4f {
+    let cx = min(col, dimensions.x - 1u);
+    let cy = min(row, dimensions.y - 1u);
+    let index = cy * dimensions.x + cx;
+    return abgrToRgba(colors[index]);
+  }
+
   @fragment fn fs(in: VertexOutput) -> @location(0) vec4f {
+    if (neighborhood == 2u) {
+      // ── Hexagonal rendering (pointy-top, even-row offset) ──
+      let canvasW = f32(dimensions.x);
+      let canvasH = f32(dimensions.y);
+      let cols = f32(dimensions.x);
+      let rows = f32(dimensions.y);
+
+      // Hex cell metrics: size is the circumradius (center to vertex).
+      // Pointy-top hex: width = sqrt(3) * size, height = 2 * size.
+      // Row spacing = 1.5 * size (3/4 of height).
+      // We fit all rows: canvasH = size*1.5*(rows-1) + size*2
+      //                  canvasH = size * (1.5*rows + 0.5)
+      let size = canvasH / (1.5 * rows + 0.5);
+      let hexW = 1.7320508 * size;  // sqrt(3) * size
+      let hexH = 2.0 * size;
+      let rowH = 1.5 * size;
+
+      // Pixel position in canvas space
+      let px = in.uv.x * canvasW;
+      let py = in.uv.y * canvasH;
+
+      // Estimate row
+      let estRow = py / rowH;
+      let row = i32(floor(estRow));
+
+      // X offset for odd rows
+      let xOff = select(0.0, hexW * 0.5, (row & 1) != 0);
+
+      // Estimate column
+      let estCol = (px - xOff) / hexW;
+      let col = i32(floor(estCol));
+
+      // Refine: check if we are in the "overlap" triangle region between rows.
+      // The top of each hex row has a pointy-top triangular overlap with the row above.
+      // Local coordinates within the estimated cell:
+      let cellX = px - xOff - f32(col) * hexW;
+      let cellY = py - f32(row) * rowH;
+
+      var finalRow = row;
+      var finalCol = col;
+
+      // Check if we're in the top triangular region (within the first 0.5*size of the row)
+      if (cellY < size * 0.5) {
+        // In the pointy-top hex, the top edge has two diagonal edges meeting at the top vertex.
+        // The hex center is at (hexW/2, size) relative to the cell origin (top-left of bounding box).
+        // The top-left edge goes from (0, size*0.5) to (hexW/2, 0).
+        // The top-right edge goes from (hexW/2, 0) to (hexW, size*0.5).
+        let midX = hexW * 0.5;
+        let topH = size * 0.5;
+        // Normalized position within the triangular region
+        let relY = topH - cellY;  // distance from the bottom of the triangular region
+
+        if (cellX < midX) {
+          // Left half: check if point is above the left edge line
+          // Edge line: from (0, topH) to (midX, 0) → y = topH - (topH/midX)*x
+          // Point is above if cellY < topH - (topH/midX)*cellX, i.e. relY > (topH/midX)*cellX
+          if (relY * midX > topH * cellX) {
+            // Belongs to the hex cell above-left
+            let prevRowOdd = ((row - 1) & 1) != 0;
+            finalRow = row - 1;
+            finalCol = select(col - 1, col, prevRowOdd);
+          }
+        } else {
+          // Right half: check if point is above the right edge line
+          // Edge line: from (midX, 0) to (hexW, topH) → y = (topH/midX)*(x - midX)
+          // Point is above if cellY < (topH/midX)*(hexW - cellX), i.e. relY*midX > topH*(hexW-cellX)
+          if (relY * midX > topH * (hexW - cellX)) {
+            // Belongs to the hex cell above-right
+            let prevRowOdd = ((row - 1) & 1) != 0;
+            finalRow = row - 1;
+            finalCol = select(col, col + 1, prevRowOdd);
+          }
+        }
+      }
+
+      // Clamp to grid bounds
+      let cr = clamp(finalRow, 0, i32(dimensions.y) - 1);
+      let cc = clamp(finalCol, 0, i32(dimensions.x) - 1);
+
+      // ── Hex border detection ──
+      // Recalculate local position relative to the final cell
+      let fxOff = select(0.0, hexW * 0.5, (cr & 1) != 0);
+      let fcx = px - fxOff - f32(cc) * hexW;
+      let fcy = py - f32(cr) * rowH;
+      // Center of hex cell in local coords
+      let centerX = hexW * 0.5;
+      let centerY = size;  // hex center is at size from top of bounding box
+      // Distance from center using hex distance metric
+      let dx = abs(fcx - centerX);
+      let dy = abs(fcy - centerY);
+      // Pointy-top hex boundary check: a point is inside if
+      //   dy <= size  AND  size*dx + (size/2)*dy <= size*sqrt(3)/2 * size
+      // Simplified: check if we're near the edge
+      let borderW = max(1.0, size * 0.06);
+      // Use the hex distance formula for pointy-top
+      let q = dx;
+      let p = dy;
+      // Distance to nearest edge of pointy-top hex (approximation)
+      let hexDist = max(p, 0.8660254 * q + 0.5 * p);  // sqrt(3)/2 ≈ 0.8660254
+      let maxDist = size - borderW;
+      if (hexDist > maxDist) {
+        // Border pixel - darken the cell color
+        let cellColor = gridColor(u32(cc), u32(cr));
+        return vec4f(cellColor.rgb * 0.3, cellColor.a);
+      }
+
+      return gridColor(u32(cc), u32(cr));
+    }
+
+    // ── Square/Cross rendering (1:1 pixel mapping) ──
     let pixel = vec2u(
       u32(in.uv.x * f32(dimensions.x)),
       u32(in.uv.y * f32(dimensions.y))
     );
 
-    // Clamp to grid bounds
     let px = min(pixel.x, dimensions.x - 1u);
     let py = min(pixel.y, dimensions.y - 1u);
 
     let index = py * dimensions.x + px;
     let abgr = colors[index];
 
-    // Convert from ABGR (storage format) to RGBA (output format)
-    let r = f32((abgr >>  0u) & 0xFFu) / 255.0;
-    let g = f32((abgr >>  8u) & 0xFFu) / 255.0;
-    let b = f32((abgr >> 16u) & 0xFFu) / 255.0;
-    let a = f32((abgr >> 24u) & 0xFFu) / 255.0;
-
-    return vec4f(r, g, b, a);
+    return abgrToRgba(abgr);
   }
 `;
 
@@ -521,15 +515,14 @@ const DRAW_SHADER_SOURCE = /* wgsl */ `
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
  * @returns An object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
- * - `draw` — reads the latest GPU state and renders it to the canvas (async, CPU readback).
- * - `drawShader` — renders the latest GPU state to the canvas via a WebGPU render shader (no CPU readback, more efficient). Cannot be used on the same canvas as `draw`.
+ * - `draw` — reads the latest GPU state and renders it to the canvas (async).
+ * - `drawShader` — renders the latest GPU state using a WebGPU render pipeline (sync, no readback).
  * - `evolve` — convenience shorthand for `update()` + `await draw()`.
  * - `readGrid` — reads the current grid state.
  * - `writeCell` — updates a single cell by flat index.
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton rules.
- * - `setWrap` — changes wrapping behavior at runtime.
  * - `tgpuRoot` — the underlying TypeGPU root.
  */
 export const setup = ({
@@ -553,6 +546,19 @@ export const setup = ({
 
   const { width, height } = canvas;
 
+  // ── Canvas 2D context (lazy, for `draw`) ─────────────────────────
+  let g: CanvasRenderingContext2D | null = null;
+  let imageData: ImageData | null = null;
+  let pixels: Uint32Array | null = null;
+
+  const ensure2dContext = () => {
+    if (!g) {
+      g = canvas.getContext("2d") as CanvasRenderingContext2D;
+      imageData = g.createImageData(width, height);
+      pixels = new Uint32Array(imageData.data.buffer);
+    }
+  };
+
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
@@ -560,12 +566,6 @@ export const setup = ({
   // When automaton changes we don't need to recreate them.
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
-
-  /**
-   * Wrapping uniform: 1 = toroidal wrapping (default), 0 = bounded (non-wrapping).
-   * Uses createUniform (same pattern as seed) for reliable GPU access.
-   */
-  setWrapping(root.createUniform(d.u32, automaton.wrap ? 1 : 0));
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
@@ -600,15 +600,20 @@ export const setup = ({
   // using let because we can reassign this when we update the automaton
   let automatonGroup: TgpuBindGroup;
   let palette: number[] = [];
+  let currentNeighborhood = automaton.neighborhood === "square" ? 1 : automaton.neighborhood === "hexagonal" ? 2 : 0;
 
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
-    const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions, gpuWrapping } =
+    const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } =
       compileGpuAutomaton(automaton);
 
     palette = gpuElements.map((element) => element.color);
 
-    // Also update the wrapping state from the new automaton
-    wrapping.write(gpuWrapping);
+    currentNeighborhood = gpuNeighborhood;
+
+    // Update the neighborhood uniform for the draw shader if initialized
+    if (renderNeighborhoodBuffer) {
+      device.queue.writeBuffer(renderNeighborhoodBuffer, 0, new Uint32Array([gpuNeighborhood]));
+    }
 
     const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
     const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
@@ -662,19 +667,6 @@ export const setup = ({
   // and we write the inizialization to the buffers
   colors0.write(Array.from(colors));
   ids0.write(Array.from(ids));
-
-  // ── Canvas 2D context (lazy, for `draw`) ─────────────────────────
-  let g: CanvasRenderingContext2D | null = null;
-  let imageData: ImageData | null = null;
-  let pixels: Uint32Array | null = null;
-
-  const ensure2dContext = () => {
-    if (!g) {
-      g = canvas.getContext("2d") as CanvasRenderingContext2D;
-      imageData = g.createImageData(width, height);
-      pixels = new Uint32Array(imageData.data.buffer);
-    }
-  };
 
   /**
    * Reads the current grid state from the GPU and returns a flat array of element indices.
@@ -825,8 +817,8 @@ export const setup = ({
     // We are manually doing these steps, from map to unmap, even though
     // TgpuBuffer.read exists, because we notice heavy work happening JS-side
     // due to its readers. Since we don't need to parse data other than putting
-    // it on the canvas, our approach is correct and fast. The drawShader
-    // function avoids this CPU readback entirely by rendering GPU-side.
+    // it on the canvas, our approach is correct and fast. In the future, if
+    // beneficial, consider drawing GPU-side to avoid reading data every frame.
 
     const rawBuffer = colorsStagingBuffer.buffer;
     await rawBuffer.mapAsync(GPUMapMode.READ);
@@ -843,6 +835,7 @@ export const setup = ({
   let renderBindGroup: GPUBindGroup | null = null;
   let gpuContext: GPUCanvasContext | null = null;
   let renderDimensionsBuffer: GPUBuffer | null = null;
+  let renderNeighborhoodBuffer: GPUBuffer | null = null;
 
   /**
    * Initializes the WebGPU render pipeline for drawShader (lazy, first call only).
@@ -860,6 +853,7 @@ export const setup = ({
       entries: [
         { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
       ],
     });
 
@@ -875,24 +869,27 @@ export const setup = ({
       },
     });
 
-    // Create a separate uniform buffer for dimensions (raw WebGPU)
     renderDimensionsBuffer = device.createBuffer({
       size: 8,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     device.queue.writeBuffer(renderDimensionsBuffer, 0, new Uint32Array([width, height]));
 
-    // The bind group will be updated each frame to point to the current color buffer
-    renderBindGroup = null; // force re-creation on first draw
+    renderNeighborhoodBuffer = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(renderNeighborhoodBuffer, 0, new Uint32Array([currentNeighborhood]));
+
+    renderBindGroup = null;
   };
 
   /**
    * Renders the latest simulation state to the canvas using a WebGPU render shader.
    * This avoids the expensive GPU→CPU→Canvas round trip used by `draw()`.
    *
-   * The fragment shader reads ABGR color values directly from the GPU storage buffer
-   * and converts them to RGBA for display. This is significantly more efficient than
-   * the CPU readback approach, especially for large grids.
+   * For hexagonal neighborhoods, cells are rendered as pointy-top hexagons with
+   * even-row offset coordinates and thin borders between cells.
    *
    * Note: Cannot be used on the same canvas as `draw` because they require
    * different canvas context types (WebGPU vs Canvas 2D).
@@ -902,13 +899,13 @@ export const setup = ({
 
     const currentColors = frames % 2 === 0 ? colors0 : colors1;
 
-    // Recreate bind group to point to the current color buffer
     const bindGroupLayout = renderPipeline!.getBindGroupLayout(0);
     renderBindGroup = device.createBindGroup({
       layout: bindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: renderDimensionsBuffer! } },
         { binding: 1, resource: { buffer: currentColors.buffer } },
+        { binding: 2, resource: { buffer: renderNeighborhoodBuffer! } },
       ],
     });
 
@@ -926,19 +923,10 @@ export const setup = ({
 
     pass.setPipeline(renderPipeline!);
     pass.setBindGroup(0, renderBindGroup);
-    pass.draw(3); // full-screen triangle
+    pass.draw(3);
     pass.end();
 
     device.queue.submit([encoder.finish()]);
-  };
-
-  /**
-   * Sets whether the grid wraps at the edges (toroidal).
-   *
-   * @param wrap - `true` for toroidal wrapping, `false` for bounded edges.
-   */
-  const setWrap = (wrap: boolean): void => {
-    wrapping.write(wrap ? 1 : 0);
   };
 
   /**
@@ -960,7 +948,6 @@ export const setup = ({
     writeCellAt,
     writeGrid,
     setAutomaton,
-    setWrap,
     tgpuRoot: root,
   };
 };
