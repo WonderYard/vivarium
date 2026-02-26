@@ -105,6 +105,7 @@ async function gpuEvolve(
 
   const gridGroup = root.createBindGroup(gridLayout, {
     dimensions,
+    wrapping: root.createBuffer(d.u32, automaton.wrapping ? 1 : 0).$usage("uniform"),
     colors: colors0,
     newColors: colors1,
     ids: ids0,
@@ -163,8 +164,9 @@ const step = async (
   build: (vi: ReturnType<typeof vivarium>) => void,
   inputGrid: Grid,
   neighborhood?: "square" | "cross",
+  wrapping?: boolean,
 ): Promise<Grid> => {
-  const vi = vivarium(neighborhood);
+  const vi = vivarium(neighborhood, wrapping !== undefined ? { wrapping } : undefined);
   build(vi);
   return gpuEvolve(root, vi.create(), inputGrid);
 };
@@ -744,6 +746,132 @@ describe("GPU simulation", () => {
 
       expect(after.ids[4]).toBe(1);
       expect(after.ids[0]).toBe(0);
+    });
+  });
+
+  // ── Non-wrapping grid ─────────────────────────────────────────
+
+  describe("non-wrapping grid", () => {
+    test("top edge does not wrap to bottom", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 1, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.BOTTOM, b);
+        },
+        before,
+        undefined,
+        false,
+      );
+
+      // In non-wrapping mode, top row cells do not see bottom row as neighbor
+      expect(after.ids[1]).toBe(0);
+    });
+
+    test("left edge does not wrap to right", async () => {
+      const before = grid([
+        [0, 0, 1],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.RIGHT, b);
+        },
+        before,
+        undefined,
+        false,
+      );
+
+      // In non-wrapping mode, leftmost column cells do not see rightmost column as neighbor
+      expect(after.ids[0]).toBe(0);
+    });
+
+    test("corner does not wrap diagonally", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 1],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.BOTTOM_RIGHT, b);
+        },
+        before,
+        undefined,
+        false,
+      );
+
+      // In non-wrapping mode, top-left corner does not see bottom-right as diagonal neighbor
+      expect(after.ids[0]).toBe(0);
+    });
+
+    test("count at corner sees only in-bounds neighbors", async () => {
+      // In non-wrapping mode, the top-left corner (0,0) has only 3 valid neighbors:
+      // RIGHT (1,0), BOTTOM (0,1), BOTTOM_RIGHT (1,1)
+      const before = grid([
+        [0, 1, 0],
+        [1, 1, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          // In square neighborhood, top-left corner has exactly 3 b-neighbors in-bounds
+          a.to(b).count(b, 3);
+        },
+        before,
+        undefined,
+        false,
+      );
+
+      // Top-left corner (index 0) should transition: it has exactly 3 b-neighbors in bounds
+      expect(after.ids[0]).toBe(1);
+    });
+
+    test("count at edge does not include out-of-bounds as neighbors", async () => {
+      // In wrapping mode, a corner sees 8 neighbors (toroidal). In non-wrapping, only 3.
+      // If we require count=8 (only valid in wrapping mode for a corner), it should not fire.
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).count(a, 8);
+        },
+        before,
+        undefined,
+        false,
+      );
+
+      // In non-wrapping mode, corner cells have fewer than 8 neighbors,
+      // so the count=8 condition can only be satisfied by interior cells
+      expect(after.ids[0]).toBe(0); // top-left corner: only 3 neighbors, not 8
+      expect(after.ids[4]).toBe(1); // center cell: all 8 neighbors present and are "a"
     });
   });
 

@@ -32,6 +32,7 @@ export const setSeed = (s: TgpuUniform<d.F32>) => {
 // layouts are predefined
 export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
+  wrapping: { uniform: d.u32 },
   colors: { storage: d.arrayOf(d.u32), access: "mutable" },
   newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
   ids: { storage: d.arrayOf(d.u32), access: "mutable" },
@@ -63,19 +64,43 @@ const pointToIndex = (x: number, y: number) => {
   // Note: keep in mind that we are performing subtraction in unsigned space.
   // The modulo here is the only thing that allows us to use unsigned ints everywhere.
   // Example 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
+  const wrappedIndex =
+    (y % gridLayout.$.dimensions.y) * gridLayout.$.dimensions.x + (x % gridLayout.$.dimensions.x);
+
+  // When not wrapping, use the plain index. Out-of-bounds access is guarded by
+  // the callers (testNeighbor, testIdInPack, etc.) which check bounds separately.
+  const nonWrappedIndex = y * gridLayout.$.dimensions.x + x;
+
+  return std.select(nonWrappedIndex, wrappedIndex, gridLayout.$.wrapping !== d.u32(0));
+};
+
+// In unsigned arithmetic, "negative" coordinates (e.g. 0 - 1 = 0xFFFFFFFF) are very
+// large numbers, so `x >= dimensions.x` correctly identifies them as out of bounds.
+const isOutOfBoundsInNonWrapping = (x: number, y: number) => {
+  "use gpu";
+
   return (
-    (y % gridLayout.$.dimensions.y) * gridLayout.$.dimensions.x + (x % gridLayout.$.dimensions.x)
+    gridLayout.$.wrapping === d.u32(0) &&
+    (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y)
   );
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
+  if (isOutOfBoundsInNonWrapping(x, y)) {
+    return d.u32(0);
+  }
+
   return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
+
+  if (isOutOfBoundsInNonWrapping(x, y)) {
+    return d.u32(0);
+  }
 
   const idMask = gridLayout.$.ids[pointToIndex(x, y)];
 
@@ -145,7 +170,14 @@ const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: num
 const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
   "use gpu";
 
-  const pointIndex = pointToIndex(x + d.u32(checkPoint.x), y + d.u32(checkPoint.y));
+  const cx = x + d.u32(checkPoint.x);
+  const cy = y + d.u32(checkPoint.y);
+
+  if (isOutOfBoundsInNonWrapping(cx, cy)) {
+    return d.u32(0);
+  }
+
+  const pointIndex = pointToIndex(cx, cy);
   const checkId = gridLayout.$.ids[pointIndex];
   return checkIdCount(x, y, checkId, packedCount);
 };
@@ -153,7 +185,14 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
 const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
   "use gpu";
 
-  const comparePointIndex = pointToIndex(x + comparePoint.x, y + comparePoint.y);
+  const cx = x + comparePoint.x;
+  const cy = y + comparePoint.y;
+
+  if (isOutOfBoundsInNonWrapping(cx, cy)) {
+    return d.u32(0);
+  }
+
+  const comparePointIndex = pointToIndex(cx, cy);
 
   return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
 };
@@ -167,8 +206,17 @@ const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packe
 const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPoint: d.v2u) => {
   "use gpu";
 
-  const comparePointIndex = pointToIndex(x + comparePoint.x, y + comparePoint.y);
-  const withPointIndex = pointToIndex(x + withPoint.x, y + withPoint.y);
+  const cx = x + comparePoint.x;
+  const cy = y + comparePoint.y;
+  const wx = x + withPoint.x;
+  const wy = y + withPoint.y;
+
+  if (isOutOfBoundsInNonWrapping(cx, cy) || isOutOfBoundsInNonWrapping(wx, wy)) {
+    return d.u32(0);
+  }
+
+  const comparePointIndex = pointToIndex(cx, cy);
+  const withPointIndex = pointToIndex(wx, wy);
 
   return std.select(
     d.u32(0),
@@ -330,8 +378,13 @@ export const setup = ({
 
   // no staging buffer needed for ids, since we only need to draw the result
 
+  const wrappingBuffer = root
+    .createBuffer(d.u32, automaton.wrapping ? 1 : 0)
+    .$usage("uniform");
+
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
+    wrapping: wrappingBuffer,
     colors: colors0,
     newColors: colors1,
     ids: ids0,
@@ -340,6 +393,7 @@ export const setup = ({
 
   const gridGroup1 = root.createBindGroup(gridLayout, {
     dimensions,
+    wrapping: wrappingBuffer,
     colors: colors1,
     newColors: colors0,
     ids: ids1,

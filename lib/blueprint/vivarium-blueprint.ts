@@ -4,6 +4,7 @@ import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { Helpers } from "@/blueprint/helpers";
 import { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
 import { Cross, Square } from "@/common/constants";
+import type { VivariumOptions } from "@/vivarium/vivarium";
 
 /**
  * The main builder for defining a vivarium. Use it to create elements, kinds, and rules,
@@ -29,7 +30,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    */
   public helpers: Helpers;
 
-  constructor(private neighborhoodName?: N) {
+  constructor(private neighborhoodName?: N, options?: VivariumOptions) {
     super();
 
     this.helpers = new Helpers(this.neighborhoodName);
@@ -40,6 +41,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     this.automaton = {
       neighborhood: neighborhoodName ?? "square",
+      wrapping: options?.wrapping ?? true,
       elements: [],
       kinds: [],
       rules: [],
