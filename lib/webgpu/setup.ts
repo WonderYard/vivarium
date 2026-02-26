@@ -89,13 +89,26 @@ const pointToIndex = (x: number, y: number) => {
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
+  // Zero-padding: OOB positions are treated as element 0, not as whatever ids[0] happens to be.
+  const effectiveId = std.select(
+    gridLayout.$.ids[pointToIndex(x, y)],
+    d.u32(0),
+    gridLayout.$.wrapping === d.u32(0) &&
+      (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y),
+  );
+  return std.select(d.u32(0), d.u32(1), effectiveId === checkId);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
 
-  const idMask = gridLayout.$.ids[pointToIndex(x, y)];
+  // Zero-padding: OOB positions are treated as element 0, not as whatever ids[0] happens to be.
+  const idMask = std.select(
+    gridLayout.$.ids[pointToIndex(x, y)],
+    d.u32(0),
+    gridLayout.$.wrapping === d.u32(0) &&
+      (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y),
+  );
 
   // check if id is in the bits
   return std.select(
@@ -166,8 +179,13 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
   const cx = x + d.u32(checkPoint.x);
   const cy = y + d.u32(checkPoint.y);
 
-  const pointIndex = pointToIndex(cx, cy);
-  const checkId = gridLayout.$.ids[pointIndex];
+  // Zero-padding: OOB check point is treated as element 0.
+  const checkId = std.select(
+    gridLayout.$.ids[pointToIndex(cx, cy)],
+    d.u32(0),
+    gridLayout.$.wrapping === d.u32(0) &&
+      (cx >= gridLayout.$.dimensions.x || cy >= gridLayout.$.dimensions.y),
+  );
   return checkIdCount(x, y, checkId, packedCount);
 };
 
@@ -177,9 +195,15 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
   const cx = x + comparePoint.x;
   const cy = y + comparePoint.y;
 
-  const comparePointIndex = pointToIndex(cx, cy);
+  // Zero-padding: OOB compare point is treated as element 0.
+  const effectiveId = std.select(
+    gridLayout.$.ids[pointToIndex(cx, cy)],
+    d.u32(0),
+    gridLayout.$.wrapping === d.u32(0) &&
+      (cx >= gridLayout.$.dimensions.x || cy >= gridLayout.$.dimensions.y),
+  );
 
-  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
+  return std.select(d.u32(0), d.u32(1), effectiveId === withId);
 };
 
 const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
@@ -196,14 +220,21 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
   const wx = x + withPoint.x;
   const wy = y + withPoint.y;
 
-  const comparePointIndex = pointToIndex(cx, cy);
-  const withPointIndex = pointToIndex(wx, wy);
+  const noWrap = gridLayout.$.wrapping === d.u32(0);
 
-  return std.select(
+  // Zero-padding: OOB points are treated as element 0.
+  const compareId = std.select(
+    gridLayout.$.ids[pointToIndex(cx, cy)],
     d.u32(0),
-    d.u32(1),
-    gridLayout.$.ids[comparePointIndex] === gridLayout.$.ids[withPointIndex],
+    noWrap && (cx >= gridLayout.$.dimensions.x || cy >= gridLayout.$.dimensions.y),
   );
+  const withId = std.select(
+    gridLayout.$.ids[pointToIndex(wx, wy)],
+    d.u32(0),
+    noWrap && (wx >= gridLayout.$.dimensions.x || wy >= gridLayout.$.dimensions.y),
+  );
+
+  return std.select(d.u32(0), d.u32(1), compareId === withId);
 };
 
 // also the main compute function has no variable dependencies

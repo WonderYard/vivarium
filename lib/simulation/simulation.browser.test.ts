@@ -822,8 +822,9 @@ describe("GPU simulation", () => {
     });
 
     test("count at corner sees only in-bounds neighbors", async () => {
-      // In non-wrapping mode, the top-left corner (0,0) has only 3 valid neighbors:
-      // RIGHT (1,0), BOTTOM (0,1), BOTTOM_RIGHT (1,1)
+      // The top-left corner (0,0) always has 8 neighbor positions in a square neighborhood,
+      // but the 5 out-of-bounds ones are zero-padded to element 0 (a).
+      // Only the 3 in-bounds neighbors are b, so count(b) = 3.
       const before = grid([
         [0, 1, 0],
         [1, 1, 0],
@@ -835,22 +836,23 @@ describe("GPU simulation", () => {
         (vi) => {
           const a = vi.element("a", "#ff0000");
           const b = vi.element("b", "#00ff00");
-          // In square neighborhood, top-left corner has exactly 3 b-neighbors in-bounds
+          // count(b, 3) fires at the corner: exactly 3 in-bounds b-neighbors, OOB are a
           a.to(b).count(b, 3);
         },
         before,
       );
 
-      // Top-left corner (index 0) should transition: it has exactly 3 b-neighbors in bounds
+      // Top-left corner (index 0) transitions: count(b) = 3
       expect(after.ids[0]).toBe(1);
     });
 
-    test("count at edge does not include out-of-bounds as neighbors", async () => {
-      // In wrapping mode, a corner sees 8 neighbors (toroidal). In non-wrapping, only 3.
-      // If we require count=8 (only valid in wrapping mode for a corner), it should not fire.
+    test("out-of-bounds positions are zero-padded to element 0", async () => {
+      // The corner (0,0) has 3 in-bounds b-neighbors and 5 out-of-bounds positions.
+      // OOB positions are zero-padded to element 0 (a), not b.
+      // count(b, 8) cannot fire at the corner since only 3 neighbors are b.
       const before = grid([
-        [0, 0, 0],
-        [0, 0, 0],
+        [0, 1, 0],
+        [1, 1, 0],
         [0, 0, 0],
       ]);
 
@@ -859,15 +861,13 @@ describe("GPU simulation", () => {
         (vi) => {
           const a = vi.element("a", "#ff0000");
           const b = vi.element("b", "#00ff00");
-          a.to(b).count(a, 8);
+          a.to(b).count(b, 8);
         },
         before,
       );
 
-      // In non-wrapping mode, corner cells have fewer than 8 neighbors,
-      // so the count=8 condition can only be satisfied by interior cells
-      expect(after.ids[0]).toBe(0); // top-left corner: only 3 neighbors, not 8
-      expect(after.ids[4]).toBe(1); // center cell: all 8 neighbors present and are "a"
+      // Corner (index 0): count(b) = 3 (OOB are a, not b), so count(b, 8) does not fire
+      expect(after.ids[0]).toBe(0);
     });
   });
 
@@ -1147,7 +1147,7 @@ describe("GPU simulation", () => {
         [A, A, A],
       ]);
 
-      const after = await step(root, buildLife, before);
+      const after = await step(root, buildLife, before, undefined, { wrapping: true });
 
       expect(toRows(after)).toEqual([
         [D, D, D],

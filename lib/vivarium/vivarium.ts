@@ -10,7 +10,7 @@ export type VivariumOptions = {
  *
  * @param neighborhoodName - The neighborhood type to use. Defaults to `"square"` (Moore neighborhood, 8 neighbors). Use `"cross"` for a von Neumann neighborhood (4 neighbors).
  * @param options - Optional configuration options.
- * @param options.wrapping - Whether the grid wraps toroidally. Defaults to `true`.
+ * @param options.wrapping - Whether the grid wraps toroidally. Defaults to `false`.
  * @returns A {@link VivariumBlueprint} instance.
  */
 export function vivarium<N extends Neighborhood = "square">(

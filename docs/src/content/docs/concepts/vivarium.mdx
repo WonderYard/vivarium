@@ -30,11 +30,10 @@ The neighborhood type determines which cells are considered when evaluating cond
 
 ## Wrapping
 
-By default, cells at the border of the grid have fewer neighbors. Positions that fall outside the grid are counted as empty. The empty element is the first element registered. Usually this is the element that represents "dead" or "inactive" cells.
+By default, the grid does not wrap. Cells at the border always have 8 neighbors in a square neighborhood (or 4 in a cross neighborhood), but positions that fall outside the grid are zero-padded: they are treated as if they contain element 0 (the first element defined, usually the "dead" or "empty" state).
 
 ```typescript
-// By default, corner cells see only 3 neighbors in a square neighborhood
-// and edge cells see only 5 neighbors, instead of 8.
+// By default (wrapping: false), out-of-bounds neighbor positions are treated as element 0.
 const vi = vivarium("square");
 // Same as:
 const vi = vivarium("square", { wrapping: false });
