@@ -41,7 +41,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     this.automaton = {
       neighborhood: neighborhoodName ?? "square",
-      wrapping: options?.wrapping ?? true,
+      wrapping: options?.wrapping ?? false,
       elements: [],
       kinds: [],
       rules: [],

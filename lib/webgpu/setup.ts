@@ -55,8 +55,7 @@ export const automatonLayout = tgpu.bindGroupLayout({
   },
 });
 
-// Because functions reference layouts and not groups,
-// they can be defined once
+// Because functions reference layouts and not groups, they can be defined once
 
 const pointToIndex = (x: number, y: number) => {
   "use gpu";
@@ -64,43 +63,37 @@ const pointToIndex = (x: number, y: number) => {
   // Note: keep in mind that we are performing subtraction in unsigned space.
   // The modulo here is the only thing that allows us to use unsigned ints everywhere.
   // Example 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
+  // In version <=1.5.0 we had a bug where we assumed any dimension would work with the modulo.
+  // Actually, only dimensions that are powers of two work as intended when wrapping using this formula.
   const wrappedIndex =
     (y % gridLayout.$.dimensions.y) * gridLayout.$.dimensions.x + (x % gridLayout.$.dimensions.x);
 
-  // When not wrapping, use the plain index. Out-of-bounds access is guarded by
-  // the callers (testNeighbor, testIdInPack, etc.) which check bounds separately.
-  const nonWrappedIndex = y * gridLayout.$.dimensions.x + x;
-
-  return std.select(nonWrappedIndex, wrappedIndex, gridLayout.$.wrapping !== d.u32(0));
-};
-
-// In unsigned arithmetic, "negative" coordinates (e.g. 0 - 1 = 0xFFFFFFFF) are very
-// large numbers, so `x >= dimensions.x` correctly identifies them as out of bounds.
-const isOutOfBoundsInNonWrapping = (x: number, y: number) => {
-  "use gpu";
-
-  return (
+  // We use a mask to zero out the nonWrappedIndex when we detect it being out of bounds.
+  // We only check the upper bound because, being in unsigned space, any negative coordinate
+  // is going to be a large number, larger than any reasonable canvas size.
+  const nonWrappedIndexMask = std.select(
+    d.u32(0xffffffff),
+    d.u32(0),
     gridLayout.$.wrapping === d.u32(0) &&
-    (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y)
+      (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y),
   );
+
+  // When not wrapping, use the plain index
+  const nonWrappedIndex = (y * gridLayout.$.dimensions.x + x) & nonWrappedIndexMask;
+
+  // if wrapping is 1 we cancel out the second term
+  // if wrapping is 0 we get the second term only
+  return gridLayout.$.wrapping * (wrappedIndex - nonWrappedIndex) + nonWrappedIndex;
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
-
-  if (isOutOfBoundsInNonWrapping(x, y)) {
-    return d.u32(0);
-  }
 
   return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
-
-  if (isOutOfBoundsInNonWrapping(x, y)) {
-    return d.u32(0);
-  }
 
   const idMask = gridLayout.$.ids[pointToIndex(x, y)];
 
@@ -173,10 +166,6 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
   const cx = x + d.u32(checkPoint.x);
   const cy = y + d.u32(checkPoint.y);
 
-  if (isOutOfBoundsInNonWrapping(cx, cy)) {
-    return d.u32(0);
-  }
-
   const pointIndex = pointToIndex(cx, cy);
   const checkId = gridLayout.$.ids[pointIndex];
   return checkIdCount(x, y, checkId, packedCount);
@@ -187,10 +176,6 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
 
   const cx = x + comparePoint.x;
   const cy = y + comparePoint.y;
-
-  if (isOutOfBoundsInNonWrapping(cx, cy)) {
-    return d.u32(0);
-  }
 
   const comparePointIndex = pointToIndex(cx, cy);
 
@@ -210,10 +195,6 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
   const cy = y + comparePoint.y;
   const wx = x + withPoint.x;
   const wy = y + withPoint.y;
-
-  if (isOutOfBoundsInNonWrapping(cx, cy) || isOutOfBoundsInNonWrapping(wx, wy)) {
-    return d.u32(0);
-  }
 
   const comparePointIndex = pointToIndex(cx, cy);
   const withPointIndex = pointToIndex(wx, wy);
@@ -356,6 +337,10 @@ export const setup = ({
   const { width, height } = canvas;
   const g = canvas.getContext("2d") as CanvasRenderingContext2D;
 
+  if (automaton.wrapping && ((width & (width - 1)) !== 0 || (height & (height - 1)) !== 0)) {
+    throw new Error("Canvas width and height must be powers of two when wrapping is enabled.");
+  }
+
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
@@ -378,9 +363,7 @@ export const setup = ({
 
   // no staging buffer needed for ids, since we only need to draw the result
 
-  const wrappingBuffer = root
-    .createBuffer(d.u32, automaton.wrapping ? 1 : 0)
-    .$usage("uniform");
+  const wrappingBuffer = root.createBuffer(d.u32, automaton.wrapping ? 1 : 0).$usage("uniform");
 
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
@@ -433,6 +416,12 @@ export const setup = ({
   const elementsLength = automaton.elements.length;
 
   const flatGrid = initialGrid?.flat();
+
+  if (flatGrid && flatGrid.length !== width * height) {
+    throw new Error(
+      `Initial grid length ${flatGrid.length} does not match expected length of ${width * height}. Make sure your initial grid has the same dimensions as the canvas.`,
+    );
+  }
 
   for (let i = 0; i < colors.length; i++) {
     let elementIndex: number;
