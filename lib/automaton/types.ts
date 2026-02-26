@@ -1,6 +1,6 @@
 import type { Accept } from "@/common/constants";
 
-export type Neighborhood = "square" | "cross";
+export type Neighborhood = "square" | "cross" | "hexagonal";
 
 export type RefType = "element" | "kind";
 

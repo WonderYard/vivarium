@@ -3,7 +3,7 @@ import type { Automaton, Color, Element, Kind, Neighborhood } from "@/automaton/
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { Helpers } from "@/blueprint/helpers";
 import { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
-import { Cross, Square } from "@/common/constants";
+import { Cross, Hexagonal, Square } from "@/common/constants";
 
 /**
  * The main builder for defining a vivarium. Use it to create elements, kinds, and rules,
@@ -20,8 +20,14 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    * For `"square"`: `TOP_LEFT`, `TOP`, `TOP_RIGHT`, `LEFT`, `SELF`, `RIGHT`, `BOTTOM_LEFT`, `BOTTOM`, `BOTTOM_RIGHT`.
    *
    * For `"cross"`: `TOP`, `LEFT`, `SELF`, `RIGHT`, `BOTTOM`.
+   *
+   * For `"hexagonal"`: `TOP_LEFT`, `TOP_RIGHT`, `LEFT`, `SELF`, `RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`.
    */
-  public neighbor: N extends "cross" ? typeof Cross : typeof Square;
+  public neighbor: N extends "cross"
+    ? typeof Cross
+    : N extends "hexagonal"
+      ? typeof Hexagonal
+      : typeof Square;
 
   /**
    * Helper functions for constructing count arrays used in conditions.
@@ -34,9 +40,13 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     this.helpers = new Helpers(this.neighborhoodName);
 
-    this.neighbor = (this.neighborhoodName === "cross" ? Cross : Square) as N extends "cross"
-      ? typeof Cross
-      : typeof Square;
+    this.neighbor = (
+      this.neighborhoodName === "cross"
+        ? Cross
+        : this.neighborhoodName === "hexagonal"
+          ? Hexagonal
+          : Square
+    ) as N extends "cross" ? typeof Cross : N extends "hexagonal" ? typeof Hexagonal : typeof Square;
 
     this.automaton = {
       neighborhood: neighborhoodName ?? "square",
