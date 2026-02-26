@@ -1,11 +1,7 @@
-import type { Cross, Hexagonal, Square } from "@/common/constants";
+import type { Cross, Square } from "@/common/constants";
 
-export type AnyNeighbor = Cross | Square | Hexagonal;
-export type Neighbor<N> = N extends "cross"
-  ? Cross
-  : N extends "hexagonal"
-    ? Hexagonal
-    : Square;
+export type AnyNeighbor = Cross | Square;
+export type Neighbor<N> = N extends "cross" ? Cross : Square;
 
 export type ConditionStrategy = "all" | "any" | "one" | "none";
 

@@ -6,7 +6,7 @@ import * as d from "typegpu/data";
 type GpuRuleType = d.Infer<typeof GpuRule>;
 type GpuElementType = d.Infer<typeof GpuElement>;
 type GpuConditionType = d.Infer<typeof GpuCondition>;
-type GpuNeighborhoodType = 0 | 1 | 2;
+type GpuNeighborhoodType = 0 | 1;
 
 const assertMaxSupportedId = (elementIds: number[]) => {
   if (elementIds.some((index) => index > 31)) {
@@ -121,13 +121,7 @@ const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Aut
 };
 
 export type GpuAutomaton = {
-  /**
-   * Encodes both neighborhood type and wrapping:
-   * - 0 = cross (wrapping), 1 = square (wrapping), 2 = hexagonal (wrapping)
-   * - 3 = cross (non-wrapping), 4 = square (non-wrapping), 5 = hexagonal (non-wrapping)
-   * Shader extracts: neighborhood = value % 3, wrapping = value < 3 ? 1 : 0
-   */
-  gpuNeighborhood: number;
+  gpuNeighborhood: GpuNeighborhoodType;
   gpuElements: GpuElementType[];
   gpuRules: GpuRuleType[];
   gpuConditions: GpuConditionType[];
@@ -273,14 +267,8 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
     }
   });
 
-  const baseNeighborhood = automaton.neighborhood === "square"
-    ? 1
-    : automaton.neighborhood === "hexagonal"
-      ? 2
-      : 0;
-
   return {
-    gpuNeighborhood: baseNeighborhood + (automaton.wrap ? 0 : 3),
+    gpuNeighborhood: automaton.neighborhood === "square" ? 1 : 0,
     gpuElements,
     gpuRules,
     gpuConditions,

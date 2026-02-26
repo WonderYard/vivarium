@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { RefBlueprint } from "@/blueprint/ref-blueprint";
-import { Accept, Cross, Hexagonal, Square } from "@/common/constants";
+import { Accept, Cross, Square } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 
 test("throws on an empty elements list", () => {
@@ -1212,92 +1212,4 @@ test("automaton with only unconditional rules", () => {
   expect(automaton.rules[1].when).toHaveLength(0);
   expect(automaton.rules[0].accept).toBe(Accept.ALL);
   expect(automaton.rules[1].accept).toBe(Accept.ALL);
-});
-
-// ── Wrapping option ─────────────────────────────────────────────────
-
-test("defaults to wrap true", () => {
-  const vi = vivarium();
-  vi.element("a", "#ff0000");
-  const automaton = vi.create();
-  expect(automaton.wrap).toBe(true);
-});
-
-test("accepts wrap false option", () => {
-  const vi = vivarium("square", { wrap: false });
-  vi.element("a", "#ff0000");
-  const automaton = vi.create();
-  expect(automaton.wrap).toBe(false);
-});
-
-test("accepts wrap true option explicitly", () => {
-  const vi = vivarium("square", { wrap: true });
-  vi.element("a", "#ff0000");
-  const automaton = vi.create();
-  expect(automaton.wrap).toBe(true);
-});
-
-test("cross with wrap false", () => {
-  const vi = vivarium("cross", { wrap: false });
-  vi.element("a", "#ff0000");
-  const automaton = vi.create();
-  expect(automaton.wrap).toBe(false);
-  expect(automaton.neighborhood).toBe("cross");
-});
-
-// ── Hexagonal neighborhood ──────────────────────────────────────────
-
-test("creates hexagonal automaton", () => {
-  const vi = vivarium("hexagonal");
-  vi.element("a", "#ff0000");
-  const automaton = vi.create();
-  expect(automaton.neighborhood).toBe("hexagonal");
-});
-
-test("hexagonal neighbor references are available", () => {
-  const vi = vivarium("hexagonal");
-  expect(vi.neighbor.TOP_LEFT).toBe(Hexagonal.TOP_LEFT);
-  expect(vi.neighbor.TOP_RIGHT).toBe(Hexagonal.TOP_RIGHT);
-  expect(vi.neighbor.LEFT).toBe(Hexagonal.LEFT);
-  expect(vi.neighbor.SELF).toBe(Hexagonal.SELF);
-  expect(vi.neighbor.RIGHT).toBe(Hexagonal.RIGHT);
-  expect(vi.neighbor.BOTTOM_LEFT).toBe(Hexagonal.BOTTOM_LEFT);
-  expect(vi.neighbor.BOTTOM_RIGHT).toBe(Hexagonal.BOTTOM_RIGHT);
-});
-
-test("hexagonal count default includes 1-6", () => {
-  const vi = vivarium("hexagonal");
-  const a = vi.element("a", "#ff0000");
-  const b = vi.element("b", "#00ff00");
-  a.to(b).count(b);
-
-  const automaton = vi.create();
-  const condition = automaton.rules[0].when[0];
-  expect(condition.type).toBe("count");
-  if (condition.type === "count") {
-    expect(condition.count).toEqual([1, 2, 3, 4, 5, 6]);
-  }
-});
-
-test("hexagonal with non-wrapping", () => {
-  const vi = vivarium("hexagonal", { wrap: false });
-  vi.element("a", "#ff0000");
-  const automaton = vi.create();
-  expect(automaton.neighborhood).toBe("hexagonal");
-  expect(automaton.wrap).toBe(false);
-});
-
-test("hexagonal helpers.not excludes from 0-6", () => {
-  const vi = vivarium("hexagonal");
-  expect(vi.helpers.not(3)).toEqual([0, 1, 2, 4, 5, 6]);
-});
-
-test("hexagonal helpers.even returns [0, 2, 4, 6]", () => {
-  const vi = vivarium("hexagonal");
-  expect(vi.helpers.even()).toEqual([0, 2, 4, 6]);
-});
-
-test("hexagonal helpers.odd returns [1, 3, 5]", () => {
-  const vi = vivarium("hexagonal");
-  expect(vi.helpers.odd()).toEqual([1, 3, 5]);
 });

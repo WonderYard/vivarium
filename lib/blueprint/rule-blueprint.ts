@@ -4,7 +4,7 @@ import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
 import type { AnyNeighbor, BlueprintContext } from "@/blueprint/types";
 import { toRefIdOrPoint } from "@/blueprint/utils";
-import { acceptMap, getNeighborhoodPoints } from "@/common/constants";
+import { acceptMap, neighborhoodPoints } from "@/common/constants";
 
 /**
  * Blueprint for a rule. Provides methods to add conditions. Returned by {@link RefBlueprint.to | element.to()} or {@link RefBlueprint.to | kind.to()}.
@@ -39,11 +39,7 @@ export class RuleBlueprint extends BaseBlueprint {
     ...count: (number | number[])[]
   ): RuleBlueprintWithAccept {
     let flatCount =
-      this.automaton.neighborhood === "cross"
-        ? [1, 2, 3, 4]
-        : this.automaton.neighborhood === "hexagonal"
-          ? [1, 2, 3, 4, 5, 6]
-          : [1, 2, 3, 4, 5, 6, 7, 8];
+      this.automaton.neighborhood === "cross" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6, 7, 8];
 
     if (count.length !== 0) {
       flatCount = count.flat();
@@ -52,7 +48,7 @@ export class RuleBlueprint extends BaseBlueprint {
     return this.condition({
       type: "count",
       id: nanoid(),
-      check: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
+      check: toRefIdOrPoint(refBlueprintOrNeighbor),
       count: flatCount,
     });
   }
@@ -68,13 +64,11 @@ export class RuleBlueprint extends BaseBlueprint {
     neighbor: AnyNeighbor,
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
   ): RuleBlueprintWithAccept {
-    const points = getNeighborhoodPoints(this.automaton.neighborhood);
-
     return this.condition({
       type: "is",
       id: nanoid(),
-      compare: points[neighbor],
-      with: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
+      compare: neighborhoodPoints[neighbor],
+      with: toRefIdOrPoint(refBlueprintOrNeighbor),
     });
   }
 

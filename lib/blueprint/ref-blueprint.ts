@@ -36,7 +36,7 @@ export abstract class RefBlueprint extends BaseBlueprint {
     const rule = {
       fromId: this.id,
       fromType: this.type,
-      to: toRefIdOrPoint(elementBlueprintOrNeighbor, this.automaton.neighborhood),
+      to: toRefIdOrPoint(elementBlueprintOrNeighbor),
       when: [],
       accept: Accept.ALL,
     } satisfies Rule;

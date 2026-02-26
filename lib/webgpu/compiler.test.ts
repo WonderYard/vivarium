@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { Accept, Hexagonal, Opcode, Square, To } from "@/common/constants";
+import { Accept, Opcode, Square, To } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
-import type { VivariumOptions } from "@/automaton/types";
 import { compileGpuAutomaton } from "./compiler";
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -15,10 +14,9 @@ const NEG1 = -1 >>> 0;
  */
 const compile = (
   build: (vi: ReturnType<typeof vivarium>) => void,
-  neighborhood?: "square" | "cross" | "hexagonal",
-  options?: VivariumOptions,
+  neighborhood?: "square" | "cross",
 ) => {
-  const vi = vivarium(neighborhood, options);
+  const vi = vivarium(neighborhood);
   build(vi);
   return compileGpuAutomaton(vi.create());
 };
@@ -733,105 +731,5 @@ describe("real-world automata compilation", () => {
     expect(gpu.gpuConditions[condIdx].opcode).toBe(Opcode.COUNT_ELEMENT);
     expect(gpu.gpuConditions[condIdx].checkId).toBe(2); // head
     expect(gpu.gpuConditions[condIdx].countOrWithId).toBe((1 << 1) | (1 << 2)); // 1 or 2
-  });
-});
-
-// ── Wrapping compilation ────────────────────────────────────────────
-
-describe("wrapping compilation", () => {
-  test("default wrapping compiles to 1", () => {
-    const gpu = compile((vi) => {
-      vi.element("a", "#000000");
-    });
-
-    expect(gpu.gpuWrapping).toBe(1);
-  });
-
-  test("wrap false compiles to 0", () => {
-    const gpu = compile(
-      (vi) => {
-        vi.element("a", "#000000");
-      },
-      "square",
-      { wrap: false },
-    );
-
-    expect(gpu.gpuWrapping).toBe(0);
-  });
-
-  test("wrap true compiles to 1", () => {
-    const gpu = compile(
-      (vi) => {
-        vi.element("a", "#000000");
-      },
-      "square",
-      { wrap: true },
-    );
-
-    expect(gpu.gpuWrapping).toBe(1);
-  });
-});
-
-// ── Hexagonal neighborhood compilation ──────────────────────────────
-
-describe("hexagonal neighborhood", () => {
-  test("hexagonal neighborhood compiles to 2", () => {
-    const gpu = compile((vi) => {
-      vi.element("a", "#000000");
-    }, "hexagonal");
-
-    expect(gpu.gpuNeighborhood).toBe(2);
-  });
-
-  test("hexagonal to neighbor compiles with correct point", () => {
-    const gpu = compile((vi) => {
-      const a = vi.element("a", "#ff0000");
-      vi.element("b", "#00ff00");
-      a.to(Hexagonal.TOP_RIGHT);
-    }, "hexagonal");
-
-    expect(gpu.gpuRules[0].toType).toBe(To.POINT);
-    // HEX TOP_RIGHT = { x: 0, y: -1 } stored as unsigned 32-bit
-    expect(gpu.gpuRules[0].toNeighbor.x).toBe(0);
-    expect(gpu.gpuRules[0].toNeighbor.y).toBe(NEG1);
-  });
-
-  test("hexagonal to BOTTOM_RIGHT compiles with correct point", () => {
-    const gpu = compile((vi) => {
-      const a = vi.element("a", "#ff0000");
-      vi.element("b", "#00ff00");
-      a.to(Hexagonal.BOTTOM_RIGHT);
-    }, "hexagonal");
-
-    expect(gpu.gpuRules[0].toType).toBe(To.POINT);
-    // HEX BOTTOM_RIGHT = { x: 0, y: 1 }
-    expect(gpu.gpuRules[0].toNeighbor.x).toBe(0);
-    expect(gpu.gpuRules[0].toNeighbor.y).toBe(1);
-  });
-
-  test("hexagonal is condition compiles with correct compare point", () => {
-    const gpu = compile((vi) => {
-      const a = vi.element("a", "#ff0000");
-      const b = vi.element("b", "#00ff00");
-      a.to(b).is(Hexagonal.TOP_LEFT, b);
-    }, "hexagonal");
-
-    expect(gpu.gpuConditions[0].opcode).toBe(Opcode.IS_ELEMENT);
-    // HEX TOP_LEFT = { x: -1, y: -1 }
-    expect(gpu.gpuConditions[0].checkPointOrComparePoint.x).toBe(NEG1);
-    expect(gpu.gpuConditions[0].checkPointOrComparePoint.y).toBe(NEG1);
-  });
-
-  test("hexagonal with non-wrapping compiles correctly", () => {
-    const gpu = compile(
-      (vi) => {
-        vi.element("a", "#000000");
-      },
-      "hexagonal",
-      { wrap: false },
-    );
-
-    expect(gpu.gpuNeighborhood).toBe(2);
-    expect(gpu.gpuWrapping).toBe(0);
   });
 });
