@@ -30,21 +30,21 @@ The neighborhood type determines which cells are considered when evaluating cond
 
 ## Wrapping
 
-By default, the grid wraps toroidally — cells at one edge treat cells at the opposite edge as their neighbors. You can disable this behavior by passing a second options argument:
+By default, cells at the border of the grid have fewer neighbors. Positions that fall outside the grid are counted as empty. The empty element is the first element registered. Usually this is the element that represents "dead" or "inactive" cells.
 
 ```typescript
-const vi = vivarium("square", { wrapping: false });
-```
-
-When wrapping is disabled, cells at the border of the grid have fewer neighbors. Positions that fall outside the grid are not counted and do not match any `is` condition.
-
-```typescript
-// With wrapping: false, corner cells see only 3 neighbors in a square neighborhood
+// By default, corner cells see only 3 neighbors in a square neighborhood
 // and edge cells see only 5 neighbors, instead of 8.
+const vi = vivarium("square");
+// Same as:
 const vi = vivarium("square", { wrapping: false });
 ```
 
-The default value for `wrapping` is `true`.
+When wrapping is enabled, the grid wraps toroidally (like a donut) — cells at one edge treat cells at the opposite edge as their neighbors. You can enable this behavior by passing a second options argument:
+
+```typescript
+const vi = vivarium("square", { wrapping: true });
+```
 
 ## Neighbor references
 
