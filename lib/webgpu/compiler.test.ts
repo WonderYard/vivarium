@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Accept, Hexagonal, Opcode, Square, To } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
-import type { VivariumOptions } from "@/automaton/types";
 import { compileGpuAutomaton } from "./compiler";
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -16,9 +15,8 @@ const NEG1 = -1 >>> 0;
 const compile = (
   build: (vi: ReturnType<typeof vivarium>) => void,
   neighborhood?: "square" | "cross" | "hexagonal",
-  options?: VivariumOptions,
 ) => {
-  const vi = vivarium(neighborhood, options);
+  const vi = vivarium(neighborhood);
   build(vi);
   return compileGpuAutomaton(vi.create());
 };
@@ -736,42 +734,6 @@ describe("real-world automata compilation", () => {
   });
 });
 
-// ── Wrapping compilation ────────────────────────────────────────────
-
-describe("wrapping compilation", () => {
-  test("default wrapping compiles to 1", () => {
-    const gpu = compile((vi) => {
-      vi.element("a", "#000000");
-    });
-
-    expect(gpu.gpuWrapping).toBe(1);
-  });
-
-  test("wrap false compiles to 0", () => {
-    const gpu = compile(
-      (vi) => {
-        vi.element("a", "#000000");
-      },
-      "square",
-      { wrap: false },
-    );
-
-    expect(gpu.gpuWrapping).toBe(0);
-  });
-
-  test("wrap true compiles to 1", () => {
-    const gpu = compile(
-      (vi) => {
-        vi.element("a", "#000000");
-      },
-      "square",
-      { wrap: true },
-    );
-
-    expect(gpu.gpuWrapping).toBe(1);
-  });
-});
-
 // ── Hexagonal neighborhood compilation ──────────────────────────────
 
 describe("hexagonal neighborhood", () => {
@@ -820,18 +782,5 @@ describe("hexagonal neighborhood", () => {
     // HEX TOP_LEFT = { x: -1, y: -1 }
     expect(gpu.gpuConditions[0].checkPointOrComparePoint.x).toBe(NEG1);
     expect(gpu.gpuConditions[0].checkPointOrComparePoint.y).toBe(NEG1);
-  });
-
-  test("hexagonal with non-wrapping compiles correctly", () => {
-    const gpu = compile(
-      (vi) => {
-        vi.element("a", "#000000");
-      },
-      "hexagonal",
-      { wrap: false },
-    );
-
-    expect(gpu.gpuNeighborhood).toBe(2);
-    expect(gpu.gpuWrapping).toBe(0);
   });
 });
