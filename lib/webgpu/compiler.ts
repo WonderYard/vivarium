@@ -121,11 +121,16 @@ const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Aut
 };
 
 export type GpuAutomaton = {
-  gpuNeighborhood: GpuNeighborhoodType;
+  /**
+   * Encodes both neighborhood type and wrapping:
+   * - 0 = cross (wrapping), 1 = square (wrapping), 2 = hexagonal (wrapping)
+   * - 3 = cross (non-wrapping), 4 = square (non-wrapping), 5 = hexagonal (non-wrapping)
+   * Shader extracts: neighborhood = value % 3, wrapping = value < 3 ? 1 : 0
+   */
+  gpuNeighborhood: number;
   gpuElements: GpuElementType[];
   gpuRules: GpuRuleType[];
   gpuConditions: GpuConditionType[];
-  gpuWrapping: number;
 };
 
 export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
@@ -268,15 +273,16 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
     }
   });
 
+  const baseNeighborhood = automaton.neighborhood === "square"
+    ? 1
+    : automaton.neighborhood === "hexagonal"
+      ? 2
+      : 0;
+
   return {
-    gpuNeighborhood: (automaton.neighborhood === "square"
-      ? 1
-      : automaton.neighborhood === "hexagonal"
-        ? 2
-        : 0) as GpuNeighborhoodType,
+    gpuNeighborhood: baseNeighborhood + (automaton.wrap ? 0 : 3),
     gpuElements,
     gpuRules,
     gpuConditions,
-    gpuWrapping: automaton.wrap ? 1 : 0,
   };
 };

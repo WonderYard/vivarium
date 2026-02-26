@@ -32,8 +32,6 @@ export const setSeed = (s: TgpuUniform<d.F32>) => {
 // layouts are predefined
 export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
-  /** Whether the grid wraps at the edges (1 = wrap, 0 = no wrap). */
-  wrapping: { uniform: d.u32 },
   colors: { storage: d.arrayOf(d.u32), access: "mutable" },
   newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
   ids: { storage: d.arrayOf(d.u32), access: "mutable" },
@@ -71,30 +69,36 @@ const pointToIndex = (x: number, y: number) => {
 };
 
 /**
- * Returns whether the given coordinates are within the grid boundaries.
- * In unsigned space, a negative value wraps to a very large number (> dimensions),
- * so a simple `<` check handles both negative and too-large coordinates.
- */
-const isInBounds = (x: number, y: number) => {
-  "use gpu";
-  return x < gridLayout.$.dimensions.x && y < gridLayout.$.dimensions.y;
-};
-
-/**
  * Tests whether the cell at (x, y) has the given element id.
  * When wrapping is disabled and (x, y) is out of bounds, returns 0.
+ *
+ * Uses pure integer arithmetic for the wrapping/bounds check because
+ * TypeGPU's "use gpu" helper functions do not reliably support early returns
+ * or complex boolean expressions with std.select.
  */
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  // When wrapping is disabled, out-of-bounds coordinates are treated as empty (no match).
-  if (gridLayout.$.wrapping === d.u32(0)) {
-    if (!isInBounds(x, y)) {
-      return d.u32(0);
-    }
-  }
+  const normalResult = std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.$.ids[pointToIndex(x, y)] === checkId,
+  );
 
-  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
+  // Pure arithmetic bounds check:
+  // ibx, iby = 1 if in bounds, 0 if out of bounds
+  const ibx = std.select(d.u32(0), d.u32(1), x < gridLayout.$.dimensions.x);
+  const iby = std.select(d.u32(0), d.u32(1), y < gridLayout.$.dimensions.y);
+  const ib = ibx * iby;
+
+  // mask = wrapping + (1 - wrapping) * inBounds
+  // wrapping=1: 1 + 0*ib = 1 → normalResult * 1 = normalResult
+  // wrapping=0, in bounds: 0 + 1*1 = 1 → normalResult * 1 = normalResult
+  // wrapping=0, OOB: 0 + 1*0 = 0 → normalResult * 0 = 0
+  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+  const mask = wrp + (d.u32(1) - wrp) * ib;
+
+  return normalResult * mask;
 };
 
 /**
@@ -104,23 +108,20 @@ const testNeighbor = (checkId: number, x: number, y: number) => {
 const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
 
-  if (gridLayout.$.wrapping === d.u32(0)) {
-    if (!isInBounds(x, y)) {
-      return d.u32(0);
-    }
-  }
-
   const idMask = gridLayout.$.ids[pointToIndex(x, y)];
-
-  // check if id is in the bits
-  return std.select(
+  const normalResult = std.select(
     d.u32(0),
     d.u32(1),
-    // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
-    // so we cannot allow ids greater than 31 here. However no error is thrown,
-    // so to keep gpu logic simple we do the check during the compile step.
     (packedIds & (d.u32(1) << idMask)) !== d.u32(0),
   );
+
+  const ibx = std.select(d.u32(0), d.u32(1), x < gridLayout.$.dimensions.x);
+  const iby = std.select(d.u32(0), d.u32(1), y < gridLayout.$.dimensions.y);
+  const ib = ibx * iby;
+  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+  const mask = wrp + (d.u32(1) - wrp) * ib;
+
+  return normalResult * mask;
 };
 
 /**
@@ -246,17 +247,17 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
   const px = resolved.x;
   const py = resolved.y;
 
-  // When non-wrapping and the reference point is out of bounds,
-  // we can't determine which element to count, so the condition fails.
-  if (gridLayout.$.wrapping === d.u32(0)) {
-    if (!isInBounds(px, py)) {
-      return d.u32(0);
-    }
-  }
-
   const pointIndex = pointToIndex(px, py);
   const checkId = gridLayout.$.ids[pointIndex];
-  return checkIdCount(x, y, checkId, packedCount);
+  const normalResult = checkIdCount(x, y, checkId, packedCount);
+
+  const ibx = std.select(d.u32(0), d.u32(1), px < gridLayout.$.dimensions.x);
+  const iby = std.select(d.u32(0), d.u32(1), py < gridLayout.$.dimensions.y);
+  const ib = ibx * iby;
+  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+  const mask = wrp + (d.u32(1) - wrp) * ib;
+
+  return normalResult * mask;
 };
 
 const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
@@ -266,15 +267,20 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
   const cx = resolved.x;
   const cy = resolved.y;
 
-  if (gridLayout.$.wrapping === d.u32(0)) {
-    if (!isInBounds(cx, cy)) {
-      return d.u32(0);
-    }
-  }
-
   const comparePointIndex = pointToIndex(cx, cy);
+  const normalResult = std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.$.ids[comparePointIndex] === withId,
+  );
 
-  return std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
+  const ibx = std.select(d.u32(0), d.u32(1), cx < gridLayout.$.dimensions.x);
+  const iby = std.select(d.u32(0), d.u32(1), cy < gridLayout.$.dimensions.y);
+  const ib = ibx * iby;
+  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+  const mask = wrp + (d.u32(1) - wrp) * ib;
+
+  return normalResult * mask;
 };
 
 const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
@@ -284,13 +290,15 @@ const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packe
   const cx = resolved.x;
   const cy = resolved.y;
 
-  if (gridLayout.$.wrapping === d.u32(0)) {
-    if (!isInBounds(cx, cy)) {
-      return d.u32(0);
-    }
-  }
+  const normalResult = testIdInPack(packedIds, cx, cy);
 
-  return testIdInPack(packedIds, cx, cy);
+  const ibx = std.select(d.u32(0), d.u32(1), cx < gridLayout.$.dimensions.x);
+  const iby = std.select(d.u32(0), d.u32(1), cy < gridLayout.$.dimensions.y);
+  const ib = ibx * iby;
+  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+  const mask = wrp + (d.u32(1) - wrp) * ib;
+
+  return normalResult * mask;
 };
 
 const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPoint: d.v2u) => {
@@ -304,20 +312,24 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
   const wx = resolvedWith.x;
   const wy = resolvedWith.y;
 
-  if (gridLayout.$.wrapping === d.u32(0)) {
-    if (!isInBounds(cx, cy) || !isInBounds(wx, wy)) {
-      return d.u32(0);
-    }
-  }
-
   const comparePointIndex = pointToIndex(cx, cy);
   const withPointIndex = pointToIndex(wx, wy);
 
-  return std.select(
+  const normalResult = std.select(
     d.u32(0),
     d.u32(1),
     gridLayout.$.ids[comparePointIndex] === gridLayout.$.ids[withPointIndex],
   );
+
+  const cibx = std.select(d.u32(0), d.u32(1), cx < gridLayout.$.dimensions.x);
+  const ciby = std.select(d.u32(0), d.u32(1), cy < gridLayout.$.dimensions.y);
+  const wibx = std.select(d.u32(0), d.u32(1), wx < gridLayout.$.dimensions.x);
+  const wiby = std.select(d.u32(0), d.u32(1), wy < gridLayout.$.dimensions.y);
+  const ib = cibx * ciby * wibx * wiby;
+  const wrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+  const mask = wrp + (d.u32(1) - wrp) * ib;
+
+  return normalResult * mask;
 };
 
 // also the main compute function has no variable dependencies
@@ -406,11 +418,11 @@ export const compute = tgpu.computeFn({
 
         // When wrapping is disabled and the target point is out of bounds,
         // skip this rule and try the next one.
-        if (gridLayout.$.wrapping === d.u32(0)) {
-          if (!isInBounds(nx, ny)) {
-            canApply = d.u32(0);
-          }
-        }
+        const nibx = std.select(d.u32(0), d.u32(1), nx < gridLayout.$.dimensions.x);
+        const niby = std.select(d.u32(0), d.u32(1), ny < gridLayout.$.dimensions.y);
+        const nib = nibx * niby;
+        const nwrp = std.select(d.u32(1), d.u32(0), automatonLayout.$.neighborhood >= d.u32(3));
+        canApply = nwrp + (d.u32(1) - nwrp) * nib;
 
         if (canApply === d.u32(1)) {
           const pointIndex = pointToIndex(nx, ny);
@@ -551,11 +563,9 @@ export const setup = ({
 
   /**
    * Wrapping uniform: 1 = toroidal wrapping (default), 0 = bounded (non-wrapping).
-   * When non-wrapping, edge cells have fewer effective neighbors.
+   * Uses createUniform (same pattern as seed) for reliable GPU access.
    */
-  const wrappingBuffer = root
-    .createBuffer(d.u32, automaton.wrap ? 1 : 0)
-    .$usage("uniform");
+  setWrapping(root.createUniform(d.u32, automaton.wrap ? 1 : 0));
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
@@ -573,7 +583,6 @@ export const setup = ({
 
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
-    wrapping: wrappingBuffer,
     colors: colors0,
     newColors: colors1,
     ids: ids0,
@@ -582,7 +591,6 @@ export const setup = ({
 
   const gridGroup1 = root.createBindGroup(gridLayout, {
     dimensions,
-    wrapping: wrappingBuffer,
     colors: colors1,
     newColors: colors0,
     ids: ids1,
@@ -600,7 +608,7 @@ export const setup = ({
     palette = gpuElements.map((element) => element.color);
 
     // Also update the wrapping state from the new automaton
-    wrappingBuffer.write(gpuWrapping);
+    wrapping.write(gpuWrapping);
 
     const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
     const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
@@ -930,7 +938,7 @@ export const setup = ({
    * @param wrap - `true` for toroidal wrapping, `false` for bounded edges.
    */
   const setWrap = (wrap: boolean): void => {
-    wrappingBuffer.write(wrap ? 1 : 0);
+    wrapping.write(wrap ? 1 : 0);
   };
 
   /**
