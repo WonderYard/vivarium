@@ -90,9 +90,7 @@ async function gpuEvolve(
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
-  const wrappingBuffer = root
-    .createBuffer(d.u32, automaton.wrapping ? 1 : 0)
-    .$usage("uniform");
+  const wrappingBuffer = root.createBuffer(d.u32, automaton.wrapping ? 1 : 0).$usage("uniform");
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 

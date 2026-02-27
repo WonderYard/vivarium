@@ -98,7 +98,11 @@ const pointToIndex = (x: number, y: number) => {
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  const selectedIdMatch = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
+  const selectedIdMatch = std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.$.ids[pointToIndex(x, y)] === checkId,
+  );
   return selectedIdMatch * inBoundsMask(x, y);
 };
 
@@ -189,7 +193,11 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
   const cy = y + comparePoint.y;
   const comparePointIndex = pointToIndex(cx, cy);
 
-  const selectedIdMatch = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
+  const selectedIdMatch = std.select(
+    d.u32(0),
+    d.u32(1),
+    gridLayout.$.ids[comparePointIndex] === withId,
+  );
   return selectedIdMatch * inBoundsMask(cx, cy);
 };
 
@@ -363,7 +371,7 @@ export const setup = ({
 
   if (automaton.wrapping && (!isPowerOf2(width) || !isPowerOf2(height))) {
     throw new Error(
-      `Wrapping mode requires width and height to be powers of 2, but got ${width}×${height}.`,
+      `Wrapping mode requires width and height to be powers of 2, but got ${width}x${height}.`,
     );
   }
 
@@ -371,7 +379,7 @@ export const setup = ({
 
   if (flatGrid !== undefined && flatGrid.length !== width * height) {
     throw new Error(
-      `initialGrid length ${flatGrid.length} does not match the expected length of ${width * height} (width ${width} × height ${height}).`,
+      `initialGrid length ${flatGrid.length} does not match the expected length of ${width * height} (width ${width} x height ${height}).`,
     );
   }
 
@@ -383,9 +391,7 @@ export const setup = ({
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
-  const wrappingBuffer = root
-    .createBuffer(d.u32, automaton.wrapping ? 1 : 0)
-    .$usage("uniform");
+  const wrappingBuffer = root.createBuffer(d.u32, automaton.wrapping ? 1 : 0).$usage("uniform");
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
