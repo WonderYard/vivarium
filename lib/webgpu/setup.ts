@@ -87,10 +87,13 @@ const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
   // Note: keep in mind that we are performing subtraction in unsigned space.
-  // The modulo here is the only thing that allows us to use unsigned ints everywhere.
-  // Example 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
-  // In non-wrapping mode, modulo still ensures a valid array index even for OOB coordinates;
-  // the caller is responsible for masking the result via inBoundsMask.
+  // The modulo here is the only thing that allows us to use unsigned ints
+  // everywhere. When using power-of-2 dimensions this always works, when in non-wrapping
+  // mode, this will give wrong results when using dimensions that are not powers of 2.
+  // The modulo still ensures indices that are within the grid array length.
+  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
+  // Wrong case: (0 - 1) % 50 = 45 and not 49!
+  // Wrong cases **must** be discarded by the caller by detecting out of bounds coordinates.
   return (
     (y % gridLayout.$.dimensions.y) * gridLayout.$.dimensions.x + (x % gridLayout.$.dimensions.x)
   );
