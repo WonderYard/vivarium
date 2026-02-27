@@ -86,19 +86,16 @@ const inBoundsMask = (x: number, y: number) => {
 const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
-  const dimX = gridLayout.$.dimensions.x;
-  const dimY = gridLayout.$.dimensions.y;
+  const widthMask = gridLayout.$.dimensions.x - d.u32(1);
+  const heightMask = gridLayout.$.dimensions.y - d.u32(1);
 
   // In wrapping mode, dimensions are guaranteed to be powers of 2,
-  // so we can use fast bitwise AND instead of expensive modulo.
-  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & 1023 = 1023.
-  // In non-wrapping mode, we clamp to valid array range;
-  // the caller discards OOB results via inBoundsMask.
-  // Note: wrapping is a uniform, so all threads take the same branch (no divergence).
-  if (gridLayout.$.wrapping === d.u32(1)) {
-    return (y & (dimY - d.u32(1))) * dimX + (x & (dimX - d.u32(1)));
-  }
-  return std.min(y, dimY - d.u32(1)) * dimX + std.min(x, dimX - d.u32(1));
+  // so we can use bitmasks to perform modulo operations.
+  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & (1024 - 1) = 1023.
+  // This is equivalent to: (0 -1) % 1024 = 1023 as expected.
+  // In non-wrapping mode we discard OOB results via inBoundsMask,
+  // so here we return wrong! (but valid) indices for OOB coordinates.
+  return (y & heightMask) * gridLayout.$.dimensions.x + (x & widthMask);
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
