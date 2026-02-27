@@ -29,7 +29,10 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    */
   public helpers: Helpers;
 
-  constructor(private neighborhoodName?: N) {
+  constructor(
+    private neighborhoodName?: N,
+    options?: { wrapping?: boolean },
+  ) {
     super();
 
     this.helpers = new Helpers(this.neighborhoodName);
@@ -40,6 +43,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     this.automaton = {
       neighborhood: neighborhoodName ?? "square",
+      wrapping: options?.wrapping ?? false,
       elements: [],
       kinds: [],
       rules: [],

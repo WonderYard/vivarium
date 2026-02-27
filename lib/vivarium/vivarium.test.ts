@@ -1213,3 +1213,51 @@ test("automaton with only unconditional rules", () => {
   expect(automaton.rules[0].accept).toBe(Accept.ALL);
   expect(automaton.rules[1].accept).toBe(Accept.ALL);
 });
+
+// ── Vivarium options ────────────────────────────────────────────────
+
+test("defaults to non-wrapping", () => {
+  const vi = vivarium();
+  vi.element("a", "#111111");
+
+  const automaton = vi.create();
+
+  expect(automaton.wrapping).toBe(false);
+});
+
+test("creates wrapping automaton when wrapping option is true", () => {
+  const vi = vivarium("square", { wrapping: true });
+  vi.element("a", "#111111");
+
+  const automaton = vi.create();
+
+  expect(automaton.wrapping).toBe(true);
+});
+
+test("creates non-wrapping automaton when wrapping option is false", () => {
+  const vi = vivarium("square", { wrapping: false });
+  vi.element("a", "#111111");
+
+  const automaton = vi.create();
+
+  expect(automaton.wrapping).toBe(false);
+});
+
+test("wrapping option works with cross neighborhood", () => {
+  const vi = vivarium("cross", { wrapping: true });
+  vi.element("a", "#111111");
+
+  const automaton = vi.create();
+
+  expect(automaton.neighborhood).toBe("cross");
+  expect(automaton.wrapping).toBe(true);
+});
+
+test("wrapping option defaults to false when options object is empty", () => {
+  const vi = vivarium("square", {});
+  vi.element("a", "#111111");
+
+  const automaton = vi.create();
+
+  expect(automaton.wrapping).toBe(false);
+});

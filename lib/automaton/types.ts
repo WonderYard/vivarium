@@ -14,6 +14,7 @@ export type Color = string;
 
 export type Automaton = {
   neighborhood: Neighborhood;
+  wrapping: boolean;
   elements: Element[];
   kinds: Kind[];
   rules: Rule[];

@@ -88,3 +88,4 @@ export const GpuCondition = d.struct({
 });
 
 export const WORKGROUP_SIZE = [8, 8] as [number, number];
+export const MIN_GRID_SIZE = WORKGROUP_SIZE[0];

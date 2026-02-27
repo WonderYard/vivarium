@@ -73,7 +73,7 @@ const life = vi.create();
 const canvas = document.createElement(canvas);
 document.body.appendChild(canvas);
 
-// Set the canvas size. This will be the automaton size as well.
+// Set the canvas size (must be a power of 2). This will be the automaton size as well.
 const size = 256;
 canvas.width = size;
 canvas.height = size;

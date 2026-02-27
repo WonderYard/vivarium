@@ -28,6 +28,23 @@ The available neighborhood types are:
 
 The neighborhood type determines which cells are considered when evaluating conditions such as `count` or `is`. It also affects the range of valid values for count conditions — `0` to `8` for square, `0` to `4` for cross.
 
+## Wrapping
+
+By default, the grid does not wrap. Cells at the border always have 8 neighbors in a square neighborhood (or 4 in a cross neighborhood), but positions that fall outside the grid are zero-padded: they are treated as if they contain element 0 (the first element defined, usually the "dead" or "empty" state).
+
+```typescript
+// By default (wrapping: false), out-of-bounds neighbor positions are treated as element 0.
+const vi = vivarium("square");
+// Same as:
+const vi = vivarium("square", { wrapping: false });
+```
+
+When wrapping is enabled, the grid wraps toroidally (like a donut) — cells at one edge treat cells at the opposite edge as their neighbors. You can enable this behavior by passing a second options argument:
+
+```typescript
+const vi = vivarium("square", { wrapping: true });
+```
+
 ## Neighbor references
 
 The builder exposes a `neighbor` property that provides named constants for referring to specific cells in the neighborhood. These are used in conditions like `is` and in rules like `to`.
