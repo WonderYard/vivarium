@@ -45,7 +45,7 @@ import { vivarium } from "@wonderyard/vivarium";
 const vi = vivarium();
 ```
 
-By default, the grid is **non-wrapping** — cells at the borders have fewer neighbors. If you want a toroidal grid where edges connect to the opposite side, pass `{ wrapping: true }` as the second argument:
+By default, the grid is **non-wrapping** — cells at the edges of the grid border with an imaginary wall of empty cells. If you want a toroidal grid where edges connect to the opposite side, pass `{ wrapping: true }` as the second argument:
 
 ```typescript
 const vi = vivarium("square", { wrapping: true });

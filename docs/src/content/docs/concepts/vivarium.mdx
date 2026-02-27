@@ -23,7 +23,7 @@ const vi = vivarium("square", { wrapping: true });
 
 ### Wrapping
 
-By default the grid is **non-wrapping** — cells at the edges of the grid have fewer neighbors. Set `wrapping: true` to enable a toroidal (wrapping) grid where edges connect to the opposite side.
+By default the grid is **non-wrapping** — cells at the edges of the grid border with an imaginary wall of empty cells. Set `wrapping: true` to enable a toroidal (wrapping) grid where edges connect to the opposite side.
 
 ```typescript
 // Non-wrapping grid (default)
