@@ -90,6 +90,10 @@ async function gpuEvolve(
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
+  const wrappingBuffer = root
+    .createBuffer(d.u32, automaton.wrapping ? 1 : 0)
+    .$usage("uniform");
+
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
   const colors1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
@@ -105,6 +109,7 @@ async function gpuEvolve(
 
   const gridGroup = root.createBindGroup(gridLayout, {
     dimensions,
+    wrapping: wrappingBuffer,
     colors: colors0,
     newColors: colors1,
     ids: ids0,
@@ -163,8 +168,9 @@ const step = async (
   build: (vi: ReturnType<typeof vivarium>) => void,
   inputGrid: Grid,
   neighborhood?: "square" | "cross",
+  options?: { wrapping?: boolean },
 ): Promise<Grid> => {
-  const vi = vivarium(neighborhood);
+  const vi = vivarium(neighborhood, options);
   build(vi);
   return gpuEvolve(root, vi.create(), inputGrid);
 };
@@ -684,11 +690,13 @@ describe("GPU simulation", () => {
   // ── Wrapping (toroidal grid) ──────────────────────────────────
 
   describe("wrapping (toroidal grid)", () => {
-    test("top edge wraps to bottom", async () => {
+    test("bottom edge wraps to top", async () => {
+      // 4×4 grid: 'b' at top row. Cell at bottom row checks BOTTOM, which wraps to top.
       const before = grid([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
       ]);
 
       const after = await step(
@@ -699,17 +707,21 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.BOTTOM, b);
         },
         before,
+        undefined,
+        { wrapping: true },
       );
 
-      expect(after.ids[7]).toBe(1);
-      expect(after.ids[4]).toBe(1);
+      // Cell (1,3) BOTTOM wraps to (1,0) which is 'b' → transitions
+      expect(after.ids[3 * 4 + 1]).toBe(1);
     });
 
-    test("left edge wraps to right", async () => {
+    test("right edge wraps to left", async () => {
+      // 4×4 grid: 'b' at left column. Cell at right column checks RIGHT, which wraps to left.
       const before = grid([
-        [0, 0, 1],
-        [0, 0, 0],
-        [0, 0, 0],
+        [1, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
       ]);
 
       const after = await step(
@@ -720,16 +732,79 @@ describe("GPU simulation", () => {
           a.to(b).is(Square.RIGHT, b);
         },
         before,
+        undefined,
+        { wrapping: true },
       );
 
-      expect(after.ids[1]).toBe(1);
+      // Cell (3,0) RIGHT wraps to (0,0) which is 'b' → transitions
+      expect(after.ids[3]).toBe(1);
     });
 
     test("corner wraps diagonally", async () => {
+      // 4×4 grid: 'b' at top-left corner. Cell at bottom-right checks BOTTOM_RIGHT, which wraps.
       const before = grid([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 1],
+        [1, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.BOTTOM_RIGHT, b);
+        },
+        before,
+        undefined,
+        { wrapping: true },
+      );
+
+      // Cell (3,3) BOTTOM_RIGHT wraps to (0,0) which is 'b' → transitions
+      expect(after.ids[3 * 4 + 3]).toBe(1);
+    });
+
+    test("count of 8 matches all cells in wrapping mode", async () => {
+      const before = grid([
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).count(a, 8);
+        },
+        before,
+        undefined,
+        { wrapping: true },
+      );
+
+      // In wrapping mode, every cell has 8 neighbors
+      expect(toRows(after)).toEqual([
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+      ]);
+    });
+  });
+
+  // ── Non-wrapping (bounded grid) ──────────────────────────────
+
+  describe("non-wrapping (bounded grid)", () => {
+    test("edge cell does not see wrapped neighbors", async () => {
+      // 4×4 grid: 'b' at top-left corner. Cell at bottom-right checks BOTTOM_RIGHT.
+      const before = grid([
+        [1, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
       ]);
 
       const after = await step(
@@ -742,8 +817,84 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[4]).toBe(1);
-      expect(after.ids[0]).toBe(0);
+      // In non-wrapping mode, cell (3,3) BOTTOM_RIGHT is OOB → no match
+      expect(after.ids[3 * 4 + 3]).toBe(0);
+    });
+
+    test("corner cells have fewer effective neighbors", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          // Corner cells have 3 neighbors, so count=3 should match corners only
+          a.to(b).count(a, 3);
+        },
+        before,
+      );
+
+      // Corners have 3 neighbors, edges have 5, center has 8
+      expect(toRows(after)).toEqual([
+        [1, 0, 1],
+        [0, 0, 0],
+        [1, 0, 1],
+      ]);
+    });
+
+    test("edge cells have 5 effective neighbors", async () => {
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).count(a, 5);
+        },
+        before,
+      );
+
+      // Only edge (non-corner) cells have exactly 5 neighbors
+      expect(toRows(after)).toEqual([
+        [0, 1, 0],
+        [1, 0, 1],
+        [0, 1, 0],
+      ]);
+    });
+
+    test("is condition returns false for OOB neighbor", async () => {
+      // 'b' at (0,0). Cell (0,1) checks is(LEFT, b).
+      // LEFT of (0,1) is (-1,1) which is OOB in non-wrapping.
+      const before = grid([
+        [1, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.LEFT, b);
+        },
+        before,
+      );
+
+      // (0,1) LEFT is OOB → condition fails → stays 'a'
+      expect(after.ids[3]).toBe(0);
+      // (1,0) LEFT is (0,0) = 'b' → condition passes → becomes 'b'
+      expect(after.ids[1]).toBe(1);
     });
   });
 
@@ -776,9 +927,11 @@ describe("GPU simulation", () => {
 
     test("count of 8 matches when all neighbors are the same element", async () => {
       const before = grid([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
       ]);
 
       const after = await step(
@@ -791,10 +944,13 @@ describe("GPU simulation", () => {
         before,
       );
 
+      // In non-wrapping mode, only interior cells (with full 8-neighbor Moore neighborhoods) match count=8.
       expect(toRows(after)).toEqual([
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1],
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
       ]);
     });
 
@@ -1016,7 +1172,7 @@ describe("GPU simulation", () => {
       expect(after.ids[2 * 5 + 1]).toBe(A);
     });
 
-    test("full board dies (overcrowding)", async () => {
+    test("full board overcrowding: corners survive in non-wrapping mode", async () => {
       const before = grid([
         [A, A, A],
         [A, A, A],
@@ -1025,10 +1181,12 @@ describe("GPU simulation", () => {
 
       const after = await step(root, buildLife, before);
 
+      // In non-wrapping mode, corners have 3 alive neighbors → survive (2,3 rule).
+      // Edge cells have 5 alive neighbors → die. Center has 8 → die.
       expect(toRows(after)).toEqual([
+        [A, D, A],
         [D, D, D],
-        [D, D, D],
-        [D, D, D],
+        [A, D, A],
       ]);
     });
   });
@@ -1412,6 +1570,104 @@ describe("GPU simulation", () => {
       expect(() => writeCellAt(-1, 0, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0, 3, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0, -1, 0)).toThrow("out of bounds");
+    });
+  });
+
+  // ── setup validation ────────────────────────────────────────
+
+  describe("setup validation", () => {
+    const createCanvas = (width: number, height: number): HTMLCanvasElement => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      return canvas;
+    };
+
+    test("wrapping mode throws on non-power-of-2 width", () => {
+      const vi = vivarium("square", { wrapping: true });
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 4);
+
+      expect(() => setup({ canvas, automaton })).toThrow("powers of 2");
+    });
+
+    test("wrapping mode throws on non-power-of-2 height", () => {
+      const vi = vivarium("square", { wrapping: true });
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(4, 3);
+
+      expect(() => setup({ canvas, automaton })).toThrow("powers of 2");
+    });
+
+    test("wrapping mode accepts power-of-2 dimensions", () => {
+      const vi = vivarium("square", { wrapping: true });
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(8, 8);
+
+      expect(() =>
+        setup({
+          canvas,
+          automaton,
+          initialGrid: Array.from({ length: 64 }, () => 0),
+        }),
+      ).not.toThrow();
+    });
+
+    test("non-wrapping mode accepts non-power-of-2 dimensions", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 5);
+
+      expect(() =>
+        setup({
+          canvas,
+          automaton,
+          initialGrid: Array.from({ length: 15 }, () => 0),
+        }),
+      ).not.toThrow();
+    });
+
+    test("throws when initialGrid length does not match dimensions", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+
+      expect(() =>
+        setup({
+          canvas,
+          automaton,
+          initialGrid: [0, 0, 0, 0, 0],
+        }),
+      ).toThrow("does not match");
+    });
+
+    test("throws when 2d initialGrid flattened length does not match dimensions", () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(3, 3);
+
+      expect(() =>
+        setup({
+          canvas,
+          automaton,
+          initialGrid: [
+            [0, 0, 0],
+            [0, 0, 0],
+          ],
+        }),
+      ).toThrow("does not match");
     });
   });
 });
