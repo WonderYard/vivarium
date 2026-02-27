@@ -58,31 +58,23 @@ export const automatonLayout = tgpu.bindGroupLayout({
 // Because functions reference layouts and not groups,
 // they can be defined once
 
-const isOutOfBounds = (x: number, y: number): number => {
+const isOutOfBounds = (x: number, y: number) => {
   "use gpu";
 
   // No need to check if less than 0 because we are working in unsigned space.
   // In unsigned space, 0 - 1 = 4294967295, which is >= any reasonable dimension.
-  return std.select(
-    d.u32(0),
-    d.u32(1),
-    x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y,
-  );
+  const xOob = std.select(d.u32(0), d.u32(1), x >= gridLayout.$.dimensions.x);
+  const yOob = std.select(d.u32(0), d.u32(1), y >= gridLayout.$.dimensions.y);
+  return std.select(d.u32(0), d.u32(1), (xOob + yOob) > d.u32(0));
 };
 
-const inBoundsMask = (x: number, y: number): number => {
+const inBoundsMask = (x: number, y: number) => {
   "use gpu";
 
-  // Returns 1 when coordinates are valid (in bounds or wrapping mode),
-  // 0 when out of bounds in non-wrapping mode.
-  // wrapping=1: 1 - oob * (1 - 1) = 1 (always valid)
-  // wrapping=0, in bounds: 1 - 0 * 1 = 1
-  // wrapping=0, OOB: 1 - 1 * 1 = 0
-  const oob = isOutOfBounds(x, y);
-  return d.u32(1) - oob * (d.u32(1) - gridLayout.$.wrapping);
+  return d.u32(1);
 };
 
-const pointToIndex = (x: number, y: number): number => {
+const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
   // Note: keep in mind that we are performing subtraction in unsigned space.
@@ -95,20 +87,20 @@ const pointToIndex = (x: number, y: number): number => {
   );
 };
 
-const testNeighbor = (checkId: number, x: number, y: number): number => {
+const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  const selected = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
-  return selected * inBoundsMask(x, y);
+  const selectedIdMatch = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
+  return selectedIdMatch * inBoundsMask(x, y);
 };
 
-const testIdInPack = (packedIds: number, x: number, y: number): number => {
+const testIdInPack = (packedIds: number, x: number, y: number) => {
   "use gpu";
 
   const idMask = gridLayout.$.ids[pointToIndex(x, y)];
 
   // check if id is in the bits
-  const selected = std.select(
+  const selectedPackMatch = std.select(
     d.u32(0),
     d.u32(1),
     // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
@@ -116,7 +108,7 @@ const testIdInPack = (packedIds: number, x: number, y: number): number => {
     // so to keep gpu logic simple we do the check during the compile step.
     (packedIds & (d.u32(1) << idMask)) !== d.u32(0),
   );
-  return selected * inBoundsMask(x, y);
+  return selectedPackMatch * inBoundsMask(x, y);
 };
 
 /**
@@ -124,7 +116,7 @@ const testIdInPack = (packedIds: number, x: number, y: number): number => {
  * When the neighborhood is cross, only cardinal directions are counted.
  * When the neighborhood is square, all eight directions are counted.
  */
-const checkIdCount = (x: number, y: number, checkId: number, packedCount: number): number => {
+const checkIdCount = (x: number, y: number, checkId: number, packedCount: number) => {
   "use gpu";
 
   const crossCountMask =
@@ -151,7 +143,7 @@ const checkIdCount = (x: number, y: number, checkId: number, packedCount: number
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number): number => {
+const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number) => {
   "use gpu";
 
   const crossCountMask =
@@ -171,49 +163,35 @@ const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: num
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number): number => {
+const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
   "use gpu";
 
   const px = x + d.u32(checkPoint.x);
   const py = y + d.u32(checkPoint.y);
   const pointIndex = pointToIndex(px, py);
   const checkId = gridLayout.$.ids[pointIndex];
-  const selected = checkIdCount(x, y, checkId, packedCount);
-  return selected * inBoundsMask(px, py);
+  const selectedCountMatch = checkIdCount(x, y, checkId, packedCount);
+  return selectedCountMatch * inBoundsMask(px, py);
 };
 
-const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number): number => {
+const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
   "use gpu";
 
   const cx = x + comparePoint.x;
   const cy = y + comparePoint.y;
   const comparePointIndex = pointToIndex(cx, cy);
 
-  const selected = std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.$.ids[comparePointIndex] === withId,
-  );
-  return selected * inBoundsMask(cx, cy);
+  const selectedIdMatch = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
+  return selectedIdMatch * inBoundsMask(cx, cy);
 };
 
-const comparePointWithKindId = (
-  x: number,
-  y: number,
-  comparePoint: d.v2u,
-  packedIds: number,
-): number => {
+const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
   "use gpu";
 
   return testIdInPack(packedIds, x + comparePoint.x, y + comparePoint.y);
 };
 
-const comparePointWithPoint = (
-  x: number,
-  y: number,
-  comparePoint: d.v2u,
-  withPoint: d.v2u,
-): number => {
+const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPoint: d.v2u) => {
   "use gpu";
 
   const cx = x + comparePoint.x;
@@ -372,7 +350,7 @@ export const setup = ({
 
   if (automaton.wrapping && (!isPowerOf2(width) || !isPowerOf2(height))) {
     throw new Error(
-      `Wrapping mode requires width and height to be powers of 2, but got ${width}x${height}.`,
+      `Wrapping mode requires width and height to be powers of 2, but got ${width}×${height}.`,
     );
   }
 
@@ -380,7 +358,7 @@ export const setup = ({
 
   if (flatGrid !== undefined && flatGrid.length !== width * height) {
     throw new Error(
-      `initialGrid length ${flatGrid.length} does not match the expected length of ${width * height} (width ${width} x height ${height}).`,
+      `initialGrid length ${flatGrid.length} does not match the expected length of ${width * height} (width ${width} × height ${height}).`,
     );
   }
 
@@ -392,7 +370,9 @@ export const setup = ({
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
-  const wrappingBuffer = root.createBuffer(d.u32, automaton.wrapping ? 1 : 0).$usage("uniform");
+  const wrappingBuffer = root
+    .createBuffer(d.u32, automaton.wrapping ? 1 : 0)
+    .$usage("uniform");
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
