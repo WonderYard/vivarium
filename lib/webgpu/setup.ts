@@ -292,6 +292,8 @@ export const compute = tgpu.computeFn({
       if (toType === To.POINT) {
         const nx = x + d.u32(rule.toNeighbor.x);
         const ny = y + d.u32(rule.toNeighbor.y);
+        // pointToIndex always returns a valid array index via modulo, even for OOB coordinates.
+        // When OOB in non-wrapping mode, mask is 0, so the read value is multiplied away.
         const pointIndex = pointToIndex(nx, ny);
         const mask = inBoundsMask(nx, ny);
         // When OOB in non-wrapping mode, keep the current id instead.

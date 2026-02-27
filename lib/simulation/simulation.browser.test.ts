@@ -1195,6 +1195,33 @@ describe("GPU simulation", () => {
         [A, D, A],
       ]);
     });
+
+    test("full board dies in wrapping mode (overcrowding)", async () => {
+      const before = grid([
+        [A, A, A, A],
+        [A, A, A, A],
+        [A, A, A, A],
+        [A, A, A, A],
+      ]);
+
+      const buildLifeWrapping = (vi: ReturnType<typeof vivarium>) => {
+        const dead = vi.element(".", "#000000");
+        const alive = vi.element("#", "#ffffff");
+        dead.to(alive).count(alive, 3);
+        alive.to(alive).count(alive, 2, 3);
+        alive.to(dead);
+      };
+
+      const after = await step(root, buildLifeWrapping, before, undefined, { wrapping: true });
+
+      // In wrapping mode, every cell has 8 alive neighbors → all die.
+      expect(toRows(after)).toEqual([
+        [D, D, D, D],
+        [D, D, D, D],
+        [D, D, D, D],
+        [D, D, D, D],
+      ]);
+    });
   });
 
   // ── Cross neighborhood ────────────────────────────────────────
