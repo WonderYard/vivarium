@@ -13,28 +13,6 @@ import { vivarium } from "@wonderyard/vivarium";
 const vi = vivarium();
 ```
 
-## Options
-
-The `vivarium` function accepts an optional second parameter — an options object that configures the grid behavior.
-
-```typescript
-const vi = vivarium("square", { wrapping: true });
-```
-
-### Wrapping
-
-By default the grid is **non-wrapping** — cells at the edges of the grid border with an imaginary wall of empty cells. Set `wrapping: true` to enable a toroidal (wrapping) grid where edges connect to the opposite side.
-
-```typescript
-// Non-wrapping grid (default)
-const vi = vivarium();
-
-// Wrapping (toroidal) grid
-const vi = vivarium("square", { wrapping: true });
-```
-
-When wrapping is enabled, the grid width and height must be powers of 2 (e.g. 64, 128, 256). This constraint does not apply in non-wrapping mode.
-
 ## Neighborhood
 
 By default the neighborhood type is `"square"`. You can decide which neighborhood type to use by passing it as an option:
@@ -49,6 +27,23 @@ The available neighborhood types are:
 - **`"cross"`** — The 4 cells directly adjacent to the current cell (top, left, right, bottom). Also known as a [von Neumann neighborhood](https://en.wikipedia.org/wiki/Von_Neumann_neighborhood).
 
 The neighborhood type determines which cells are considered when evaluating conditions such as `count` or `is`. It also affects the range of valid values for count conditions — `0` to `8` for square, `0` to `4` for cross.
+
+## Wrapping
+
+By default, the grid does not wrap. Cells at the border always have 8 neighbors in a square neighborhood (or 4 in a cross neighborhood), but positions that fall outside the grid are zero-padded: they are treated as if they contain element 0 (the first element defined, usually the "dead" or "empty" state).
+
+```typescript
+// By default (wrapping: false), out-of-bounds neighbor positions are treated as element 0.
+const vi = vivarium("square");
+// Same as:
+const vi = vivarium("square", { wrapping: false });
+```
+
+When wrapping is enabled, the grid wraps toroidally (like a donut) — cells at one edge treat cells at the opposite edge as their neighbors. You can enable this behavior by passing a second options argument:
+
+```typescript
+const vi = vivarium("square", { wrapping: true });
+```
 
 ## Neighbor references
 

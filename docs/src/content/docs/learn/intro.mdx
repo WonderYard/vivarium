@@ -99,7 +99,9 @@ Why is this useful? Imagine you have elements like wire, spark, and tail. They a
 
 The grid is a two-dimensional array of cells. Each cell holds one element. When we say "the neighborhood of a cell," we mean the cells that surround it. By default, Vivarium uses a _square_ (Moore) neighborhood: the 8 cells that are directly adjacent, including diagonals.
 
-What happens at the edges? The grid wraps around — the top edge connects to the bottom, and the left edge connects to the right. This creates a _toroidal_ surface (think of a donut). No cell is ever missing a neighbor.
+What happens at the edges of the grid? By default cells at the border of the grid have missing neighbors. Positions that fall outside the grid are counted as empty, like a wall of nothingness that surrounds the world.
+
+Alternatively we can make the grid wrap around — the top edge connects to the bottom, and the left edge connects to the right. This creates a _toroidal_ surface (think of a donut). This way no cell is ever missing a neighbor.
 
 ## Emergence
 
