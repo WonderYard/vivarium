@@ -92,7 +92,7 @@ const pointToIndex = (x: number, y: number) => {
   // In wrapping mode, dimensions are guaranteed to be powers of 2,
   // so we can use bitmasks to perform modulo operations.
   // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & (1024 - 1) = 1023.
-  // This is equivalent to: (0 -1) % 1024 = 1023 as expected.
+  // This is equivalent to: (0 - 1) % 1024 = 1023 as expected.
   // In non-wrapping mode we discard OOB results via inBoundsMask,
   // so here we return wrong! (but valid) indices for OOB coordinates.
   return (y & heightMask) * gridLayout.$.dimensions.x + (x & widthMask);
