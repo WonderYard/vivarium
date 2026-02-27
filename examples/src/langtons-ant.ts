@@ -3,7 +3,7 @@ import "/src/style.css";
 
 /* Create */
 
-const vi = vivarium("cross");
+const vi = vivarium("cross", { wrapping: true });
 
 const neighbors = [vi.neighbor.RIGHT, vi.neighbor.BOTTOM, vi.neighbor.LEFT, vi.neighbor.TOP];
 

@@ -3,7 +3,7 @@ import { setup, vivarium } from "@wonderyard/vivarium";
 
 /* Create */
 
-const vi = vivarium();
+const vi = vivarium("square", { wrapping: true });
 
 const off = vi.element("off", "black");
 const on = vi.element("on", "white");
