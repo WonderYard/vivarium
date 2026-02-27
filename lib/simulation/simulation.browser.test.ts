@@ -1620,7 +1620,7 @@ describe("GPU simulation", () => {
       ).not.toThrow();
     });
 
-    test("non-wrapping mode accepts non-power-of-2 dimensions", () => {
+    test("non-wrapping mode throws on non-power-of-2 dimensions", () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
@@ -1633,7 +1633,7 @@ describe("GPU simulation", () => {
           automaton,
           initialGrid: Array.from({ length: 90 }, () => 0),
         }),
-      ).not.toThrow();
+      ).toThrow("powers of 2");
     });
 
     test("throws when initialGrid length does not match dimensions", () => {
