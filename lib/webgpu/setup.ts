@@ -63,15 +63,23 @@ const isOutOfBounds = (x: number, y: number) => {
 
   // No need to check if less than 0 because we are working in unsigned space.
   // In unsigned space, 0 - 1 = 4294967295, which is >= any reasonable dimension.
-  const xOob = std.select(d.u32(0), d.u32(1), x >= gridLayout.$.dimensions.x);
-  const yOob = std.select(d.u32(0), d.u32(1), y >= gridLayout.$.dimensions.y);
-  return std.select(d.u32(0), d.u32(1), (xOob + yOob) > d.u32(0));
+  return std.select(
+    d.u32(0),
+    d.u32(1),
+    x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y,
+  );
 };
 
 const inBoundsMask = (x: number, y: number) => {
   "use gpu";
 
-  return d.u32(1);
+  // Returns 1 when coordinates are valid (in bounds or wrapping mode),
+  // 0 when out of bounds in non-wrapping mode.
+  // wrapping=1: 1 - oob * (1 - 1) = 1 (always valid)
+  // wrapping=0, in bounds: 1 - 0 * 1 = 1
+  // wrapping=0, OOB: 1 - 1 * 1 = 0
+  const oob = isOutOfBounds(x, y);
+  return d.u32(1) - oob * (d.u32(1) - gridLayout.$.wrapping);
 };
 
 const pointToIndex = (x: number, y: number) => {
@@ -216,6 +224,11 @@ export const compute = tgpu.computeFn({
 })(({ pos }) => {
   const x = pos.x;
   const y = pos.y;
+
+  if (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y) {
+    return;
+  }
+
   const index = pointToIndex(x, y);
 
   const color = gridLayout.$.colors[index];
