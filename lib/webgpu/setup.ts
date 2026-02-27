@@ -4,6 +4,7 @@ import {
   GpuCondition,
   GpuElement,
   GpuRule,
+  MIN_GRID_SIZE,
   Opcode,
   To,
   WORKGROUP_SIZE,
@@ -233,10 +234,6 @@ export const compute = tgpu.computeFn({
   const x = pos.x;
   const y = pos.y;
 
-  if (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y) {
-    return;
-  }
-
   const index = pointToIndex(x, y);
 
   const color = gridLayout.$.colors[index];
@@ -368,6 +365,12 @@ export const setup = ({
   const g = canvas.getContext("2d") as CanvasRenderingContext2D;
 
   const isPowerOf2 = (n: number) => n > 0 && (n & (n - 1)) === 0;
+
+  if (width < MIN_GRID_SIZE || height < MIN_GRID_SIZE) {
+    throw new Error(
+      `Minimum values for width and height must be >= ${MIN_GRID_SIZE}, but got ${width}x${height}.`,
+    );
+  }
 
   if (automaton.wrapping && (!isPowerOf2(width) || !isPowerOf2(height))) {
     throw new Error(
