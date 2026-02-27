@@ -31,7 +31,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
   constructor(
     private neighborhoodName?: N,
-    private options?: { wrapping?: boolean },
+    options?: { wrapping?: boolean },
   ) {
     super();
 

@@ -13,6 +13,28 @@ import { vivarium } from "@wonderyard/vivarium";
 const vi = vivarium();
 ```
 
+## Options
+
+The `vivarium` function accepts an optional second parameter — an options object that configures the grid behavior.
+
+```typescript
+const vi = vivarium("square", { wrapping: true });
+```
+
+### Wrapping
+
+By default the grid is **non-wrapping** — cells at the edges of the grid have fewer neighbors. Set `wrapping: true` to enable a toroidal (wrapping) grid where edges connect to the opposite side.
+
+```typescript
+// Non-wrapping grid (default)
+const vi = vivarium();
+
+// Wrapping (toroidal) grid
+const vi = vivarium("square", { wrapping: true });
+```
+
+When wrapping is enabled, the grid width and height must be powers of 2 (e.g. 64, 128, 256). This constraint does not apply in non-wrapping mode.
+
 ## Neighborhood
 
 By default the neighborhood type is `"square"`. You can decide which neighborhood type to use by passing it as an option:

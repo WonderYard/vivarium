@@ -419,7 +419,7 @@ describe("GPU simulation", () => {
   // ── COUNT_KIND condition ─────────────────────────────────────
 
   describe("COUNT_KIND condition", () => {
-    test("Wireworld: wire becomes head when exactly 1 or 2 head neighbors", async () => {
+    test("Wireworld: wire becomes head when exactly 1 or 2 electron-head neighbors", async () => {
       const before = grid([
         [0, 2, 0],
         [0, 1, 0],
@@ -429,17 +429,22 @@ describe("GPU simulation", () => {
       const after = await step(
         root,
         (vi) => {
+          // Wireworld rules:
+          // head → tail, tail → wire, wire → head if 1 or 2 signal neighbors
+          const signal = vi.kind("signal");
           vi.element("empty", "#000000");
           const wire = vi.element("wire", "#ff8800");
-          const head = vi.element("head", "#0088ff");
-          vi.element("tail", "#ffffff");
+          const head = vi.element("head", "#0088ff", [signal]);
+          const tail = vi.element("tail", "#ffffff");
 
-          head.to(head).count(head, 8);
-          wire.to(head).count(head, 1, 2);
+          head.to(tail);
+          tail.to(wire);
+          wire.to(head).count(signal, 1, 2);
         },
         before,
       );
 
+      // Center wire has 1 signal (head) neighbor → becomes head
       expect(after.ids[4]).toBe(2);
     });
 
@@ -453,17 +458,18 @@ describe("GPU simulation", () => {
       const after = await step(
         root,
         (vi) => {
-          const conductor = vi.kind("conductor");
-          const empty = vi.element("empty", "#000000");
-          const wire = vi.element("wire", "#ff8800", [conductor]);
-          vi.element("head", "#0088ff", [conductor]);
-          vi.element("tail", "#ffffff", [conductor]);
+          const warm = vi.kind("warm");
+          const cold = vi.element("cold", "#000000");
+          const fire = vi.element("fire", "#ff8800", [warm]);
+          vi.element("lava", "#0088ff", [warm]);
 
-          empty.to(wire).count(conductor, 2);
+          // cold becomes fire when exactly 2 warm neighbors (fire or lava)
+          cold.to(fire).count(warm, 2);
         },
         before,
       );
 
+      // Center (1,0) has 2 warm neighbors: fire at (0,0) and lava at (2,0) → becomes fire
       expect(after.ids[1]).toBe(1);
     });
   });
@@ -1245,7 +1251,7 @@ describe("GPU simulation", () => {
     });
 
     test("cross neighborhood counts only cardinal neighbors (COUNT_KIND)", async () => {
-      // Center cell has 'empty'. Cardinal neighbors are 'wire'(1) and 'head'(2).
+      // Center cell has 'cold'. Cardinal neighbors are 'fire'(1) and 'lava'(2).
       const before = grid([
         [0, 1, 0],
         [2, 0, 1],
@@ -1255,19 +1261,19 @@ describe("GPU simulation", () => {
       const after = await step(
         root,
         (vi) => {
-          const conductor = vi.kind("conductor");
-          const empty = vi.element("empty", "#000000");
-          const wire = vi.element("wire", "#ff8800", [conductor]);
-          vi.element("head", "#0088ff", [conductor]);
+          const warm = vi.kind("warm");
+          const cold = vi.element("cold", "#000000");
+          const fire = vi.element("fire", "#ff8800", [warm]);
+          vi.element("lava", "#0088ff", [warm]);
 
-          // Center has 4 cardinal conductor neighbors (cross mode)
-          empty.to(wire).count(conductor, 4);
+          // Center has 4 cardinal warm neighbors (cross mode)
+          cold.to(fire).count(warm, 4);
         },
         before,
         "cross",
       );
 
-      // Center (index 4) should transition to wire
+      // Center (index 4) should transition to fire
       expect(after.ids[4]).toBe(1);
     });
   });
