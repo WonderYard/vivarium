@@ -369,9 +369,7 @@ export const setup = ({
   }
 
   if (!isPowerOf2(width) || !isPowerOf2(height)) {
-    throw new Error(
-      `Width and height must be powers of 2, but got ${width}x${height}.`,
-    );
+    throw new Error(`Width and height must be powers of 2, but got ${width}x${height}.`);
   }
 
   const flatGrid = initialGrid?.flat();
