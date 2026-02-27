@@ -86,17 +86,19 @@ const inBoundsMask = (x: number, y: number) => {
 const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
-  // Note: keep in mind that we are performing subtraction in unsigned space.
-  // The modulo here is the only thing that allows us to use unsigned ints
-  // everywhere. When using power-of-2 dimensions this always works, when in non-wrapping
-  // mode, this will give wrong results when using dimensions that are not powers of 2.
-  // The modulo still ensures indices that are within the grid array length.
-  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) % 1024 = 1023 as expected.
-  // Wrong case: (0 - 1) % 50 = 45 and not 49!
-  // Wrong cases **must** be discarded by the caller by detecting out of bounds coordinates.
-  return (
-    (y % gridLayout.$.dimensions.y) * gridLayout.$.dimensions.x + (x % gridLayout.$.dimensions.x)
-  );
+  const dimX = gridLayout.$.dimensions.x;
+  const dimY = gridLayout.$.dimensions.y;
+
+  // In wrapping mode, dimensions are guaranteed to be powers of 2,
+  // so we can use fast bitwise AND instead of expensive modulo.
+  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & 1023 = 1023.
+  // In non-wrapping mode, we clamp to valid array range;
+  // the caller discards OOB results via inBoundsMask.
+  // Note: wrapping is a uniform, so all threads take the same branch (no divergence).
+  if (gridLayout.$.wrapping === d.u32(1)) {
+    return (y & (dimY - d.u32(1))) * dimX + (x & (dimX - d.u32(1)));
+  }
+  return std.min(y, dimY - d.u32(1)) * dimX + std.min(x, dimX - d.u32(1));
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
@@ -297,7 +299,7 @@ export const compute = tgpu.computeFn({
       if (toType === To.POINT) {
         const nx = x + d.u32(rule.toNeighbor.x);
         const ny = y + d.u32(rule.toNeighbor.y);
-        // pointToIndex always returns a valid array index via modulo, even for OOB coordinates.
+        // pointToIndex always returns a valid array index, even for OOB coordinates.
         // When OOB in non-wrapping mode, mask is 0, so the read value is multiplied away.
         const pointIndex = pointToIndex(nx, ny);
         const mask = inBoundsMask(nx, ny);
