@@ -99,12 +99,8 @@ const pointToIndex = (x: number, y: number) => {
 const testNeighbor = (checkId: number, x: number, y: number) => {
   "use gpu";
 
-  const selectedIdMatch = std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.$.ids[pointToIndex(x, y)] === checkId,
-  );
-  return selectedIdMatch * inBoundsMask(x, y);
+  const selected = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[pointToIndex(x, y)] === checkId);
+  return selected * inBoundsMask(x, y);
 };
 
 const testIdInPack = (packedIds: number, x: number, y: number) => {
@@ -113,7 +109,7 @@ const testIdInPack = (packedIds: number, x: number, y: number) => {
   const idMask = gridLayout.$.ids[pointToIndex(x, y)];
 
   // check if id is in the bits
-  const selectedPackMatch = std.select(
+  const selected = std.select(
     d.u32(0),
     d.u32(1),
     // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
@@ -121,7 +117,7 @@ const testIdInPack = (packedIds: number, x: number, y: number) => {
     // so to keep gpu logic simple we do the check during the compile step.
     (packedIds & (d.u32(1) << idMask)) !== d.u32(0),
   );
-  return selectedPackMatch * inBoundsMask(x, y);
+  return selected * inBoundsMask(x, y);
 };
 
 /**
@@ -183,8 +179,8 @@ const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: n
   const py = y + d.u32(checkPoint.y);
   const pointIndex = pointToIndex(px, py);
   const checkId = gridLayout.$.ids[pointIndex];
-  const selectedCountMatch = checkIdCount(x, y, checkId, packedCount);
-  return selectedCountMatch * inBoundsMask(px, py);
+  const selected = checkIdCount(x, y, checkId, packedCount);
+  return selected * inBoundsMask(px, py);
 };
 
 const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: number) => {
@@ -194,12 +190,8 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
   const cy = y + comparePoint.y;
   const comparePointIndex = pointToIndex(cx, cy);
 
-  const selectedIdMatch = std.select(
-    d.u32(0),
-    d.u32(1),
-    gridLayout.$.ids[comparePointIndex] === withId,
-  );
-  return selectedIdMatch * inBoundsMask(cx, cy);
+  const selected = std.select(d.u32(0), d.u32(1), gridLayout.$.ids[comparePointIndex] === withId);
+  return selected * inBoundsMask(cx, cy);
 };
 
 const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
@@ -218,12 +210,12 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
   const comparePointIndex = pointToIndex(cx, cy);
   const withPointIndex = pointToIndex(wx, wy);
 
-  const selectedPointsEqual = std.select(
+  const selected = std.select(
     d.u32(0),
     d.u32(1),
     gridLayout.$.ids[comparePointIndex] === gridLayout.$.ids[withPointIndex],
   );
-  return selectedPointsEqual * inBoundsMask(cx, cy) * inBoundsMask(wx, wy);
+  return selected * inBoundsMask(cx, cy) * inBoundsMask(wx, wy);
 };
 
 // also the main compute function has no variable dependencies

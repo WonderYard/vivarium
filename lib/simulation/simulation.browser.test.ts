@@ -1,7 +1,14 @@
 /// <reference types="vite/client" />
 
 import type { Automaton } from "@/automaton/types";
-import { GpuCondition, GpuElement, GpuRule, MIN_GRID_SIZE, Square, WORKGROUP_SIZE } from "@/common/constants";
+import {
+  GpuCondition,
+  GpuElement,
+  GpuRule,
+  MIN_GRID_SIZE,
+  Square,
+  WORKGROUP_SIZE,
+} from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
 import { automatonLayout, gridLayout, compute, setSeed, setup } from "@/webgpu/setup";
@@ -720,9 +727,7 @@ describe("GPU simulation", () => {
   describe("wrapping (toroidal grid)", () => {
     test("bottom edge wraps to top", async () => {
       // 8×8 grid: 'b' at top row. Cell at bottom row checks BOTTOM, which wraps to top.
-      const before = grid8([
-        [0, 1, 0],
-      ]);
+      const before = grid8([[0, 1, 0]]);
 
       const after = await step(
         root,
@@ -742,9 +747,7 @@ describe("GPU simulation", () => {
 
     test("right edge wraps to left", async () => {
       // 8×8 grid: 'b' at left column. Cell at right column checks RIGHT, which wraps to left.
-      const before = grid8([
-        [1, 0, 0],
-      ]);
+      const before = grid8([[1, 0, 0]]);
 
       const after = await step(
         root,
@@ -764,9 +767,7 @@ describe("GPU simulation", () => {
 
     test("corner wraps diagonally", async () => {
       // 8×8 grid: 'b' at top-left corner. Cell at bottom-right checks BOTTOM_RIGHT, which wraps.
-      const before = grid8([
-        [1, 0, 0],
-      ]);
+      const before = grid8([[1, 0, 0]]);
 
       const after = await step(
         root,
@@ -785,9 +786,7 @@ describe("GPU simulation", () => {
     });
 
     test("count of 8 matches all cells in wrapping mode", async () => {
-      const before = grid(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      );
+      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
 
       const after = await step(
         root,
@@ -813,9 +812,7 @@ describe("GPU simulation", () => {
   describe("non-wrapping (bounded grid)", () => {
     test("edge cell does not see wrapped neighbors", async () => {
       // 8×8 grid: 'b' at top-left corner. Cell at bottom-right checks BOTTOM_RIGHT.
-      const before = grid8([
-        [1, 0, 0],
-      ]);
+      const before = grid8([[1, 0, 0]]);
 
       const after = await step(
         root,
@@ -832,9 +829,7 @@ describe("GPU simulation", () => {
     });
 
     test("corner cells have fewer effective neighbors", async () => {
-      const before = grid(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      );
+      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
 
       const after = await step(
         root,
@@ -861,9 +856,7 @@ describe("GPU simulation", () => {
     });
 
     test("edge cells have 5 effective neighbors", async () => {
-      const before = grid(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      );
+      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
 
       const after = await step(
         root,
@@ -942,9 +935,7 @@ describe("GPU simulation", () => {
     });
 
     test("count of 8 matches when all neighbors are the same element", async () => {
-      const before = grid(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      );
+      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
 
       const after = await step(
         root,
@@ -1184,9 +1175,7 @@ describe("GPU simulation", () => {
     });
 
     test("full board overcrowding: corners survive in non-wrapping mode", async () => {
-      const before = grid(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => A)),
-      );
+      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => A)));
 
       const after = await step(root, buildLife, before);
 
@@ -1205,9 +1194,7 @@ describe("GPU simulation", () => {
     });
 
     test("full board dies in wrapping mode (overcrowding)", async () => {
-      const before = grid(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => A)),
-      );
+      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => A)));
 
       const buildLifeWrapping = (vi: ReturnType<typeof vivarium>) => {
         const dead = vi.element(".", "#000000");
