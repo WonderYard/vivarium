@@ -89,12 +89,14 @@ const pointToIndex = (x: number, y: number) => {
   const widthMask = gridLayout.$.dimensions.x - d.u32(1);
   const heightMask = gridLayout.$.dimensions.y - d.u32(1);
 
-  // Dimensions are always powers of 2, so (dim - 1) is an all-ones bitmask
-  // (e.g. 1024 - 1 = 0x3FF) and bitwise AND performs correct modulo.
-  // In wrapping mode this wraps OOB coordinates to the opposite edge.
-  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & 1023 = 1023.
-  // In non-wrapping mode, OOB results are discarded via inBoundsMask,
-  // so the masked index is wrong but harmless (it still falls within bounds).
+  // Dimensions are guaranteed to be powers of 2,
+  // so we can use bitmasks to perform modulo operations.
+  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & (1024 - 1) = 1023.
+  // This is equivalent to: (0 - 1) % 1024 = 1023 as expected.
+  // In wrapping mode this wraps OOB coordinates to the opposite edge correctly.
+  // In non-wrapping mode, this leads to wrong indices at the edges,
+  // but in this mode OOB results are discarded via inBoundsMask,
+  // so the masked index is wrong, but harmless (it still falls within bounds).
   return (y & heightMask) * gridLayout.$.dimensions.x + (x & widthMask);
 };
 
