@@ -491,7 +491,7 @@ Triggered by pressing `?` or from Settings. A shadcn `Dialog` showing a formatte
 1. User opens New Project dialog.
 2. Selects "Game of Life" from the Template dropdown.
 3. Clicks **Create**.
-4. App auto-populates: two elements ("space" dark blue, "alien" green), three rules (birth at 3, survival at 2–3, death otherwise).
+4. App auto-populates: two elements ("space" dark blue, "alien" green — matching the vivarium library convention), three rules (birth at 3, survival at 2–3, death otherwise).
 5. Canvas is blank but ready. User draws an initial pattern and hits Play.
 
 ---
@@ -542,7 +542,7 @@ Triggered by pressing `?` or from Settings. A shadcn `Dialog` showing a formatte
 
 ## 6. Data Model (JSON Schema for Export/Import)
 
-The `.vivarium` project file follows this structure (for implementation reference):
+The `.vivarium` project file follows this structure (for implementation reference). The `grid` field is a flat array of element indices with length `width × height`, stored in row-major order. The example below is abbreviated for brevity:
 
 ```json
 {
@@ -568,7 +568,7 @@ The `.vivarium` project file follows this structure (for implementation referenc
       "accept": "all"
     }
   ],
-  "grid": [0, 0, 1, 0, 1, 0, 0, 1, 0, "..."],
+  "grid": [0, 0, 1, 0, 1, 0, 0, 1, 0],
   "library": [
     {
       "id": "lib_0",
