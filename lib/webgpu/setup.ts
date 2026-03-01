@@ -445,6 +445,8 @@ export const setup = ({
         .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
         .$usage("storage"),
     });
+
+    wrappingBuffer.write(automaton.wrapping ? 1 : 0);
   };
 
   setAutomaton({ automaton });
