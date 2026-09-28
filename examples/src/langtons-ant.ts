@@ -53,7 +53,7 @@ const langtonsAnt = vi.create();
 /* Initialize grid — place ant facing left on a white cell at the center */
 
 const size = 128;
-const initialGrid: number[] = new Array(size * size).fill(white.index);
+const initialGrid: number[] = Array.from({ length: size * size }, () => white.index);
 const leftIndex = neighbors.indexOf(vi.neighbor.LEFT);
 initialGrid[Math.floor(size / 2) * size + Math.floor(size / 2)] = antsOnWhite[leftIndex].index; // start facing left
 
