@@ -410,9 +410,9 @@ export const setup = ({
   // Define all the buffers. Creating them depends on width and height only.
   // When automaton changes we don't need to recreate them.
 
-  const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
+  const dimensions = root.createUniform(d.vec2u, [width, height]);
 
-  const wrappingBuffer = root.createBuffer(d.u32, automaton.wrapping ? 1 : 0).$usage("uniform");
+  const wrappingBuffer = root.createUniform(d.u32, automaton.wrapping ? 1 : 0);
 
   const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
@@ -460,14 +460,13 @@ export const setup = ({
     const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
 
     automatonGroup = root.createBindGroup(automatonLayout, {
-      neighborhood: root.createBuffer(d.u32, gpuNeighborhood).$usage("uniform"),
-      elements: root
-        .createBuffer(d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)), gpuElements)
-        .$usage("storage"),
-      rules: root.createBuffer(d.arrayOf(GpuRule, rules.length), rules).$usage("storage"),
-      conditions: root
-        .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
-        .$usage("storage"),
+      neighborhood: root.createUniform(d.u32, gpuNeighborhood),
+      elements: root.createReadonly(
+        d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
+        gpuElements,
+      ),
+      rules: root.createReadonly(d.arrayOf(GpuRule, rules.length), rules),
+      conditions: root.createReadonly(d.arrayOf(GpuCondition, conditions.length), conditions),
     });
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
