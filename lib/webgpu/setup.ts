@@ -237,6 +237,9 @@ export const compute = tgpu.computeFn({
 
   const element = automatonLayout.$.elements[id];
 
+  // Seed once per invocation so that each CHANCE condition draws a fresh sample.
+  randf.seed3(d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), seed.$));
+
   const ruleStart = element.ruleStart;
   const ruleEnd = element.ruleEnd;
 
@@ -280,7 +283,6 @@ export const compute = tgpu.computeFn({
         passing += comparePointWithKindId(x, y, comparePoint, packedIds);
       } else if (opcode === Opcode.CHANCE) {
         const chance = condition.chance;
-        randf.seed3(d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), seed.$));
         passing += std.select(d.u32(0), d.u32(1), randf.sample() < chance);
       }
     }

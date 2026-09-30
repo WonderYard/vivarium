@@ -1576,6 +1576,36 @@ describe("GPU simulation", () => {
 
   // ── setup validation ────────────────────────────────────────
 
+  describe("CHANCE condition", () => {
+    test("independent chance rules draw independent samples", async () => {
+      const vi = vivarium();
+      const a = vi.element("a", "#000000");
+      const b = vi.element("b", "#ff0000");
+      const c = vi.element("c", "#00ff00");
+      a.to(b).chance(1, 2);
+      a.to(c).chance(1, 2);
+      const automaton = vi.create();
+
+      const size = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+
+      const { update, readGrid } = setup({
+        canvas,
+        automaton,
+        initialGrid: Array.from({ length: size * size }, () => 0),
+      });
+      update();
+      const result = await readGrid();
+
+      // Expected: a → b with p = 1/2, otherwise a → c with p = 1/2 (so 1/4 overall).
+      const fraction = (id: number) => result.filter((v) => v === id).length / result.length;
+      expect(fraction(1)).toBeCloseTo(0.5, 1);
+      expect(fraction(2)).toBeCloseTo(0.25, 1);
+    });
+  });
+
   describe("setup validation", () => {
     const createCanvas = (width: number, height: number): HTMLCanvasElement => {
       const canvas = document.createElement("canvas");
