@@ -505,8 +505,8 @@ export const setup = ({
   }
 
   // and we write the inizialization to the buffers
-  colors0.write(Array.from(colors));
-  ids0.write(Array.from(ids));
+  colors0.write(colors);
+  ids0.write(ids);
 
   const imageData = g.createImageData(width, height);
   const pixels = new Uint32Array(imageData.data.buffer);
