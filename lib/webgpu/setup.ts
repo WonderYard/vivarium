@@ -257,33 +257,55 @@ export const compute = tgpu.computeFn({
       const condition = automatonLayout.$.conditions[j];
       const opcode = condition.opcode as Opcode;
 
-      if (opcode === Opcode.COUNT_ELEMENT) {
-        const checkId = condition.checkId;
-        const count = condition.countOrWithId;
-        passing += checkIdCount(x, y, checkId, count);
-      } else if (opcode === Opcode.COUNT_POINT) {
-        const checkPoint = condition.checkPointOrComparePoint;
-        const count = condition.countOrWithId;
-        passing += checkPointCount(x, y, checkPoint, count);
-      } else if (opcode === Opcode.COUNT_KIND) {
-        const packedIds = condition.checkId;
-        const count = condition.countOrWithId;
-        passing += checkIdsCount(x, y, packedIds, count);
-      } else if (opcode === Opcode.IS_ELEMENT) {
-        const comparePoint = condition.checkPointOrComparePoint;
-        const withId = condition.countOrWithId;
-        passing += comparePointWithId(x, y, comparePoint, withId);
-      } else if (opcode === Opcode.IS_POINT) {
-        const comparePoint = condition.checkPointOrComparePoint;
-        const withPoint = condition.withPoint;
-        passing += comparePointWithPoint(x, y, comparePoint, withPoint);
-      } else if (opcode === Opcode.IS_KIND) {
-        const comparePoint = condition.checkPointOrComparePoint;
-        const packedIds = condition.countOrWithId;
-        passing += comparePointWithKindId(x, y, comparePoint, packedIds);
-      } else if (opcode === Opcode.CHANCE) {
-        const chance = condition.chance;
-        passing += std.select(d.u32(0), d.u32(1), randf.sample() < chance);
+      switch (opcode) {
+        case Opcode.COUNT_ELEMENT: {
+          passing += checkIdCount(x, y, condition.checkId, condition.countOrWithId);
+          break;
+        }
+        case Opcode.COUNT_POINT: {
+          passing += checkPointCount(
+            x,
+            y,
+            condition.checkPointOrComparePoint,
+            condition.countOrWithId,
+          );
+          break;
+        }
+        case Opcode.COUNT_KIND: {
+          passing += checkIdsCount(x, y, condition.checkId, condition.countOrWithId);
+          break;
+        }
+        case Opcode.IS_ELEMENT: {
+          passing += comparePointWithId(
+            x,
+            y,
+            condition.checkPointOrComparePoint,
+            condition.countOrWithId,
+          );
+          break;
+        }
+        case Opcode.IS_POINT: {
+          passing += comparePointWithPoint(
+            x,
+            y,
+            condition.checkPointOrComparePoint,
+            condition.withPoint,
+          );
+          break;
+        }
+        case Opcode.IS_KIND: {
+          passing += comparePointWithKindId(
+            x,
+            y,
+            condition.checkPointOrComparePoint,
+            condition.countOrWithId,
+          );
+          break;
+        }
+        case Opcode.CHANCE: {
+          passing += std.select(d.u32(0), d.u32(1), randf.sample() < condition.chance);
+          break;
+        }
       }
     }
 
