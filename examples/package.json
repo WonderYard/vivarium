@@ -16,6 +16,7 @@
   "devDependencies": {
     "daisyui": "^5.5.19",
     "typescript": "~5.9.3",
+    "unplugin-typegpu": "^0.12.4",
     "vite": "^7.3.1"
   }
 }

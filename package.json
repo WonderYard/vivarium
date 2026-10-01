@@ -33,24 +33,24 @@
   },
   "dependencies": {
     "@typegpu/noise": "^0.12.0",
-    "nanoid": "^5.1.6",
+    "nanoid": "^6.0.1",
     "typegpu": "^0.12.6"
   },
   "devDependencies": {
-    "@types/node": "^25.2.3",
-    "@vitejs/plugin-basic-ssl": "^2.1.4",
-    "@vitest/browser-playwright": "^4.0.18",
-    "@webgpu/types": "^0.1.69",
+    "@types/node": "^26.6.4",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "@vitest/browser-playwright": "^5.0.3",
+    "@webgpu/types": "^0.1.74",
     "eslint-plugin-typegpu": "^0.12.1",
     "glob": "^13.0.6",
-    "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0",
-    "oxlint-tsgolint": "^0.15.0",
-    "playwright": "^1.58.2",
-    "typescript": "~5.9.3",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "oxlint-tsgolint": "^7.0.2003",
+    "playwright": "^1.63.0",
+    "typescript": "~6.0.3",
     "unplugin-typegpu": "^0.12.4",
-    "vite": "^7.3.1",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.18"
+    "vite": "^8.3.2",
+    "vite-plugin-dts": "^5.1.1",
+    "vitest": "^5.0.3"
   }
 }

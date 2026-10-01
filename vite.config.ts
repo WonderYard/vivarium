@@ -12,10 +12,10 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, "lib/main.ts"),
+      entry: resolve(import.meta.dirname, "lib/main.ts"),
       formats: ["es"],
     },
-    rollupOptions: {
+    rolldownOptions: {
       input: Object.fromEntries(
         glob
           .sync("lib/**/*.ts", {
