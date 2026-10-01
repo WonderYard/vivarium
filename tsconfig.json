@@ -24,5 +24,5 @@
       "@/*": ["./lib/*"]
     }
   },
-  "include": ["lib", "vite.config.ts"]
+  "include": ["lib", "vite.config.ts", "oxlint.config.ts"]
 }
