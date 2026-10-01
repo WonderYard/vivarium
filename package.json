@@ -37,19 +37,19 @@
     "typegpu": "^0.12.6"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
+    "@types/node": "catalog:",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitest/browser-playwright": "^5.0.3",
-    "@webgpu/types": "^0.1.74",
+    "@webgpu/types": "catalog:",
     "eslint-plugin-typegpu": "^0.12.1",
     "glob": "^13.0.6",
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
     "oxlint-tsgolint": "^7.0.2003",
     "playwright": "^1.63.0",
-    "typescript": "~6.0.3",
-    "unplugin-typegpu": "^0.12.4",
-    "vite": "^8.3.2",
+    "typescript": "catalog:",
+    "unplugin-typegpu": "catalog:",
+    "vite": "catalog:",
     "vite-plugin-dts": "^5.1.1",
     "vitest": "^5.0.3"
   }

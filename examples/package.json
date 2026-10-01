@@ -9,14 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/vite": "catalog:",
     "@wonderyard/vivarium": "workspace:*",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "catalog:"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
+    "@webgpu/types": "catalog:",
     "daisyui": "^5.5.19",
-    "typescript": "~5.9.3",
-    "unplugin-typegpu": "^0.12.4",
-    "vite": "^7.3.1"
+    "typescript": "catalog:",
+    "unplugin-typegpu": "catalog:",
+    "vite": "catalog:"
   }
 }

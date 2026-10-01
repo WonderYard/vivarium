@@ -7,19 +7,19 @@ export default defineConfig({
   plugins: [tailwindcss(), typegpu({})],
   resolve: {
     alias: {
-      "@wonderyard/vivarium": resolve(__dirname, "../lib/main.ts"),
-      "@/": `${resolve(__dirname, "../lib")}/`,
+      "@wonderyard/vivarium": resolve(import.meta.dirname, "../lib/main.ts"),
+      "@/": `${resolve(import.meta.dirname, "../lib")}/`,
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       input: {
-        main: resolve(__dirname, "index.html"),
-        life: resolve(__dirname, "life/index.html"),
-        "brians-brain": resolve(__dirname, "brians-brain/index.html"),
-        wireworld: resolve(__dirname, "wireworld/index.html"),
-        "forest-fire": resolve(__dirname, "forest-fire/index.html"),
-        "langtons-ant": resolve(__dirname, "langtons-ant/index.html"),
+        main: resolve(import.meta.dirname, "index.html"),
+        life: resolve(import.meta.dirname, "life/index.html"),
+        "brians-brain": resolve(import.meta.dirname, "brians-brain/index.html"),
+        wireworld: resolve(import.meta.dirname, "wireworld/index.html"),
+        "forest-fire": resolve(import.meta.dirname, "forest-fire/index.html"),
+        "langtons-ant": resolve(import.meta.dirname, "langtons-ant/index.html"),
       },
     },
   },
