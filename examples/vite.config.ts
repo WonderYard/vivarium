@@ -17,6 +17,7 @@ export default defineConfig({
         wireworld: resolve(import.meta.dirname, "wireworld/index.html"),
         "forest-fire": resolve(import.meta.dirname, "forest-fire/index.html"),
         "langtons-ant": resolve(import.meta.dirname, "langtons-ant/index.html"),
+        "rule-110": resolve(import.meta.dirname, "rule-110/index.html"),
       },
     },
   },

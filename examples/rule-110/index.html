@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vivarium demo - Rule 110</title>
+  </head>
+  <body>
+    <div class="flex justify-center">
+      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100">
+        <div class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full">
+          <div class="flex flex-row gap-2 items-center">
+            <a class="btn btn-soft btn-square btn-sm" href="/"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m12 19-7-7 7-7" />
+                <path d="M19 12H5" /></svg
+            ></a>
+            <h1 class="text-2xl font-bold">Rule 110</h1>
+          </div>
+          <a
+            class="btn btn-soft btn-accent btn-sm"
+            href="https://github.com/WonderYard/vivarium/blob/develop/examples/src/rule-110.ts"
+          >
+            Source
+          </a>
+        </div>
+
+        <div class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100">
+          <figure class="aspect-square">
+            <canvas class="w-full" id="example-canvas"></canvas>
+          </figure>
+          <button
+            class="btn btn-soft btn-accent btn-sm absolute right-0 bottom-0 m-2"
+            onclick="window.location.reload()"
+          >
+            Restart
+          </button>
+        </div>
+
+        <div
+          class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
+        >
+          <pre data-prefix="1"><code>const bg = element("bg", "black")</code></pre>
+          <pre data-prefix="2"><code>const off = element("off", "gray")</code></pre>
+          <pre data-prefix="3"><code>const on = element("on", "yellow")</code></pre>
+          <pre data-prefix="4"></pre>
+          <pre data-prefix="5"><code>bg.to(on)</code></pre>
+          <pre data-prefix="6"><code>  .is(TOP, on)</code></pre>
+          <pre data-prefix="7"><code>  .is(TOP_RIGHT, off)</code></pre>
+          <pre data-prefix="8"><code>bg.to(on)</code></pre>
+          <pre data-prefix="9"><code>  .is(TOP, off)</code></pre>
+          <pre data-prefix="10"><code>  .is(TOP_RIGHT, on)</code></pre>
+          <pre data-prefix="11"><code>bg.to(on)</code></pre>
+          <pre data-prefix="12"><code>  .is(TOP_LEFT, off)</code></pre>
+          <pre data-prefix="13"><code>  .is(TOP, on)</code></pre>
+          <pre data-prefix="14"><code>  .is(TOP_RIGHT, on)</code></pre>
+          <pre data-prefix="15"><code>bg.to(off)</code></pre>
+          <pre data-prefix="16"><code>  .is(TOP, bg)</code></pre>
+          <pre data-prefix="17"><code>  .accept("none")</code></pre>
+          <pre data-prefix="18"></pre>
+          <pre data-prefix="19"><code>const rule110 = create()</code></pre>
+        </div>
+        <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
+          Read the docs
+        </a>
+        <div
+          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-100 left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
+        >
+          <div class="divider mt-0 mb-0"></div>
+          <code class="text-xs">@wonderyard/vivarium</code>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/rule-110.ts"></script>
+  </body>
+</html>
