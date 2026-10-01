@@ -39,9 +39,7 @@ export default defineConfig({
   ],
 
   resolve: {
-    alias: {
-      "@/": new URL("./lib/", import.meta.url).pathname,
-    },
+    tsconfigPaths: true,
   },
 
   test: {

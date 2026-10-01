@@ -6,10 +6,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [tailwindcss(), typegpu({})],
   resolve: {
-    alias: {
-      "@wonderyard/vivarium": resolve(import.meta.dirname, "../lib/main.ts"),
-      "@/": `${resolve(import.meta.dirname, "../lib")}/`,
-    },
+    tsconfigPaths: true,
   },
   build: {
     rolldownOptions: {

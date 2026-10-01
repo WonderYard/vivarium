@@ -20,6 +20,12 @@
   "main": "./dist/main.js",
   "module": "./dist/main.js",
   "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "dev:https": "ENABLE_BASIC_SSL=true vite --host",
