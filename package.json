@@ -27,10 +27,7 @@
     }
   },
   "scripts": {
-    "dev": "vite",
-    "dev:https": "ENABLE_BASIC_SSL=true vite --host",
     "build": "pnpm lint && vite build",
-    "preview": "vite preview",
     "lint": "oxlint --type-aware --type-check",
     "lint:fix": "oxlint --fix --type-aware --type-check",
     "format": "oxfmt",
@@ -44,7 +41,6 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitest/browser-playwright": "^5.0.3",
     "@webgpu/types": "catalog:",
     "eslint-plugin-typegpu": "^0.12.1",

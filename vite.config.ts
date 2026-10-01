@@ -2,7 +2,6 @@
 
 import { extname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import basicSsl from "@vitejs/plugin-basic-ssl";
 import { playwright } from "@vitest/browser-playwright";
 import { glob } from "glob";
 import typegpu from "unplugin-typegpu/vite";
@@ -33,7 +32,6 @@ export default defineConfig({
     },
   },
   plugins: [
-    process.env.ENABLE_BASIC_SSL === "true" && basicSsl(),
     dts({ include: ["lib"] }),
     typegpu({}),
   ],
