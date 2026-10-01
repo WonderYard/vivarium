@@ -108,9 +108,6 @@ importers:
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.3(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
-      '@wonderyard/vivarium':
-        specifier: workspace:*
-        version: link:..
       astro:
         specifier: ^5.17.3
         version: 5.17.3(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.33.0)(rollup@4.57.1)(typescript@5.9.3)(yaml@2.9.1)

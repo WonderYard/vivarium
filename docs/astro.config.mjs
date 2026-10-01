@@ -64,6 +64,8 @@ export default defineConfig({
 
   vite: {
     ssr: {
+      // postcss (used by Expressive Code at render time) is CommonJS and
+      // requires nanoid/non-secure, whose ESM build has no default export
       noExternal: ["nanoid"],
     },
     // @ts-expect-error astro is using vite 6 while we have vite 7
