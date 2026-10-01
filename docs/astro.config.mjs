@@ -7,6 +7,7 @@ import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 
 // https://astro.build/config
 export default defineConfig({
+  site: "https://vivarium.orangenote.dev",
   integrations: [
     starlight({
       title: "Vivarium",
