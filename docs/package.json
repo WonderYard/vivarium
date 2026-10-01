@@ -11,18 +11,18 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.37.6",
-    "@astrojs/starlight-tailwind": "^4.0.2",
-    "@fontsource-variable/funnel-display": "^5.2.8",
-    "@fontsource-variable/funnel-sans": "^5.2.8",
-    "@fontsource-variable/source-code-pro": "^5.2.7",
+    "@astrojs/starlight": "^0.42.5",
+    "@astrojs/starlight-tailwind": "^5.0.0",
+    "@fontsource-variable/funnel-display": "^5.3.0",
+    "@fontsource-variable/funnel-sans": "^5.3.0",
+    "@fontsource-variable/source-code-pro": "^5.3.0",
     "@tailwindcss/vite": "catalog:",
-    "astro": "^5.17.3",
-    "sharp": "^0.34.5",
-    "starlight-typedoc": "^0.21.5",
+    "astro": "^7.3.5",
+    "sharp": "^0.35.5",
+    "starlight-typedoc": "^0.23.1",
     "tailwindcss": "catalog:",
-    "typedoc": "^0.28.17",
-    "typedoc-plugin-markdown": "^4.10.0",
-    "typescript": "~5.9.3"
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.1",
+    "typescript": "catalog:"
   }
 }
