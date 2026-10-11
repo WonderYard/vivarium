@@ -159,17 +159,19 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
 
   const rules: (Rule & { conditionsStart: number; conditionsEnd: number })[] = [];
   let conditions: Condition[] = [];
-  const conditionsMap = new Map<string, [number, number]>();
+  const conditionsByRuleIndex = new Map<number, [number, number]>();
 
   rulesByElementIndex.forEach((elementRules) => {
-    elementRules.forEach((rule, index) => {
+    elementRules.forEach((rule) => {
       let conditionsStart: number;
       let conditionsEnd: number;
 
-      const conditionsKey = `${rule.fromId}:${index.toString()}`;
+      // Identify the rule by its original _rules index
+      const ruleIndex = _rules.indexOf(rule);
 
-      if (rule.fromType === "kind" && conditionsMap.has(conditionsKey)) {
-        [conditionsStart, conditionsEnd] = conditionsMap.get(conditionsKey) as [number, number];
+      // Only kinds reuse conditions
+      if (rule.fromType === "kind" && conditionsByRuleIndex.has(ruleIndex)) {
+        [conditionsStart, conditionsEnd] = conditionsByRuleIndex.get(ruleIndex) as [number, number];
       } else {
         conditionsStart = conditions.length;
 
@@ -181,7 +183,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
 
         conditionsEnd = conditions.length;
 
-        conditionsMap.set(conditionsKey, [conditionsStart, conditionsEnd]);
+        conditionsByRuleIndex.set(ruleIndex, [conditionsStart, conditionsEnd]);
       }
 
       rules.push({
