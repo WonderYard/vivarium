@@ -31,10 +31,7 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    dts({ include: ["lib"] }),
-    typegpu({}),
-  ],
+  plugins: [dts({ include: ["lib"] }), typegpu({})],
 
   resolve: {
     tsconfigPaths: true,

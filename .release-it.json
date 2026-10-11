@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/release-it/schema/release-it.json",
+  "hooks": {
+    "before:init": ["pnpm format:check", "pnpm vitest run", "pnpm build"]
+  },
+  "git": {
+    "requireBranch": "develop",
+    "commitMessage": "release: ${version}",
+    "tagName": "${version}",
+    "tagAnnotation": "${version}"
+  },
+  "npm": {
+    "publishPackageManager": "pnpm",
+    "publishArgs": ["--no-git-checks"]
+  },
+  "github": {
+    "release": true,
+    "releaseName": "${version}",
+    "web": true
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "ignoreRecommendedBump": true,
+      "preset": {
+        "name": "conventionalcommits"
+      }
+    }
+  }
+}

@@ -32,7 +32,8 @@
     "lint:fix": "oxlint --fix --type-aware --type-check",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "test": "vitest"
+    "test": "vitest",
+    "release": "release-it"
   },
   "dependencies": {
     "@typegpu/noise": "^0.12.0",
@@ -40,6 +41,7 @@
     "typegpu": "^0.12.6"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^12.0.2",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "^5.0.3",
     "@webgpu/types": "catalog:",
@@ -49,6 +51,7 @@
     "oxlint": "^1.86.0",
     "oxlint-tsgolint": "^7.0.2003",
     "playwright": "^1.63.0",
+    "release-it": "^21.1.0",
     "typescript": "catalog:",
     "unplugin-typegpu": "catalog:",
     "vite": "catalog:",
