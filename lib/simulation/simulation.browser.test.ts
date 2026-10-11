@@ -11,7 +11,7 @@ import {
 } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
-import { automatonLayout, gridLayout, compute, setSeed, setup } from "@/webgpu/setup";
+import { automatonLayout, gridLayout, compute, setup } from "@/webgpu/setup";
 import tgpu, { type TgpuRoot } from "typegpu";
 import * as d from "typegpu/data";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -110,8 +110,6 @@ async function gpuEvolve(
   const { width, height, ids } = inputGrid;
   const pipeline = root.createComputePipeline({ compute });
 
-  setSeed(root.createUniform(d.f32, 0));
-
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
@@ -139,6 +137,7 @@ async function gpuEvolve(
   const gridGroup = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
+    seed: root.createUniform(d.f32, 0),
     colors: colors0,
     newColors: colors1,
     ids: ids0,
@@ -1603,6 +1602,68 @@ describe("GPU simulation", () => {
       const fraction = (id: number) => result.filter((v) => v === id).length / result.length;
       expect(fraction(1)).toBeCloseTo(0.5, 1);
       expect(fraction(2)).toBeCloseTo(0.25, 1);
+    });
+  });
+
+  describe("multiple simulations", () => {
+    test("simulations stepped alternately match the same simulations run alone", async () => {
+      const vi = vivarium();
+      const a = vi.element("a", "#000000");
+      const b = vi.element("b", "#ff0000");
+      a.to(b).chance(1, 2);
+      b.to(a).count(b, 2, 3).chance(1, 3);
+      const automaton = vi.create();
+
+      const sizes = [8, 16];
+      const grids = sizes.map((size, n) =>
+        Array.from({ length: size * size }, (_, i) => ((i * (n + 3)) % 7 < 3 ? 1 : 0)),
+      );
+      const seeds = [
+        [0.11, 0.42, 0.73, 0.05, 0.9],
+        [0.66, 0.27, 0.38, 0.81, 0.19],
+      ];
+      const steps = seeds[0].length;
+
+      const create = (n: number) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = sizes[n];
+        canvas.height = sizes[n];
+        return setup({ canvas, automaton, initialGrid: grids[n] });
+      };
+
+      // Each update draws its seed from Math.random, so feed the seeds in call order.
+      const random = Math.random;
+      const withSeeds = async <T>(queue: number[], run: () => Promise<T>): Promise<T> => {
+        Math.random = () => queue.shift() ?? random();
+        try {
+          return await run();
+        } finally {
+          Math.random = random;
+        }
+      };
+
+      const alone: number[][] = [];
+      for (const n of [0, 1]) {
+        alone.push(
+          await withSeeds([...seeds[n]], async () => {
+            const sim = create(n);
+            for (let i = 0; i < steps; i++) sim.update();
+            return sim.readGrid();
+          }),
+        );
+      }
+
+      const interleaved = seeds[0].flatMap((s, i) => [s, seeds[1][i]]);
+      const together = await withSeeds(interleaved, async () => {
+        const sims = [create(0), create(1)];
+        for (let i = 0; i < steps; i++) {
+          sims[0].update();
+          sims[1].update();
+        }
+        return Promise.all(sims.map((sim) => sim.readGrid()));
+      });
+
+      expect(together).toEqual(alone);
     });
   });
 

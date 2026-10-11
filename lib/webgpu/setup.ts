@@ -10,7 +10,7 @@ import {
   WORKGROUP_SIZE,
 } from "@/common/constants";
 import { randf } from "@typegpu/noise";
-import tgpu, { type TgpuBindGroup, type TgpuUniform } from "typegpu";
+import tgpu, { type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import { compileGpuAutomaton } from "./compiler";
@@ -23,17 +23,11 @@ void device?.lost.then(() => {
   throw new Error("Device lost");
 });
 
-let frames = 0;
-let seed: TgpuUniform<d.F32>;
-
-export const setSeed = (s: TgpuUniform<d.F32>) => {
-  seed = s;
-};
-
 // layouts are predefined
 export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   wrapping: { uniform: d.u32 },
+  seed: { uniform: d.f32 },
   colors: { storage: d.arrayOf(d.u32), access: "mutable" },
   newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
   ids: { storage: d.arrayOf(d.u32), access: "mutable" },
@@ -238,7 +232,9 @@ export const compute = tgpu.computeFn({
   const element = automatonLayout.$.elements[id];
 
   // Seed once per invocation so that each CHANCE condition draws a fresh sample.
-  randf.seed3(d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), seed.$));
+  randf.seed3(
+    d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), gridLayout.$.seed),
+  );
 
   const ruleStart = element.ruleStart;
   const ruleEnd = element.ruleEnd;
@@ -378,8 +374,8 @@ export const setup = ({
   const root = tgpu.initFromDevice({ device });
   const pipeline = root.createComputePipeline({ compute });
 
-  frames = 0;
-  seed = root.createUniform(d.f32);
+  let frames = 0;
+  const seed = root.createUniform(d.f32);
 
   const { width, height } = canvas;
   const g = canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -431,6 +427,7 @@ export const setup = ({
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
+    seed,
     colors: colors0,
     newColors: colors1,
     ids: ids0,
@@ -440,6 +437,7 @@ export const setup = ({
   const gridGroup1 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
+    seed,
     colors: colors1,
     newColors: colors0,
     ids: ids1,
