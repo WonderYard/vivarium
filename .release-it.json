@@ -4,7 +4,7 @@
     "before:init": ["pnpm format:check", "pnpm vitest run", "pnpm build"]
   },
   "git": {
-    "requireBranch": "develop",
+    "requireBranch": "main",
     "commitMessage": "release: ${version}",
     "tagName": "${version}",
     "tagAnnotation": "${version}"
