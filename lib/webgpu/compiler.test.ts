@@ -500,6 +500,31 @@ describe("kind rule merging", () => {
     expect(gpu.gpuRules[2].conditionsStart).toBe(condStart);
     expect(gpu.gpuRules[2].conditionsEnd).toBe(condEnd);
   });
+
+  test("kind rule conditions are shared when extending elements have different numbers of own rules", () => {
+    const gpu = compile((vi) => {
+      const k = vi.kind("k");
+      const empty = vi.element("empty", "#000000");
+      vi.element("bare", "#111111", [k]);
+      const owner = vi.element("owner", "#222222", [k]);
+      const marker = vi.element("marker", "#333333");
+      const other = vi.element("other", "#444444");
+
+      owner.to(empty).count(other, 8);
+      k.to(empty).count(marker, 1);
+      k.to(empty).count(other, 1);
+    });
+
+    // 1 own condition + 1 condition per kind rule, each stored once
+    expect(gpu.gpuConditions).toHaveLength(3);
+
+    // bare: [kind rule 1, kind rule 2], owner: [own rule, kind rule 1, kind rule 2]
+    const [bareFirst, bareSecond, , ownerFirst, ownerSecond] = gpu.gpuRules;
+    expect(ownerFirst.conditionsStart).toBe(bareFirst.conditionsStart);
+    expect(ownerFirst.conditionsEnd).toBe(bareFirst.conditionsEnd);
+    expect(ownerSecond.conditionsStart).toBe(bareSecond.conditionsStart);
+    expect(ownerSecond.conditionsEnd).toBe(bareSecond.conditionsEnd);
+  });
 });
 
 // ── Multiple conditions per rule ────────────────────────────────────

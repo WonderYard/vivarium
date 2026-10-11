@@ -1606,6 +1606,51 @@ describe("GPU simulation", () => {
     });
   });
 
+  describe("kind rules", () => {
+    test("kind rules keep their own conditions on every extending element", async () => {
+      const vi = vivarium();
+      const k = vi.kind("k");
+      const empty = vi.element("empty", "#000000");
+      vi.element("bare", "#111111", [k]);
+      const owner = vi.element("owner", "#222222", [k]);
+      const marker = vi.element("marker", "#333333");
+      const other = vi.element("other", "#444444");
+      const first = vi.element("first", "#555555");
+      const second = vi.element("second", "#666666");
+
+      // owner's own rule never applies here; it puts owner's kind rules at different
+      // positions in its rule list than bare's.
+      owner.to(empty).count(other, 8);
+      k.to(first).count(marker, 1);
+      k.to(second).count(other, 1);
+      const automaton = vi.create();
+
+      // bare (1) and owner (2) each have exactly one marker (3) neighbor and no other (4) neighbor,
+      // so only the first kind rule's condition holds.
+      const initialGrid = [
+        [0, 3, 0, 0, 0, 3, 0, 0],
+        [0, 1, 0, 0, 0, 2, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+      ];
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 8;
+      canvas.height = 8;
+      const { evolve, readGrid } = setup({ canvas, automaton, initialGrid });
+      await evolve();
+      const result = await readGrid();
+
+      // Both step to first (5).
+      expect(result[1 * 8 + 1]).toBe(5);
+      expect(result[1 * 8 + 5]).toBe(5);
+    });
+  });
+
   describe("setup validation", () => {
     const createCanvas = (width: number, height: number): HTMLCanvasElement => {
       const canvas = document.createElement("canvas");
