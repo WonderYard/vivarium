@@ -18,6 +18,7 @@ export default defineConfig({
         "forest-fire": resolve(import.meta.dirname, "forest-fire/index.html"),
         "langtons-ant": resolve(import.meta.dirname, "langtons-ant/index.html"),
         "rule-110": resolve(import.meta.dirname, "rule-110/index.html"),
+        multiple: resolve(import.meta.dirname, "multiple/index.html"),
       },
     },
   },
