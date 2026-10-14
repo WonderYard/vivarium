@@ -834,6 +834,17 @@ test("helpers.odd returns odd numbers for cross", () => {
   expect(vi.helpers.odd()).toStrictEqual([1, 3]);
 });
 
+// ── Helpers: destructured ───────────────────────────────────────────
+
+test("helpers work when destructured", () => {
+  const { between, not, even, odd } = vivarium("cross").helpers;
+
+  expect(between(1, 3)).toStrictEqual([1, 2, 3]);
+  expect(not(2)).toStrictEqual([0, 1, 3, 4]);
+  expect(even()).toStrictEqual([0, 2, 4]);
+  expect(odd()).toStrictEqual([1, 3]);
+});
+
 // ── Helpers used in count conditions ────────────────────────────────
 
 test("helpers.not can be used in count condition", () => {

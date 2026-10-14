@@ -13,7 +13,7 @@ export class Helpers {
    * @param value - A number or array of numbers to exclude.
    * @returns An array of all valid count values minus the excluded ones.
    */
-  public not(value: number | number[]): number[] {
+  public not = (value: number | number[]): number[] => {
     const not =
       this.neighborhoodName === "cross"
         ? new Set([0, 1, 2, 3, 4])
@@ -28,7 +28,7 @@ export class Helpers {
     }
 
     return Array.from(not);
-  }
+  };
 
   /**
    * Generates a range of whole numbers from `min` to `max` (inclusive).
@@ -37,7 +37,7 @@ export class Helpers {
    * @param max - The end of the range (must be ≤ 8 and greater than `min`). For cross neighborhoods, should not exceed 4.
    * @returns An array of numbers from `min` to `max`.
    */
-  public between(min: number, max: number): number[] {
+  public between = (min: number, max: number): number[] => {
     if (min < 0) {
       throw new Error("min cannot be less than 0");
     }
@@ -54,23 +54,23 @@ export class Helpers {
     }
 
     return range;
-  }
+  };
 
   /**
    * Returns all even count values (zero included) for the current neighborhood type.
    *
    * @returns `[0, 2, 4, 6, 8]` for square, `[0, 2, 4]` for cross.
    */
-  public even(): number[] {
+  public even = (): number[] => {
     return this.neighborhoodName === "cross" ? [0, 2, 4] : [0, 2, 4, 6, 8];
-  }
+  };
 
   /**
    * Returns all odd count values for the current neighborhood type.
    *
    * @returns `[1, 3, 5, 7]` for square, `[1, 3]` for cross.
    */
-  public odd(): number[] {
+  public odd = (): number[] => {
     return this.neighborhoodName === "cross" ? [1, 3] : [1, 3, 5, 7];
-  }
+  };
 }
