@@ -153,11 +153,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
       } else {
         conditionsStart = conditions.length;
 
-        if (Array.isArray(rule.when)) {
-          conditions = conditions.concat(rule.when);
-        } else {
-          conditions = conditions.concat([rule.when]);
-        }
+        conditions = conditions.concat(rule.when);
 
         conditionsEnd = conditions.length;
 
