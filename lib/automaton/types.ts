@@ -28,6 +28,16 @@ export type Element = {
   extensions: string[];
 };
 
+/*
+ * ADR: optional targets in rules and conditions
+ *
+ * `Rule.to`, `Count.check`, `Is.compare` and `Is.with` accept `undefined` even though the
+ * blueprint builder always sets them. An automaton can also be assembled step by step outside
+ * the builder (for example in an editor where a rule exists before its target is picked), and
+ * these types let such a partial automaton be stored with the library's own types. Callers must
+ * drop incomplete rules and conditions before passing the automaton to `setup`/`setAutomaton`;
+ * the compiler throws on any `undefined` it still finds instead of compiling a wrong rule.
+ */
 export type Rule = {
   fromId: string;
   fromType: RefType;
