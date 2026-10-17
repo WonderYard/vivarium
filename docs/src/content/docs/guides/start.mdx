@@ -165,7 +165,8 @@ canvas.height = size;
 ```
 
 <Aside type="note" title="Power-of-2 constraint">
-  For performance reasons, canvas width and height must be powers of 2 (e.g. 64, 128, 256).
+  For performance reasons, canvas width and height must be powers of 2 and at least 8 (e.g. 8, 64,
+  128, 256).
 </Aside>
 
 <Aside type="tip" title="Image rendering">
@@ -181,17 +182,22 @@ const { update, draw } = await setup({ canvas, automaton: life });
 
 Optionally, you can pass an `initialGrid` to the `setup` function. `initialGrid` is a list of element indices that will pre-populate the canvas. The list can be 1d (flat list of indices) or 2d (list of rows of indices). Its flattened length must equal `width * height`.
 
-To make an example, assuming the canvas has `size = 3`:
+To make an example, assuming the canvas has `size = 8` (the smallest allowed):
 
 ```typescript
 const { update, draw } = await setup({
-  canvas, // size = 3
+  canvas, // size = 8
   automaton: life,
   // list of rows (2d)
   initialGrid: [
-    [0, 0, 0],
-    [0, 1, 0], // one alien in the middle of space
-    [0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0], // one alien in the middle of space
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
   ],
 });
 ```
