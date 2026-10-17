@@ -31,7 +31,7 @@ canvas.width = size;
 canvas.height = size;
 
 // Pass the canvas and the automaton you created to the setup function:
-const { update, draw } = setup({ canvas, automaton: life });
+const { update, draw } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that updates and draws the simulation:
 const loop = async () => {

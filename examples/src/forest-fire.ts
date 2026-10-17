@@ -29,7 +29,7 @@ const size = 256;
 canvas.width = size;
 canvas.height = size;
 
-const { update, draw } = setup({ canvas, automaton: forest });
+const { update, draw } = await setup({ canvas, automaton: forest });
 
 const loop = async () => {
   update();

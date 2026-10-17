@@ -43,7 +43,7 @@ canvas.style.imageRendering = "pixelated";
 canvas.width = size;
 canvas.height = size;
 
-const { update, draw } = setup({ canvas, automaton: rule110, initialGrid });
+const { update, draw } = await setup({ canvas, automaton: rule110, initialGrid });
 
 const loop = async () => {
   update();

@@ -65,7 +65,7 @@ canvas.style.imageRendering = "pixelated";
 canvas.width = size;
 canvas.height = size;
 
-const { update, draw } = setup({ canvas, automaton: langtonsAnt, initialGrid });
+const { update, draw } = await setup({ canvas, automaton: langtonsAnt, initialGrid });
 
 let before = performance.now();
 

@@ -1396,7 +1396,7 @@ describe("GPU simulation", () => {
       ];
 
       const canvas = createCanvas(8, 8);
-      const { readGrid } = setup({ canvas, automaton, initialGrid });
+      const { readGrid } = await setup({ canvas, automaton, initialGrid });
       const result = await readGrid();
 
       expect(result).toEqual(initialGrid.flat());
@@ -1422,7 +1422,7 @@ describe("GPU simulation", () => {
       ];
 
       const canvas = createCanvas(8, 8);
-      const { evolve, readGrid } = setup({ canvas, automaton, initialGrid });
+      const { evolve, readGrid } = await setup({ canvas, automaton, initialGrid });
       await evolve();
       const result = await readGrid();
 
@@ -1438,7 +1438,7 @@ describe("GPU simulation", () => {
       const initialGrid = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0));
 
       const canvas = createCanvas(8, 8);
-      const { readGrid, writeCell } = setup({
+      const { readGrid, writeCell } = await setup({
         canvas,
         automaton,
         initialGrid,
@@ -1450,13 +1450,13 @@ describe("GPU simulation", () => {
       expect(result).toEqual(Array.from({ length: 64 }, (_, i) => (i === 1 * 8 + 1 ? 1 : 0)));
     });
 
-    test("writeCell throws on out-of-bounds index", () => {
+    test("writeCell throws on out-of-bounds index", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { writeCell } = setup({
+      const { writeCell } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1466,14 +1466,14 @@ describe("GPU simulation", () => {
       expect(() => writeCell(-1, 0)).toThrow("out of bounds");
     });
 
-    test("writeCell throws on invalid element index", () => {
+    test("writeCell throws on invalid element index", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { writeCell } = setup({
+      const { writeCell } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1490,7 +1490,7 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { readGrid, writeGrid } = setup({
+      const { readGrid, writeGrid } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1503,13 +1503,13 @@ describe("GPU simulation", () => {
       expect(result).toEqual(snapshot);
     });
 
-    test("writeGrid throws on wrong length", () => {
+    test("writeGrid throws on wrong length", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { writeGrid } = setup({
+      const { writeGrid } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1518,14 +1518,14 @@ describe("GPU simulation", () => {
       expect(() => writeGrid([0, 0])).toThrow("does not match");
     });
 
-    test("writeGrid throws on invalid element index", () => {
+    test("writeGrid throws on invalid element index", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { writeGrid } = setup({
+      const { writeGrid } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1542,7 +1542,7 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { readGrid, writeCellAt } = setup({
+      const { readGrid, writeCellAt } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1554,13 +1554,13 @@ describe("GPU simulation", () => {
       expect(result).toEqual(Array.from({ length: 64 }, (_, i) => (i === 1 * 8 + 1 ? 1 : 0)));
     });
 
-    test("writeCellAt throws on out-of-bounds coordinates", () => {
+    test("writeCellAt throws on out-of-bounds coordinates", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
-      const { writeCellAt } = setup({
+      const { writeCellAt } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
@@ -1590,7 +1590,7 @@ describe("GPU simulation", () => {
       canvas.width = size;
       canvas.height = size;
 
-      const { update, readGrid } = setup({
+      const { update, readGrid } = await setup({
         canvas,
         automaton,
         initialGrid: Array.from({ length: size * size }, () => 0),
@@ -1646,7 +1646,7 @@ describe("GPU simulation", () => {
       for (const n of [0, 1]) {
         alone.push(
           await withSeeds([...seeds[n]], async () => {
-            const sim = create(n);
+            const sim = await create(n);
             for (let i = 0; i < steps; i++) sim.update();
             return sim.readGrid();
           }),
@@ -1655,7 +1655,7 @@ describe("GPU simulation", () => {
 
       const interleaved = seeds[0].flatMap((s, i) => [s, seeds[1][i]]);
       const together = await withSeeds(interleaved, async () => {
-        const sims = [create(0), create(1)];
+        const sims = await Promise.all([create(0), create(1)]);
         for (let i = 0; i < steps; i++) {
           sims[0].update();
           sims[1].update();
@@ -1702,7 +1702,7 @@ describe("GPU simulation", () => {
       const canvas = document.createElement("canvas");
       canvas.width = 8;
       canvas.height = 8;
-      const { evolve, readGrid } = setup({ canvas, automaton, initialGrid });
+      const { evolve, readGrid } = await setup({ canvas, automaton, initialGrid });
       await evolve();
       const result = await readGrid();
 
@@ -1740,18 +1740,18 @@ describe("GPU simulation", () => {
 
     // TypeGPU allocates GPU buffers lazily, so run a frame first to make them all exist.
     test("frees every buffer the simulation created", async () => {
-      const { evolve, destroy } = create();
+      const { evolve, destroy } = await create();
       await evolve();
 
       // 8 grid buffers (dimensions, wrapping, seed, colors ×2, ids ×2, staging) + 4 automaton buffers.
       expect(countDestroyedBuffers(destroy)).toBe(12);
     });
 
-    test("setAutomaton frees the previous automaton buffers", () => {
+    test("setAutomaton frees the previous automaton buffers", async () => {
       const vi = vivarium();
       vi.element("a", "#000000");
       const automaton = vi.create();
-      const { update, setAutomaton, destroy } = create();
+      const { update, setAutomaton, destroy } = await create();
       update();
 
       expect(countDestroyedBuffers(() => setAutomaton({ automaton }))).toBe(4);
@@ -1759,7 +1759,7 @@ describe("GPU simulation", () => {
     });
 
     test("update and draw do nothing after destroy", async () => {
-      const { update, draw, evolve, destroy } = create();
+      const { update, draw, evolve, destroy } = await create();
       destroy();
       destroy();
 
@@ -1769,7 +1769,7 @@ describe("GPU simulation", () => {
     });
 
     test("a draw in flight resolves when destroyed", async () => {
-      const { update, draw, destroy } = create();
+      const { update, draw, destroy } = await create();
       update();
       const drawing = draw();
       destroy();
@@ -1778,8 +1778,8 @@ describe("GPU simulation", () => {
     });
 
     test("a new simulation works after destroying another", async () => {
-      create().destroy();
-      const { evolve, readGrid } = create();
+      (await create()).destroy();
+      const { evolve, readGrid } = await create();
       await evolve();
 
       expect(await readGrid()).toEqual(Array.from({ length: 64 }, () => 0));
@@ -1794,82 +1794,82 @@ describe("GPU simulation", () => {
       return canvas;
     };
 
-    test("wrapping mode throws on non-power-of-2 width", () => {
+    test("wrapping mode throws on non-power-of-2 width", async () => {
       const vi = vivarium("square", { wrapping: true });
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(9, 8);
 
-      expect(() => setup({ canvas, automaton })).toThrow("powers of 2");
+      await expect(setup({ canvas, automaton })).rejects.toThrow("powers of 2");
     });
 
-    test("wrapping mode throws on non-power-of-2 height", () => {
+    test("wrapping mode throws on non-power-of-2 height", async () => {
       const vi = vivarium("square", { wrapping: true });
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 9);
 
-      expect(() => setup({ canvas, automaton })).toThrow("powers of 2");
+      await expect(setup({ canvas, automaton })).rejects.toThrow("powers of 2");
     });
 
-    test("wrapping mode accepts power-of-2 dimensions", () => {
+    test("wrapping mode accepts power-of-2 dimensions", async () => {
       const vi = vivarium("square", { wrapping: true });
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
 
-      expect(() =>
+      await expect(
         setup({
           canvas,
           automaton,
           initialGrid: Array.from({ length: 64 }, () => 0),
         }),
-      ).not.toThrow();
+      ).resolves.toBeDefined();
     });
 
-    test("non-wrapping mode throws on non-power-of-2 dimensions", () => {
+    test("non-wrapping mode throws on non-power-of-2 dimensions", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(9, 10);
 
-      expect(() =>
+      await expect(
         setup({
           canvas,
           automaton,
           initialGrid: Array.from({ length: 90 }, () => 0),
         }),
-      ).toThrow("powers of 2");
+      ).rejects.toThrow("powers of 2");
     });
 
-    test("throws when initialGrid length does not match dimensions", () => {
+    test("throws when initialGrid length does not match dimensions", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
 
-      expect(() =>
+      await expect(
         setup({
           canvas,
           automaton,
           initialGrid: [0, 0, 0, 0, 0],
         }),
-      ).toThrow("does not match");
+      ).rejects.toThrow("does not match");
     });
 
-    test("throws when 2d initialGrid flattened length does not match dimensions", () => {
+    test("throws when 2d initialGrid flattened length does not match dimensions", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(8, 8);
 
-      expect(() =>
+      await expect(
         setup({
           canvas,
           automaton,
@@ -1878,17 +1878,17 @@ describe("GPU simulation", () => {
             [0, 0, 0, 0, 0, 0, 0, 0],
           ],
         }),
-      ).toThrow("does not match");
+      ).rejects.toThrow("does not match");
     });
 
-    test("throws when grid dimensions are smaller than MIN_GRID_SIZE", () => {
+    test("throws when grid dimensions are smaller than MIN_GRID_SIZE", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
       const canvas = createCanvas(4, 4);
 
-      expect(() => setup({ canvas, automaton })).toThrow(`>= ${MIN_GRID_SIZE}`);
+      await expect(setup({ canvas, automaton })).rejects.toThrow(`>= ${MIN_GRID_SIZE}`);
     });
   });
 });

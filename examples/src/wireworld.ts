@@ -67,7 +67,7 @@ canvas.style.imageRendering = "pixelated";
 canvas.width = size;
 canvas.height = size;
 
-const { update, draw, writeCellAt, readGrid } = setup({
+const { update, draw, writeCellAt, readGrid } = await setup({
   canvas,
   automaton: wireworld,
   initialGrid,

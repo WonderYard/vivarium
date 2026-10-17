@@ -15,13 +15,31 @@ import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import { compileGpuAutomaton } from "./compiler";
 
-const adapter = await navigator.gpu.requestAdapter();
+// The device is shared by all simulations and requested on the first setup call, so
+// importing the library works without WebGPU (SSR, Node, unsupported browsers).
+let devicePromise: Promise<GPUDevice> | undefined;
 
-const device = await adapter?.requestDevice();
+const getDevice = (): Promise<GPUDevice> => {
+  devicePromise ??= (async () => {
+    const adapter = await navigator.gpu?.requestAdapter();
+    const device = await adapter?.requestDevice();
 
-void device?.lost.then(() => {
-  throw new Error("Device lost");
-});
+    if (!device) {
+      throw new Error("WebGPU is not available");
+    }
+
+    void device.lost.then(() => {
+      throw new Error("Device lost");
+    });
+
+    return device;
+  })().catch((error: unknown) => {
+    devicePromise = undefined;
+    throw error;
+  });
+
+  return devicePromise;
+};
 
 // layouts are predefined
 export const gridLayout = tgpu.bindGroupLayout({
@@ -341,13 +359,15 @@ export const compute = tgpu.computeFn({
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
  * with the defined elements unless an `initialGrid` is provided.
  *
+ * Async because the first call requests the WebGPU device, which later simulations share.
+ *
  * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
- * @returns An object with:
+ * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — reads the latest GPU state and renders it to the canvas (async).
  * - `evolve` — convenience shorthand for `update()` + `await draw()`.
@@ -358,7 +378,7 @@ export const compute = tgpu.computeFn({
  * - `setAutomaton` — replaces the automaton rules.
  * - `destroy` — frees the GPU resources; `update`, `draw` and `evolve` do nothing afterwards.
  */
-export const setup = ({
+export const setup = async ({
   canvas,
   automaton,
   initialGrid,
@@ -367,10 +387,7 @@ export const setup = ({
   automaton: Automaton;
   initialGrid?: number[] | number[][];
 }) => {
-  if (!device) {
-    throw Error("No adapter");
-  }
-
+  const device = await getDevice();
   const root = tgpu.initFromDevice({ device });
   const pipeline = root.createComputePipeline({ compute });
 

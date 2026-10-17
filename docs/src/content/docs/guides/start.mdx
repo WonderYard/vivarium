@@ -176,7 +176,7 @@ canvas.height = size;
 Pass the canvas and the automaton to `setup`:
 
 ```typescript
-const { update, draw } = setup({ canvas, automaton: life });
+const { update, draw } = await setup({ canvas, automaton: life });
 ```
 
 Optionally, you can pass an `initialGrid` to the `setup` function. `initialGrid` is a list of element indices that will pre-populate the canvas. The list can be 1d (flat list of indices) or 2d (list of rows of indices). Its flattened length must equal `width * height`.
@@ -184,7 +184,7 @@ Optionally, you can pass an `initialGrid` to the `setup` function. `initialGrid`
 To make an example, assuming the canvas has `size = 3`:
 
 ```typescript
-const { update, draw } = setup({
+const { update, draw } = await setup({
   canvas, // size = 3
   automaton: life,
   // list of rows (2d)
@@ -266,7 +266,7 @@ canvas.width = size;
 canvas.height = size;
 
 // Pass the canvas and the automaton you created to the setup function:
-const { update, draw } = setup({ canvas, automaton: life });
+const { update, draw } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that updates and draws the simulation:
 const loop = async () => {

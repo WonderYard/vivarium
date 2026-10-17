@@ -66,7 +66,7 @@ for (const card of cards) {
   canvas.height = size;
 
   // Each setup call gets its own buffers, step counter and random seed.
-  const { update, draw } = setup({ canvas, automaton: coralGrowth, initialGrid });
+  const { update, draw } = await setup({ canvas, automaton: coralGrowth, initialGrid });
 
   let paused = false;
   button.onclick = () => {

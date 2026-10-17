@@ -79,7 +79,7 @@ canvas.width = size;
 canvas.height = size;
 
 // Pass the canvas and the automaton you created to the setup function:
-const { evolve } = setup({ canvas, automaton: life });
+const { evolve } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that evolves the canvas:
 const loop = async () => {
