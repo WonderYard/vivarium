@@ -8,14 +8,14 @@ type GpuElementType = d.Infer<typeof GpuElement>;
 type GpuConditionType = d.Infer<typeof GpuCondition>;
 type GpuNeighborhoodType = 0 | 1;
 
-const assertMaxSupportedId = (elementIds: number[]) => {
-  if (elementIds.some((index) => index > 31)) {
-    console.warn(
-      `Elements with an index greater than 31 and extending one or more kinds are not allowed when they are involved in conditions referencing kinds.
-To assign a lower index, move the elements with extensions higher in the definition list or reduce the overall number of elements and kinds.`,
-    );
-    throw new Error("Element in condition involving kinds has an index greater than 31");
+const compileKindIndex = (kindId: string, automaton: Automaton) => {
+  const kindIndex = automaton.kinds.findIndex((kind) => kind.id === kindId);
+
+  if (kindIndex === -1) {
+    throw new Error(`Condition references "${kindId}", which is neither an element nor a kind.`);
   }
+
+  return kindIndex;
 };
 
 const compileCheckId = (checkId: string, gpuCondition: GpuConditionType, automaton: Automaton) => {
@@ -29,19 +29,7 @@ const compileCheckId = (checkId: string, gpuCondition: GpuConditionType, automat
     gpuCondition.checkId = elementId;
   } else {
     // check kind id
-    const elementIds = elements
-      .map((element, index) => ({ ...element, index }))
-      .filter((element) => element.extensions.some((extension) => extension === checkId))
-      .map((element) => element.index);
-
-    assertMaxSupportedId(elementIds);
-
-    const packedIds = elementIds.reduce((acc, val) => {
-      acc |= 1 << val;
-      return acc;
-    }, 0);
-
-    gpuCondition.checkId = packedIds;
+    gpuCondition.checkId = compileKindIndex(checkId, automaton);
     gpuCondition.opcode = Opcode.COUNT_KIND;
   }
 };
@@ -99,19 +87,7 @@ const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Aut
 
       gpuCondition.countOrWithId = withId;
     } else {
-      const elementIds = automaton.elements
-        .map((element, index) => ({ ...element, index }))
-        .filter((element) => element.extensions.some((extension) => extension === _with))
-        .map((element) => element.index);
-
-      assertMaxSupportedId(elementIds);
-
-      const packedIds = elementIds.reduce((acc, val) => {
-        acc |= 1 << val;
-        return acc;
-      }, 0);
-
-      gpuCondition.countOrWithId = packedIds;
+      gpuCondition.countOrWithId = compileKindIndex(_with, automaton);
       gpuCondition.opcode = Opcode.IS_KIND;
     }
   } else {
@@ -125,6 +101,8 @@ export type GpuAutomaton = {
   gpuElements: GpuElementType[];
   gpuRules: GpuRuleType[];
   gpuConditions: GpuConditionType[];
+  gpuKindWords: number;
+  gpuKindBits: number[];
 };
 
 export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
@@ -269,10 +247,26 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
     }
   });
 
+  // Membership table: each element has a row of gpuKindWords words, with bit k set when it extends kind k.
+  const gpuKindWords = Math.max(Math.ceil(automaton.kinds.length / 32), 1);
+  const gpuKindBits = Array.from<number>({ length: elements.length * gpuKindWords }).fill(0);
+
+  elements.forEach((element, index) => {
+    automaton.kinds.forEach((kind, kindIndex) => {
+      if (element.extensions.includes(kind.id)) {
+        const word = index * gpuKindWords + Math.floor(kindIndex / 32);
+        // >>> 0 keeps bit 31 unsigned
+        gpuKindBits[word] = (gpuKindBits[word] | (1 << (kindIndex % 32))) >>> 0;
+      }
+    });
+  });
+
   return {
     gpuNeighborhood: automaton.neighborhood === "square" ? 1 : 0,
     gpuElements,
     gpuRules,
     gpuConditions,
+    gpuKindWords,
+    gpuKindBits,
   };
 };
