@@ -1747,6 +1747,17 @@ describe("GPU simulation", () => {
       expect(countDestroyedBuffers(destroy)).toBe(12);
     });
 
+    test("setAutomaton frees the previous automaton buffers", () => {
+      const vi = vivarium();
+      vi.element("a", "#000000");
+      const automaton = vi.create();
+      const { update, setAutomaton, destroy } = create();
+      update();
+
+      expect(countDestroyedBuffers(() => setAutomaton({ automaton }))).toBe(4);
+      destroy();
+    });
+
     test("update and draw do nothing after destroy", async () => {
       const { update, draw, evolve, destroy } = create();
       destroy();

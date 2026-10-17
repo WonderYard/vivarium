@@ -477,6 +477,8 @@ export const setup = ({
       conditions: conditionsBuffer,
     });
 
+    // Work already submitted with the old buffers still completes after destroy().
+    automatonBuffers.forEach((buffer) => buffer.destroy());
     automatonBuffers = [
       neighborhood.buffer,
       elements.buffer,
