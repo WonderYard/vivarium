@@ -19,6 +19,10 @@ import { compileGpuAutomaton } from "./compiler";
 // importing the library works without WebGPU (SSR, Node, unsupported browsers).
 let devicePromise: Promise<GPUDevice> | undefined;
 
+// One per live simulation, removed by destroy(). Kept here rather than as a device.lost
+// callback per simulation, which would keep a destroyed simulation in memory until the device dies.
+const deviceLostListeners = new Set<(info: GPUDeviceLostInfo) => void>();
+
 const getDevice = (): Promise<GPUDevice> => {
   devicePromise ??= (async () => {
     const adapter = await navigator.gpu?.requestAdapter();
@@ -28,8 +32,11 @@ const getDevice = (): Promise<GPUDevice> => {
       throw new Error("WebGPU is not available");
     }
 
-    void device.lost.then(() => {
-      throw new Error("Device lost");
+    // A lost device can't be revived: forget it so the next setup requests a new one.
+    void device.lost.then((info) => {
+      devicePromise = undefined;
+      deviceLostListeners.forEach((listener) => listener(info));
+      deviceLostListeners.clear();
     });
 
     return device;
@@ -360,6 +367,7 @@ export const compute = tgpu.computeFn({
  * with the defined elements unless an `initialGrid` is provided.
  *
  * Async because the first call requests the WebGPU device, which later simulations share.
+ * If the device is lost, the next call requests a new one.
  *
  * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
  *
@@ -367,6 +375,7 @@ export const compute = tgpu.computeFn({
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
+ * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation stops like after `destroy`; call `setup` again to recreate it on a new device.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — reads the latest GPU state and renders it to the canvas (async).
@@ -382,10 +391,12 @@ export const setup = async ({
   canvas,
   automaton,
   initialGrid,
+  onDeviceLost,
 }: {
   canvas: HTMLCanvasElement;
   automaton: Automaton;
   initialGrid?: number[] | number[][];
+  onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
   const device = await getDevice();
   const root = tgpu.initFromDevice({ device });
@@ -703,8 +714,8 @@ export const setup = async ({
     try {
       await rawBuffer.mapAsync(GPUMapMode.READ);
     } catch (error) {
-      // destroy() during the await rejects the pending map; the caller's loop shouldn't crash.
-      if (destroyed) {
+      // destroy() or a lost device during the await aborts the pending map; the caller's loop shouldn't crash.
+      if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
       throw error;
@@ -735,6 +746,7 @@ export const setup = async ({
       return;
     }
     destroyed = true;
+    deviceLostListeners.delete(handleDeviceLost);
 
     // root.destroy() doesn't free buffers of a root made with initFromDevice, so we do it ourselves.
     [
@@ -750,6 +762,14 @@ export const setup = async ({
     ].forEach((buffer) => buffer.destroy());
     root.destroy();
   };
+
+  const handleDeviceLost = (info: GPUDeviceLostInfo): void => {
+    // Every resource of a lost device is gone, so the simulation is as good as destroyed.
+    destroyed = true;
+    onDeviceLost?.(info);
+  };
+
+  deviceLostListeners.add(handleDeviceLost);
 
   return {
     update,

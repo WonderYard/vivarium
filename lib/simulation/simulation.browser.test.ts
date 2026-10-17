@@ -1786,6 +1786,81 @@ describe("GPU simulation", () => {
     });
   });
 
+  describe("device loss", () => {
+    const initialGrid = Array.from({ length: 64 }, () => 0);
+
+    const create = (onDeviceLost?: (info: GPUDeviceLostInfo) => void) => {
+      const vi = vivarium();
+      vi.element("a", "#000000");
+      const canvas = document.createElement("canvas");
+      canvas.width = 8;
+      canvas.height = 8;
+      return setup({ canvas, automaton: vi.create(), initialGrid, onDeviceLost });
+    };
+
+    // Runs a frame and catches the shared device while the simulation allocates its buffers.
+    const createAndCaptureDevice = async (onDeviceLost?: (info: GPUDeviceLostInfo) => void) => {
+      const original = Object.getOwnPropertyDescriptor(GPUDevice.prototype, "createBuffer")!;
+      let device: GPUDevice | undefined;
+      GPUDevice.prototype.createBuffer = function (this: GPUDevice, descriptor) {
+        // oxlint-disable-next-line typescript/no-this-alias -- capturing the device is the point
+        device = this;
+        return (original.value as GPUDevice["createBuffer"]).call(this, descriptor);
+      };
+      try {
+        const simulation = await create(onDeviceLost);
+        await simulation.evolve();
+        return { simulation, device: device! };
+      } finally {
+        Object.defineProperty(GPUDevice.prototype, "createBuffer", original);
+      }
+    };
+
+    test("setup after a lost device gets a new one", async () => {
+      const { device } = await createAndCaptureDevice();
+      device.destroy();
+      await device.lost;
+
+      const { evolve, readGrid } = await create();
+      await evolve();
+      expect(await readGrid()).toEqual(initialGrid);
+    });
+
+    test("onDeviceLost is called and update and draw do nothing afterwards", async () => {
+      const reasons: string[] = [];
+      const { simulation, device } = await createAndCaptureDevice((info) => {
+        reasons.push(info.reason);
+      });
+      device.destroy();
+      await device.lost;
+
+      expect(reasons).toEqual(["destroyed"]);
+      expect(() => simulation.update()).not.toThrow();
+      await expect(simulation.evolve()).resolves.toBeUndefined();
+    });
+
+    test("onDeviceLost is not called after destroy", async () => {
+      let called = false;
+      const { simulation, device } = await createAndCaptureDevice(() => {
+        called = true;
+      });
+      simulation.destroy();
+      device.destroy();
+      await device.lost;
+
+      expect(called).toBe(false);
+    });
+
+    test("a draw in flight resolves when the device is lost", async () => {
+      const { simulation, device } = await createAndCaptureDevice();
+      simulation.update();
+      const drawing = simulation.draw();
+      device.destroy();
+
+      await expect(drawing).resolves.toBeUndefined();
+    });
+  });
+
   describe("setup validation", () => {
     const createCanvas = (width: number, height: number): HTMLCanvasElement => {
       const canvas = document.createElement("canvas");
