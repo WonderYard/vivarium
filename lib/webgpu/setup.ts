@@ -479,6 +479,12 @@ export const setup = async ({
     newIds: ids0,
   });
 
+  // Each update reads the current grid, writes the other one and increments `frames`,
+  // so the parity of `frames` tells which one holds the latest state.
+  const grid0 = { ids: ids0, group: gridGroup0 };
+  const grid1 = { ids: ids1, group: gridGroup1 };
+  const currentGrid = () => (frames % 2 === 0 ? grid0 : grid1);
+
   // using let because we can reassign this when we update the automaton
   let automatonGroup: TgpuBindGroup;
   let automatonBuffers: { destroy: () => void }[] = [];
@@ -563,8 +569,7 @@ export const setup = async ({
   const readGrid = async (): Promise<number[]> => {
     assertNotDestroyed();
 
-    const currentIds = frames % 2 === 0 ? ids0 : ids1;
-    const result = await currentIds.read();
+    const result = await currentGrid().ids.read();
     return Array.from(result);
   };
 
@@ -594,8 +599,7 @@ export const setup = async ({
       );
     }
 
-    const currentIds = frames % 2 === 0 ? ids0 : ids1;
-    device.queue.writeBuffer(currentIds.buffer, index * 4, new Uint32Array([elementIndex]));
+    device.queue.writeBuffer(currentGrid().ids.buffer, index * 4, new Uint32Array([elementIndex]));
   };
 
   /**
@@ -653,8 +657,7 @@ export const setup = async ({
       newIds[i] = elementIndex;
     }
 
-    const currentIds = frames % 2 === 0 ? ids0 : ids1;
-    device.queue.writeBuffer(currentIds.buffer, 0, newIds);
+    device.queue.writeBuffer(currentGrid().ids.buffer, 0, newIds);
   };
 
   /**
@@ -673,7 +676,7 @@ export const setup = async ({
 
     pipeline
       .with(automatonGroup)
-      .with(frames % 2 === 0 ? gridGroup0 : gridGroup1)
+      .with(currentGrid().group)
       .dispatchWorkgroups(WORKGROUP_COUNT_W, WORKGROUP_COUNT_H);
 
     frames++;
@@ -690,7 +693,7 @@ export const setup = async ({
 
     renderPipeline
       .with(automatonGroup)
-      .with(frames % 2 === 0 ? gridGroup0 : gridGroup1)
+      .with(currentGrid().group)
       .withColorAttachment({ view: context })
       .draw(3);
   };
