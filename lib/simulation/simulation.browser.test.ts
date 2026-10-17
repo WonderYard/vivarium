@@ -35,30 +35,6 @@ const toRows = (g: Grid): number[][] => {
   return rows;
 };
 
-/** Embed a small grid pattern into the top-left of an 8×8 grid (padded with zeros). */
-const grid8 = (rows: number[][]): Grid => {
-  const patternH = rows.length;
-  const patternW = rows[0].length;
-  const full: number[][] = [];
-  for (let y = 0; y < 8; y++) {
-    const row: number[] = [];
-    for (let x = 0; x < 8; x++) {
-      row.push(y < patternH && x < patternW ? rows[y][x] : 0);
-    }
-    full.push(row);
-  }
-  return grid(full);
-};
-
-/** Extract the top-left subgrid of the given size from a full grid. */
-const subRows = (g: Grid, w: number, h: number): number[][] => {
-  const rows: number[][] = [];
-  for (let y = 0; y < h; y++) {
-    rows.push(g.ids.slice(y * g.width, y * g.width + w));
-  }
-  return rows;
-};
-
 // ── ASCII grid visualization ────────────────────────────────────────
 
 const formatGrid = (g: Grid, symbols: string[]): string[] => {
@@ -204,11 +180,7 @@ describe("GPU simulation", () => {
 
   describe("unconditional rules", () => {
     test("oscillator: every cell toggles between two elements", async () => {
-      const before = grid8([
-        [0, 1, 0],
-        [1, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0, 1]]);
 
       const after = await step(
         root,
@@ -221,19 +193,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(subRows(after, 3, 3)).toEqual([
-        [1, 0, 1],
-        [0, 1, 1],
-        [1, 1, 1],
-      ]);
+      expect(toRows(after)).toEqual([[1, 0]]);
     });
 
     test("oscillator returns to original state after two steps", async () => {
-      const original = grid8([
-        [0, 1, 0],
-        [1, 0, 1],
-        [0, 0, 0],
-      ]);
+      const original = grid([[0, 1]]);
 
       const vi = vivarium();
       const a = vi.element("a", "#ff0000");
@@ -248,11 +212,7 @@ describe("GPU simulation", () => {
     });
 
     test("unconditional rule to self keeps grid unchanged", async () => {
-      const before = grid8([
-        [0, 1, 0],
-        [1, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0, 1]]);
 
       const after = await step(
         root,
@@ -273,11 +233,7 @@ describe("GPU simulation", () => {
 
   describe("no matching rule", () => {
     test("cells with no rules remain unchanged", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -291,11 +247,7 @@ describe("GPU simulation", () => {
     });
 
     test("cells stay when no rule condition matches", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 1, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -314,100 +266,62 @@ describe("GPU simulation", () => {
   // ── COUNT_ELEMENT condition ──────────────────────────────────
 
   describe("COUNT_ELEMENT condition", () => {
+    const buildLife = (vi: ReturnType<typeof vivarium>) => {
+      const dead = vi.element(".", "#000000");
+      const alive = vi.element("#", "#ffffff");
+      dead.to(alive).count(alive, 3);
+      alive.to(alive).count(alive, 2, 3);
+      alive.to(dead);
+    };
+
     test("Game of Life: birth rule — dead cell with exactly 3 alive neighbors becomes alive", async () => {
-      const before = grid8([
-        [1, 1, 0],
-        [1, 0, 0],
-        [0, 0, 0],
+      const before = grid([
+        [1, 1],
+        [1, 0],
       ]);
 
-      const after = await step(
-        root,
-        (vi) => {
-          const dead = vi.element(".", "#000000");
-          const alive = vi.element("#", "#ffffff");
-          dead.to(alive).count(alive, 3);
-          alive.to(alive).count(alive, 2, 3);
-          alive.to(dead);
-        },
-        before,
-      );
+      const after = await step(root, buildLife, before);
 
-      expect(after.ids[1 * 8 + 1]).toBe(1);
+      expect(toRows(after)).toEqual([
+        [1, 1],
+        [1, 1],
+      ]);
     });
 
     test("Game of Life: survival rule — alive cell with 2 or 3 alive neighbors survives", async () => {
-      const before = grid8([
-        [0, 1, 0],
-        [1, 1, 0],
-        [0, 0, 0],
-      ]);
+      // The middle cell has 2 alive neighbors, the ends only 1.
+      const before = grid([[1, 1, 1]]);
 
-      const after = await step(
-        root,
-        (vi) => {
-          const dead = vi.element(".", "#000000");
-          const alive = vi.element("#", "#ffffff");
-          dead.to(alive).count(alive, 3);
-          alive.to(alive).count(alive, 2, 3);
-          alive.to(dead);
-        },
-        before,
-      );
+      const after = await step(root, buildLife, before);
 
-      expect(after.ids[1 * 8 + 1]).toBe(1);
+      expect(toRows(after)).toEqual([[0, 1, 0]]);
     });
 
     test("Game of Life: death rule — alive cell with fewer than 2 alive neighbors dies", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 1, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1]]);
 
-      const after = await step(
-        root,
-        (vi) => {
-          const dead = vi.element(".", "#000000");
-          const alive = vi.element("#", "#ffffff");
-          dead.to(alive).count(alive, 3);
-          alive.to(alive).count(alive, 2, 3);
-          alive.to(dead);
-        },
-        before,
-      );
+      const after = await step(root, buildLife, before);
 
-      expect(after.ids[1 * 8 + 1]).toBe(0);
+      expect(toRows(after)).toEqual([[0]]);
     });
 
     test("Game of Life: death by overcrowding — alive cell with 4+ neighbors dies", async () => {
-      const before = grid8([
-        [0, 1, 0],
+      // Both middle cells have 4 alive neighbors.
+      const before = grid([
         [1, 1, 1],
-        [0, 1, 0],
+        [1, 1, 0],
       ]);
 
-      const after = await step(
-        root,
-        (vi) => {
-          const dead = vi.element(".", "#000000");
-          const alive = vi.element("#", "#ffffff");
-          dead.to(alive).count(alive, 3);
-          alive.to(alive).count(alive, 2, 3);
-          alive.to(dead);
-        },
-        before,
-      );
+      const after = await step(root, buildLife, before);
 
-      expect(after.ids[1 * 8 + 1]).toBe(0);
+      expect(toRows(after)).toEqual([
+        [1, 0, 1],
+        [1, 0, 1],
+      ]);
     });
 
     test("count of 0 matches when no neighbors of that type exist", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -419,11 +333,7 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(subRows(after, 3, 3)).toEqual([
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1],
-      ]);
+      expect(toRows(after)).toEqual([[1]]);
     });
   });
 
@@ -431,11 +341,7 @@ describe("GPU simulation", () => {
 
   describe("COUNT_KIND condition", () => {
     test("Wireworld: wire becomes head when exactly 1 or 2 electron-head neighbors", async () => {
-      const before = grid8([
-        [0, 2, 0],
-        [0, 1, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[2, 1]]);
 
       const after = await step(
         root,
@@ -455,16 +361,12 @@ describe("GPU simulation", () => {
         before,
       );
 
-      // Center wire has 1 signal (head) neighbor → becomes head
-      expect(after.ids[1 * 8 + 1]).toBe(2);
+      // The head becomes a tail, and the wire next to it becomes a head.
+      expect(toRows(after)).toEqual([[3, 2]]);
     });
 
     test("kind count matches across multiple elements in the kind", async () => {
-      const before = grid8([
-        [1, 0, 2],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1, 0, 2]]);
 
       const after = await step(
         root,
@@ -480,8 +382,8 @@ describe("GPU simulation", () => {
         before,
       );
 
-      // Center (1,0) has 2 warm neighbors: fire at (0,0) and lava at (2,0) → becomes fire
-      expect(after.ids[1]).toBe(1);
+      // The middle cell has 2 warm neighbors: fire on its left and lava on its right → becomes fire
+      expect(toRows(after)).toEqual([[1, 1, 2]]);
     });
   });
 
@@ -489,11 +391,7 @@ describe("GPU simulation", () => {
 
   describe("IS_ELEMENT condition", () => {
     test("cell transitions when specific neighbor matches element", async () => {
-      const before = grid8([
-        [0, 1, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1], [0]]);
 
       const after = await step(
         root,
@@ -505,16 +403,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1 * 8 + 1]).toBe(1);
-      expect(after.ids[1 * 8 + 0]).toBe(0);
+      expect(toRows(after)).toEqual([[1], [1]]);
     });
 
     test("is condition does not match when neighbor is different", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0], [0]]);
 
       const after = await step(
         root,
@@ -534,11 +427,7 @@ describe("GPU simulation", () => {
 
   describe("IS_POINT condition", () => {
     test("cell transitions when two neighbor positions have the same element", async () => {
-      const before = grid8([
-        [1, 0, 1],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1, 0, 1]]);
 
       const after = await step(
         root,
@@ -550,16 +439,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1]).toBe(1);
-      expect(after.ids[1 * 8 + 1]).toBe(1);
+      expect(toRows(after)).toEqual([[1, 1, 1]]);
     });
 
     test("is point does not match when positions have different elements", async () => {
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1, 0, 0]]);
 
       const after = await step(
         root,
@@ -571,7 +455,7 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1]).toBe(0);
+      expect(toRows(after)).toEqual(toRows(before));
     });
   });
 
@@ -579,10 +463,10 @@ describe("GPU simulation", () => {
 
   describe("accept strategies", () => {
     test("accept ALL: all conditions must pass", async () => {
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
+      // Every 'a' has 1 'b' neighbor, but only the bottom-left one has it on TOP.
+      const before = grid([
+        [1, 0],
+        [0, 0],
       ]);
 
       const after = await step(
@@ -595,16 +479,14 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1 * 8 + 0]).toBe(1);
-      expect(after.ids[1]).toBe(0);
+      expect(toRows(after)).toEqual([
+        [1, 0],
+        [1, 0],
+      ]);
     });
 
     test("accept ANY: at least one condition must pass", async () => {
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1], [0]]);
 
       const after = await step(
         root,
@@ -616,15 +498,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1 * 8 + 0]).toBe(1);
+      expect(toRows(after)).toEqual([[1], [1]]);
     });
 
     test("accept ONE: exactly one condition must pass", async () => {
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1], [0]]);
 
       const after = await step(
         root,
@@ -636,14 +514,14 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1 * 8 + 0]).toBe(1);
+      expect(toRows(after)).toEqual([[1], [1]]);
     });
 
     test("accept ONE: fails when both conditions pass", async () => {
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
+      // Both conditions pass for the bottom-left cell, neither does for the others.
+      const before = grid([
+        [1, 0],
+        [0, 0],
       ]);
 
       const after = await step(
@@ -656,15 +534,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1 * 8 + 0]).toBe(0);
+      expect(toRows(after)).toEqual(toRows(before));
     });
 
     test("accept NONE: transitions when no conditions pass", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -676,19 +550,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(subRows(after, 3, 3)).toEqual([
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1],
-      ]);
+      expect(toRows(after)).toEqual([[1]]);
     });
 
     test("accept NONE: does not transition when a condition passes", async () => {
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1, 0]]);
 
       const after = await step(
         root,
@@ -700,7 +566,7 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(after.ids[1]).toBe(0);
+      expect(toRows(after)).toEqual(toRows(before));
     });
   });
 
@@ -708,8 +574,8 @@ describe("GPU simulation", () => {
 
   describe("wrapping (toroidal grid)", () => {
     test("bottom edge wraps to top", async () => {
-      // 8×8 grid: 'b' at top row. Cell at bottom row checks BOTTOM, which wraps to top.
-      const before = grid8([[0, 1, 0]]);
+      // The bottom cell's BOTTOM wraps to the top cell, which is 'b'.
+      const before = grid([[1], [0]]);
 
       const after = await step(
         root,
@@ -723,13 +589,12 @@ describe("GPU simulation", () => {
         { wrapping: true },
       );
 
-      // Cell (1,7) BOTTOM wraps to (1,0) which is 'b' → transitions
-      expect(after.ids[7 * 8 + 1]).toBe(1);
+      expect(toRows(after)).toEqual([[1], [1]]);
     });
 
     test("right edge wraps to left", async () => {
-      // 8×8 grid: 'b' at left column. Cell at right column checks RIGHT, which wraps to left.
-      const before = grid8([[1, 0, 0]]);
+      // The right cell's RIGHT wraps to the left cell, which is 'b'.
+      const before = grid([[1, 0]]);
 
       const after = await step(
         root,
@@ -743,13 +608,55 @@ describe("GPU simulation", () => {
         { wrapping: true },
       );
 
-      // Cell (7,0) RIGHT wraps to (0,0) which is 'b' → transitions
-      expect(after.ids[7]).toBe(1);
+      expect(toRows(after)).toEqual([[1, 1]]);
+    });
+
+    // 0 - 1 underflows to 2^32 - 1, which is already 1 modulo 2, so the top and left edges
+    // need 3 cells to tell a correct wrap from a broken one.
+    test("top edge wraps to bottom", async () => {
+      // The top cell's TOP wraps to the bottom cell, which is 'b'.
+      const before = grid([[0], [0], [1]]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.TOP, b);
+        },
+        before,
+        undefined,
+        { wrapping: true },
+      );
+
+      expect(toRows(after)).toEqual([[1], [0], [1]]);
+    });
+
+    test("left edge wraps to right", async () => {
+      // The left cell's LEFT wraps to the right cell, which is 'b'.
+      const before = grid([[0, 0, 1]]);
+
+      const after = await step(
+        root,
+        (vi) => {
+          const a = vi.element("a", "#ff0000");
+          const b = vi.element("b", "#00ff00");
+          a.to(b).is(Square.LEFT, b);
+        },
+        before,
+        undefined,
+        { wrapping: true },
+      );
+
+      expect(toRows(after)).toEqual([[1, 0, 1]]);
     });
 
     test("corner wraps diagonally", async () => {
-      // 8×8 grid: 'b' at top-left corner. Cell at bottom-right checks BOTTOM_RIGHT, which wraps.
-      const before = grid8([[1, 0, 0]]);
+      // The bottom-right cell's BOTTOM_RIGHT wraps to the top-left cell, which is 'b'.
+      const before = grid([
+        [1, 0],
+        [0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -763,39 +670,15 @@ describe("GPU simulation", () => {
         { wrapping: true },
       );
 
-      // Cell (7,7) BOTTOM_RIGHT wraps to (0,0) which is 'b' → transitions
-      expect(after.ids[7 * 8 + 7]).toBe(1);
-    });
-
-    test("wraps on a grid that is not a power of 2", async () => {
-      // 5×3 grid: 'b' at the bottom-right corner. The top-left cell's TOP_LEFT wraps to it.
-      const before = grid([
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1],
-      ]);
-
-      const after = await step(
-        root,
-        (vi) => {
-          const a = vi.element("a", "#ff0000");
-          const b = vi.element("b", "#00ff00");
-          a.to(b).is(Square.TOP_LEFT, b);
-        },
-        before,
-        undefined,
-        { wrapping: true },
-      );
-
       expect(toRows(after)).toEqual([
-        [1, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1],
+        [1, 0],
+        [0, 1],
       ]);
     });
 
     test("count of 8 matches all cells in wrapping mode", async () => {
-      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
+      // On a single cell, all 8 neighbors wrap to the cell itself.
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -809,58 +692,35 @@ describe("GPU simulation", () => {
         { wrapping: true },
       );
 
-      // In wrapping mode, every cell has 8 neighbors
-      expect(toRows(after)).toEqual(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 1)),
-      );
+      expect(toRows(after)).toEqual([[1]]);
     });
   });
 
   // ── Non-wrapping (bounded grid) ──────────────────────────────
 
   describe("non-wrapping (bounded grid)", () => {
-    test("grid smaller than a workgroup only updates its own cells", async () => {
-      // 5×3 grid: only the 3 interior cells have 8 neighbors. Invocations past the grid
-      // must not write over it.
-      const before = grid(Array.from({ length: 3 }, () => Array.from({ length: 5 }, () => 0)));
-
-      const after = await step(
-        root,
-        (vi) => {
-          const a = vi.element("a", "#ff0000");
-          const b = vi.element("b", "#00ff00");
-          a.to(b).count(a, 8);
-        },
-        before,
-      );
-
-      expect(toRows(after)).toEqual([
-        [0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0],
-      ]);
-    });
-
     test("edge cell does not see wrapped neighbors", async () => {
-      // 8×8 grid: 'b' at top-left corner. Cell at bottom-right checks BOTTOM_RIGHT.
-      const before = grid8([[1, 0, 0]]);
+      // The right cell's RIGHT would wrap to 'b', but it is OOB.
+      const before = grid([[1, 0]]);
 
       const after = await step(
         root,
         (vi) => {
           const a = vi.element("a", "#ff0000");
           const b = vi.element("b", "#00ff00");
-          a.to(b).is(Square.BOTTOM_RIGHT, b);
+          a.to(b).is(Square.RIGHT, b);
         },
         before,
       );
 
-      // In non-wrapping mode, cell (7,7) BOTTOM_RIGHT is OOB → no match
-      expect(after.ids[7 * 8 + 7]).toBe(0);
+      expect(toRows(after)).toEqual(toRows(before));
     });
 
     test("corner cells have fewer effective neighbors", async () => {
-      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -873,21 +733,18 @@ describe("GPU simulation", () => {
         before,
       );
 
-      // Corners have 3 neighbors, edges have 5, center has 8
+      // Corners have 3 neighbors, edges have 5
       expect(toRows(after)).toEqual([
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1],
+        [1, 0, 1],
       ]);
     });
 
     test("edge cells have 5 effective neighbors", async () => {
-      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -901,25 +758,14 @@ describe("GPU simulation", () => {
 
       // Only edge (non-corner) cells have exactly 5 neighbors
       expect(toRows(after)).toEqual([
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [0, 1, 1, 1, 1, 1, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
       ]);
     });
 
     test("is condition returns false for OOB neighbor", async () => {
-      // 'b' at (0,0). Cell (0,1) checks is(LEFT, b).
-      // LEFT of (0,1) is (-1,1) which is OOB in non-wrapping.
-      const before = grid8([
-        [1, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      // The left cell's LEFT would wrap to 'b', but it is OOB.
+      const before = grid([[0, 1]]);
 
       const after = await step(
         root,
@@ -931,10 +777,7 @@ describe("GPU simulation", () => {
         before,
       );
 
-      // (0,1) LEFT is OOB → condition fails → stays 'a'
-      expect(after.ids[1 * 8 + 0]).toBe(0);
-      // (1,0) LEFT is (0,0) = 'b' → condition passes → becomes 'b'
-      expect(after.ids[1]).toBe(1);
+      expect(toRows(after)).toEqual(toRows(before));
     });
   });
 
@@ -942,11 +785,7 @@ describe("GPU simulation", () => {
 
   describe("edge cases", () => {
     test("uniform grid with unconditional rule transitions all cells", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -958,15 +797,16 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(subRows(after, 3, 3)).toEqual([
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1],
-      ]);
+      expect(toRows(after)).toEqual([[1]]);
     });
 
     test("count of 8 matches when all neighbors are the same element", async () => {
-      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)));
+      // The grid is smaller than a workgroup, so invocations past the grid must not write over it.
+      const before = grid([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
 
       const after = await step(
         root,
@@ -980,23 +820,14 @@ describe("GPU simulation", () => {
 
       // In non-wrapping mode, only interior cells (with full 8-neighbor Moore neighborhoods) match count=8.
       expect(toRows(after)).toEqual([
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [0, 1, 1, 1, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0],
+        [0, 1, 0],
+        [0, 0, 0],
       ]);
     });
 
     test("count of 0 does not match when all neighbors are the same element", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0, 0]]);
 
       const after = await step(
         root,
@@ -1012,11 +843,7 @@ describe("GPU simulation", () => {
     });
 
     test("uniform grid: all same element with no matching rule stays unchanged", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -1032,11 +859,7 @@ describe("GPU simulation", () => {
     });
 
     test("to point (SELF) keeps element as itself", async () => {
-      const before = grid8([
-        [0, 1, 0],
-        [1, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0, 1]]);
 
       const after = await step(
         root,
@@ -1053,11 +876,7 @@ describe("GPU simulation", () => {
     });
 
     test("to point copies neighbor's element", async () => {
-      const before = grid8([
-        [0, 1, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[1], [0]]);
 
       const after = await step(
         root,
@@ -1069,19 +888,11 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(subRows(after, 3, 3)).toEqual([
-        [0, 1, 0],
-        [0, 1, 0],
-        [0, 0, 0],
-      ]);
+      expect(toRows(after)).toEqual([[1], [1]]);
     });
 
     test("first matching rule wins (rules are ordered)", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const after = await step(
         root,
@@ -1095,11 +906,7 @@ describe("GPU simulation", () => {
         before,
       );
 
-      expect(subRows(after, 3, 3)).toEqual([
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1],
-      ]);
+      expect(toRows(after)).toEqual([[1]]);
     });
   });
 
@@ -1118,11 +925,10 @@ describe("GPU simulation", () => {
     const A = 1;
 
     test("block (still life) remains stable", async () => {
-      const before = grid8([
-        [D, D, D, D],
-        [D, A, A, D],
-        [D, A, A, D],
-        [D, D, D, D],
+      // Cells around a block have at most 2 alive neighbors, so the block alone is enough.
+      const before = grid([
+        [A, A],
+        [A, A],
       ]);
 
       const after = await step(root, buildLife, before);
@@ -1131,12 +937,10 @@ describe("GPU simulation", () => {
     });
 
     test("blinker oscillates (period 2)", async () => {
-      const before = grid8([
-        [D, D, D, D, D],
-        [D, D, D, D, D],
-        [D, A, A, A, D],
-        [D, D, D, D, D],
-        [D, D, D, D, D],
+      const before = grid([
+        [D, D, D],
+        [A, A, A],
+        [D, D, D],
       ]);
 
       const vi = vivarium();
@@ -1145,12 +949,10 @@ describe("GPU simulation", () => {
 
       const step1 = await gpuEvolve(root, automaton, before);
 
-      expect(subRows(step1, 5, 5)).toEqual([
-        [D, D, D, D, D],
-        [D, D, A, D, D],
-        [D, D, A, D, D],
-        [D, D, A, D, D],
-        [D, D, D, D, D],
+      expect(toRows(step1)).toEqual([
+        [D, A, D],
+        [D, A, D],
+        [D, A, D],
       ]);
 
       const step2 = await gpuEvolve(root, automaton, step1);
@@ -1159,73 +961,56 @@ describe("GPU simulation", () => {
     });
 
     test("single alive cell dies (underpopulation)", async () => {
-      const before = grid8([
-        [D, D, D, D, D],
-        [D, D, D, D, D],
-        [D, D, A, D, D],
-        [D, D, D, D, D],
-        [D, D, D, D, D],
-      ]);
+      const before = grid([[A]]);
 
       const after = await step(root, buildLife, before);
 
-      expect(after.ids[2 * 8 + 2]).toBe(D);
+      expect(toRows(after)).toEqual([[D]]);
     });
 
     test("two adjacent alive cells both die", async () => {
-      const before = grid8([
-        [D, D, D, D, D],
-        [D, D, D, D, D],
-        [D, D, A, A, D],
-        [D, D, D, D, D],
-        [D, D, D, D, D],
-      ]);
+      const before = grid([[A, A]]);
 
       const after = await step(root, buildLife, before);
 
-      expect(after.ids[2 * 8 + 2]).toBe(D);
-      expect(after.ids[2 * 8 + 3]).toBe(D);
+      expect(toRows(after)).toEqual([[D, D]]);
     });
 
     test("L-shape (4 cells) evolves correctly", async () => {
-      const before = grid8([
-        [D, D, D, D, D],
-        [D, D, A, D, D],
-        [D, D, A, D, D],
-        [D, D, A, A, D],
-        [D, D, D, D, D],
+      const before = grid([
+        [D, A, D],
+        [D, A, D],
+        [D, A, A],
       ]);
 
       const after = await step(root, buildLife, before);
 
-      expect(after.ids[1 * 8 + 2]).toBe(D);
-      expect(after.ids[2 * 8 + 2]).toBe(A);
-      expect(after.ids[3 * 8 + 2]).toBe(A);
-      expect(after.ids[3 * 8 + 3]).toBe(A);
-      expect(after.ids[2 * 8 + 1]).toBe(A);
+      expect(toRows(after)).toEqual([
+        [D, D, D],
+        [A, A, D],
+        [D, A, A],
+      ]);
     });
 
     test("full board overcrowding: corners survive in non-wrapping mode", async () => {
-      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => A)));
+      const before = grid([
+        [A, A, A],
+        [A, A, A],
+      ]);
 
       const after = await step(root, buildLife, before);
 
       // In non-wrapping mode, corners have 3 alive neighbors → survive (2,3 rule).
-      // Edge cells have 5 alive neighbors → die. Center has 8 → die.
+      // Edge cells have 5 alive neighbors → die.
       expect(toRows(after)).toEqual([
-        [A, D, D, D, D, D, D, A],
-        [D, D, D, D, D, D, D, D],
-        [D, D, D, D, D, D, D, D],
-        [D, D, D, D, D, D, D, D],
-        [D, D, D, D, D, D, D, D],
-        [D, D, D, D, D, D, D, D],
-        [D, D, D, D, D, D, D, D],
-        [A, D, D, D, D, D, D, A],
+        [A, D, A],
+        [A, D, A],
       ]);
     });
 
     test("full board dies in wrapping mode (overcrowding)", async () => {
-      const before = grid(Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => A)));
+      // On a single cell, all 8 neighbors wrap to the cell itself.
+      const before = grid([[A]]);
 
       const buildLifeWrapping = (vi: ReturnType<typeof vivarium>) => {
         const dead = vi.element(".", "#000000");
@@ -1238,9 +1023,7 @@ describe("GPU simulation", () => {
       const after = await step(root, buildLifeWrapping, before, undefined, { wrapping: true });
 
       // In wrapping mode, every cell has 8 alive neighbors → all die.
-      expect(toRows(after)).toEqual(
-        Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => D)),
-      );
+      expect(toRows(after)).toEqual([[D]]);
     });
   });
 
@@ -1251,7 +1034,7 @@ describe("GPU simulation", () => {
       // Center cell has 4 cardinal neighbors that are 'b' (top, left, right, bottom)
       // and 4 diagonal neighbors that are also 'b'. With cross neighborhood,
       // only the 4 cardinal ones should be counted.
-      const before = grid8([
+      const before = grid([
         [1, 1, 1],
         [1, 0, 1],
         [1, 1, 1],
@@ -1270,15 +1053,18 @@ describe("GPU simulation", () => {
       );
 
       // Center cell (1,1) should transition because it has exactly 4 'b' cardinal neighbors
-      expect(after.ids[1 * 8 + 1]).toBe(1);
+      expect(toRows(after)).toEqual([
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+      ]);
     });
 
     test("cross neighborhood ignores diagonal neighbors (COUNT_ELEMENT)", async () => {
-      // Only diagonals have 'b', no cardinal neighbors are 'b'
-      const before = grid8([
-        [1, 0, 1],
-        [0, 0, 0],
-        [1, 0, 1],
+      // The top-left cell's only 'b' neighbor is diagonal.
+      const before = grid([
+        [0, 0],
+        [0, 1],
       ]);
 
       const after = await step(
@@ -1286,20 +1072,23 @@ describe("GPU simulation", () => {
         (vi) => {
           const a = vi.element("a", "#ff0000");
           const b = vi.element("b", "#00ff00");
-          // With cross neighborhood, center has 0 'b' cardinal neighbors (diagonals don't count)
+          // With cross neighborhood, the top-left cell has 0 'b' cardinal neighbors (diagonals don't count)
           a.to(b).count(b, 0);
         },
         before,
         "cross",
       );
 
-      // Center cell should transition because it has 0 'b' neighbors in cross mode
-      expect(after.ids[1 * 8 + 1]).toBe(1);
+      // The other 'a' cells have 'b' as a cardinal neighbor, so only the top-left one transitions
+      expect(toRows(after)).toEqual([
+        [1, 0],
+        [0, 1],
+      ]);
     });
 
     test("cross neighborhood counts only cardinal neighbors (COUNT_KIND)", async () => {
       // Center cell has 'cold'. Cardinal neighbors are 'fire'(1) and 'lava'(2).
-      const before = grid8([
+      const before = grid([
         [0, 1, 0],
         [2, 0, 1],
         [0, 2, 0],
@@ -1320,8 +1109,12 @@ describe("GPU simulation", () => {
         "cross",
       );
 
-      // Center (1,1) should transition to fire
-      expect(after.ids[1 * 8 + 1]).toBe(1);
+      // Center (1,1) should transition to fire, corners have only 2 warm neighbors
+      expect(toRows(after)).toEqual([
+        [0, 1, 0],
+        [2, 1, 1],
+        [0, 2, 0],
+      ]);
     });
   });
 
@@ -1329,11 +1122,7 @@ describe("GPU simulation", () => {
 
   describe("multi-step evolution", () => {
     test("three-element cycle: a→b→c→a", async () => {
-      const before = grid8([
-        [0, 0, 0],
-        [0, 1, 2],
-        [0, 0, 0],
-      ]);
+      const before = grid([[0]]);
 
       const vi = vivarium();
       const a = vi.element("a", "#ff0000");
@@ -1345,18 +1134,10 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
 
       const step1 = await gpuEvolve(root, automaton, before);
-      expect(subRows(step1, 3, 3)).toEqual([
-        [1, 1, 1],
-        [1, 2, 0],
-        [1, 1, 1],
-      ]);
+      expect(toRows(step1)).toEqual([[1]]);
 
       const step2 = await gpuEvolve(root, automaton, step1);
-      expect(subRows(step2, 3, 3)).toEqual([
-        [2, 2, 2],
-        [2, 0, 1],
-        [2, 2, 2],
-      ]);
+      expect(toRows(step2)).toEqual([[2]]);
 
       const step3 = await gpuEvolve(root, automaton, step2);
       expect(toRows(step3)).toEqual(toRows(before));
@@ -1374,13 +1155,12 @@ describe("GPU simulation", () => {
         alive.to(dead);
       };
 
-      const before = grid8([
-        [D, A, D, D, D, D],
-        [D, D, A, D, D, D],
-        [A, A, A, D, D, D],
-        [D, D, D, D, D, D],
-        [D, D, D, D, D, D],
-        [D, D, D, D, D, D],
+      // Every phase of the glider over these 4 steps fits in 4×4 cells.
+      const before = grid([
+        [D, A, D, D],
+        [D, D, A, D],
+        [A, A, A, D],
+        [D, D, D, D],
       ]);
 
       const vi = vivarium();
@@ -1389,20 +1169,36 @@ describe("GPU simulation", () => {
 
       const result = await gpuEvolveMulti(root, automaton, before, 4);
 
-      expect(subRows(result, 6, 6)).toEqual([
-        [D, D, D, D, D, D],
-        [D, D, A, D, D, D],
-        [D, D, D, A, D, D],
-        [D, A, A, A, D, D],
-        [D, D, D, D, D, D],
-        [D, D, D, D, D, D],
+      expect(toRows(result)).toEqual([
+        [D, D, D, D],
+        [D, D, A, D],
+        [D, D, D, A],
+        [D, A, A, A],
       ]);
     });
   });
 
-  // ── readGrid and writeCell ───────────────────────────────────
+  // ── draw ─────────────────────────────────────────────────────
 
   describe("draw", () => {
+    const RED = [255, 0, 0, 255];
+    const BLUE = [0, 0, 255, 255];
+
+    // Copies the webgpu canvas to a 2d one and returns its pixels as rows of RGBA arrays.
+    const readPixels = (canvas: HTMLCanvasElement): number[][][] => {
+      const copy = document.createElement("canvas");
+      copy.width = canvas.width;
+      copy.height = canvas.height;
+      const g = copy.getContext("2d")!;
+      g.drawImage(canvas, 0, 0);
+      const { data } = g.getImageData(0, 0, canvas.width, canvas.height);
+      return Array.from({ length: canvas.height }, (_, y) =>
+        Array.from({ length: canvas.width }, (_, x) =>
+          Array.from(data.slice((y * canvas.width + x) * 4, (y * canvas.width + x + 1) * 4)),
+        ),
+      );
+    };
+
     test("renders each cell with its element color", async () => {
       const vi = vivarium();
       vi.element("red", "#ff0000");
@@ -1410,22 +1206,13 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
 
       const canvas = document.createElement("canvas");
-      canvas.width = 8;
-      canvas.height = 8;
-      // Left half red, right half blue.
-      const initialGrid = Array.from({ length: 64 }, (_, i) => (i % 8 < 4 ? 0 : 1));
+      canvas.width = 2;
+      canvas.height = 1;
 
-      const { draw } = await setup({ canvas, automaton, initialGrid });
+      const { draw } = await setup({ canvas, automaton, initialGrid: [[0, 1]] });
       draw();
 
-      const copy = document.createElement("canvas");
-      copy.width = 8;
-      copy.height = 8;
-      const g = copy.getContext("2d")!;
-      g.drawImage(canvas, 0, 0);
-
-      expect(Array.from(g.getImageData(0, 0, 1, 1).data)).toEqual([255, 0, 0, 255]);
-      expect(Array.from(g.getImageData(7, 7, 1, 1).data)).toEqual([0, 0, 255, 255]);
+      expect(readPixels(canvas)).toEqual([[RED, BLUE]]);
     });
 
     test("stretches a smaller grid over the canvas", async () => {
@@ -1435,33 +1222,27 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
 
       const canvas = document.createElement("canvas");
-      canvas.width = 8;
-      canvas.height = 6;
-      // 2×3 grid: red column, blue column.
+      canvas.width = 4;
+      canvas.height = 4;
+      // A checkerboard tells the axes apart, so a flipped or transposed grid fails too.
       const initialGrid = [
         [0, 1],
-        [0, 1],
-        [0, 1],
+        [1, 0],
       ];
 
-      const { draw } = await setup({ canvas, width: 2, height: 3, automaton, initialGrid });
+      const { draw } = await setup({ canvas, width: 2, height: 2, automaton, initialGrid });
       draw();
 
-      const copy = document.createElement("canvas");
-      copy.width = 8;
-      copy.height = 6;
-      const g = copy.getContext("2d")!;
-      g.drawImage(canvas, 0, 0);
-
-      const pixel = (x: number, y: number) => Array.from(g.getImageData(x, y, 1, 1).data);
-      for (const y of [0, 5]) {
-        expect(pixel(0, y)).toEqual([255, 0, 0, 255]);
-        expect(pixel(3, y)).toEqual([255, 0, 0, 255]);
-        expect(pixel(4, y)).toEqual([0, 0, 255, 255]);
-        expect(pixel(7, y)).toEqual([0, 0, 255, 255]);
-      }
+      expect(readPixels(canvas)).toEqual([
+        [RED, RED, BLUE, BLUE],
+        [RED, RED, BLUE, BLUE],
+        [BLUE, BLUE, RED, RED],
+        [BLUE, BLUE, RED, RED],
+      ]);
     });
   });
+
+  // ── readGrid and writeCell ───────────────────────────────────
 
   describe("readGrid and writeCell", () => {
     const createCanvas = (width: number, height: number): HTMLCanvasElement => {
@@ -1477,18 +1258,9 @@ describe("GPU simulation", () => {
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
-      const initialGrid = [
-        [0, 1, 0, 0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-      ];
+      const initialGrid = [[0, 1]];
 
-      const canvas = createCanvas(8, 8);
+      const canvas = createCanvas(2, 1);
       const { readGrid } = await setup({ canvas, automaton, initialGrid });
       const result = await readGrid();
 
@@ -1503,23 +1275,12 @@ describe("GPU simulation", () => {
       b.to(a);
       const automaton = vi.create();
 
-      const initialGrid = [
-        [0, 1, 0, 0, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-      ];
-
-      const canvas = createCanvas(8, 8);
-      const { evolve, readGrid } = await setup({ canvas, automaton, initialGrid });
+      const canvas = createCanvas(2, 1);
+      const { evolve, readGrid } = await setup({ canvas, automaton, initialGrid: [[0, 1]] });
       evolve();
       const result = await readGrid();
 
-      expect(result).toEqual(initialGrid.flat().map((v) => (v === 0 ? 1 : 0)));
+      expect(result).toEqual([1, 0]);
     });
 
     test("writeCell updates a single cell", async () => {
@@ -1528,19 +1289,17 @@ describe("GPU simulation", () => {
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
-      const initialGrid = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0));
-
-      const canvas = createCanvas(8, 8);
+      const canvas = createCanvas(2, 1);
       const { readGrid, writeCell } = await setup({
         canvas,
         automaton,
-        initialGrid,
+        initialGrid: [[0, 0]],
       });
 
-      writeCell(1 * 8 + 1, 1);
+      writeCell(1, 1);
       const result = await readGrid();
 
-      expect(result).toEqual(Array.from({ length: 64 }, (_, i) => (i === 1 * 8 + 1 ? 1 : 0)));
+      expect(result).toEqual([0, 1]);
     });
 
     test("writeCell throws on out-of-bounds index", async () => {
@@ -1548,14 +1307,10 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
-      const { writeCell } = await setup({
-        canvas,
-        automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      });
+      const canvas = createCanvas(1, 1);
+      const { writeCell } = await setup({ canvas, automaton, initialGrid: [[0]] });
 
-      expect(() => writeCell(64, 0)).toThrow("out of bounds");
+      expect(() => writeCell(1, 0)).toThrow("out of bounds");
       expect(() => writeCell(-1, 0)).toThrow("out of bounds");
     });
 
@@ -1565,12 +1320,8 @@ describe("GPU simulation", () => {
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
-      const { writeCell } = await setup({
-        canvas,
-        automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      });
+      const canvas = createCanvas(1, 1);
+      const { writeCell } = await setup({ canvas, automaton, initialGrid: [[0]] });
 
       expect(() => writeCell(0, 2)).toThrow("invalid");
       expect(() => writeCell(0, -1)).toThrow("invalid");
@@ -1582,14 +1333,10 @@ describe("GPU simulation", () => {
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
-      const { readGrid, writeGrid } = await setup({
-        canvas,
-        automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      });
+      const canvas = createCanvas(2, 1);
+      const { readGrid, writeGrid } = await setup({ canvas, automaton, initialGrid: [[0, 0]] });
 
-      const snapshot = Array.from({ length: 64 }, (_, i) => i % 2);
+      const snapshot = [0, 1];
       writeGrid(snapshot);
       const result = await readGrid();
 
@@ -1601,12 +1348,8 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
-      const { writeGrid } = await setup({
-        canvas,
-        automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      });
+      const canvas = createCanvas(1, 1);
+      const { writeGrid } = await setup({ canvas, automaton, initialGrid: [[0]] });
 
       expect(() => writeGrid([0, 0])).toThrow("does not match");
     });
@@ -1617,15 +1360,10 @@ describe("GPU simulation", () => {
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
-      const { writeGrid } = await setup({
-        canvas,
-        automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      });
+      const canvas = createCanvas(1, 1);
+      const { writeGrid } = await setup({ canvas, automaton, initialGrid: [[0]] });
 
-      const bad = Array.from({ length: 64 }, (_, i) => (i === 4 ? 2 : 0));
-      expect(() => writeGrid(bad)).toThrow("invalid");
+      expect(() => writeGrid([2])).toThrow("invalid");
     });
 
     test("writeCellAt updates a cell by coordinates", async () => {
@@ -1634,17 +1372,21 @@ describe("GPU simulation", () => {
       vi.element("b", "#00ff00");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
+      // 2×2 so that swapping x and y writes a different cell.
+      const canvas = createCanvas(2, 2);
       const { readGrid, writeCellAt } = await setup({
         canvas,
         automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
+        initialGrid: [
+          [0, 0],
+          [0, 0],
+        ],
       });
 
-      writeCellAt(1, 1, 1); // cell (1,1)
+      writeCellAt(0, 1, 1); // cell (0,1)
       const result = await readGrid();
 
-      expect(result).toEqual(Array.from({ length: 64 }, (_, i) => (i === 1 * 8 + 1 ? 1 : 0)));
+      expect(result).toEqual([0, 0, 1, 0]);
     });
 
     test("writeCellAt throws on out-of-bounds coordinates", async () => {
@@ -1652,21 +1394,17 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
-      const { writeCellAt } = await setup({
-        canvas,
-        automaton,
-        initialGrid: Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0)),
-      });
+      const canvas = createCanvas(1, 1);
+      const { writeCellAt } = await setup({ canvas, automaton, initialGrid: [[0]] });
 
-      expect(() => writeCellAt(8, 0, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(1, 0, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(-1, 0, 0)).toThrow("out of bounds");
-      expect(() => writeCellAt(0, 8, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(0, 1, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0, -1, 0)).toThrow("out of bounds");
     });
   });
 
-  // ── setup validation ────────────────────────────────────────
+  // ── CHANCE condition ─────────────────────────────────────────
 
   describe("CHANCE condition", () => {
     test("independent chance rules draw independent samples", async () => {
@@ -1678,7 +1416,9 @@ describe("GPU simulation", () => {
       a.to(c).chance(1, 2);
       const automaton = vi.create();
 
-      const size = 256;
+      // With 2500 cells, the standard deviation of each fraction is at most 0.01,
+      // so the 0.05 tolerance below is 5 standard deviations.
+      const size = 50;
       const canvas = document.createElement("canvas");
       canvas.width = size;
       canvas.height = size;
@@ -1707,7 +1447,7 @@ describe("GPU simulation", () => {
       b.to(a).count(b, 2, 3).chance(1, 3);
       const automaton = vi.create();
 
-      const sizes = [8, 16];
+      const sizes = [2, 3];
       const grids = sizes.map((size, n) =>
         Array.from({ length: size * size }, (_, i) => ((i * (n + 3)) % 7 < 3 ? 1 : 0)),
       );
@@ -1765,8 +1505,8 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
       const create = async () => {
         const canvas = document.createElement("canvas");
-        canvas.width = 8;
-        canvas.height = 8;
+        canvas.width = 1;
+        canvas.height = 1;
         const simulation = await setup({ canvas, automaton });
         simulation.evolve();
         simulation.destroy();
@@ -1808,29 +1548,19 @@ describe("GPU simulation", () => {
       k.to(second).count(other, 1);
       const automaton = vi.create();
 
-      // bare (1) and owner (2) each have exactly one marker (3) neighbor and no other (4) neighbor,
+      // bare (1) and owner (2) share one marker (3) neighbor and have no other (4) neighbor,
       // so only the first kind rule's condition holds.
-      const initialGrid = [
-        [0, 3, 0, 0, 0, 3, 0, 0],
-        [0, 1, 0, 0, 0, 2, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-      ];
+      const initialGrid = [[1, 3, 2]];
 
       const canvas = document.createElement("canvas");
-      canvas.width = 8;
-      canvas.height = 8;
+      canvas.width = 3;
+      canvas.height = 1;
       const { evolve, readGrid } = await setup({ canvas, automaton, initialGrid });
       evolve();
       const result = await readGrid();
 
       // Both step to first (5).
-      expect(result[1 * 8 + 1]).toBe(5);
-      expect(result[1 * 8 + 5]).toBe(5);
+      expect(result).toEqual([5, 3, 5]);
     });
   });
 
@@ -1840,9 +1570,9 @@ describe("GPU simulation", () => {
       vi.element("a", "#000000");
       const automaton = vi.create();
       const canvas = document.createElement("canvas");
-      canvas.width = 8;
-      canvas.height = 8;
-      return setup({ canvas, automaton, initialGrid: Array.from({ length: 64 }, () => 0) });
+      canvas.width = 1;
+      canvas.height = 1;
+      return setup({ canvas, automaton, initialGrid: [0] });
     };
 
     const countDestroyedBuffers = (run: () => void): number => {
@@ -1901,7 +1631,7 @@ describe("GPU simulation", () => {
       await expect(readGrid()).rejects.toThrow(error);
       expect(() => writeCell(0, 0)).toThrow(error);
       expect(() => writeCellAt(0, 0, 0)).toThrow(error);
-      expect(() => writeGrid(Array.from({ length: 64 }, () => 0))).toThrow(error);
+      expect(() => writeGrid([0])).toThrow(error);
       expect(() => setAutomaton({ automaton })).toThrow(error);
     });
 
@@ -1910,19 +1640,19 @@ describe("GPU simulation", () => {
       const { evolve, readGrid } = await create();
       evolve();
 
-      expect(await readGrid()).toEqual(Array.from({ length: 64 }, () => 0));
+      expect(await readGrid()).toEqual([0]);
     });
   });
 
   describe("device loss", () => {
-    const initialGrid = Array.from({ length: 64 }, () => 0);
+    const initialGrid = [0];
 
     const create = (onDeviceLost?: (info: GPUDeviceLostInfo) => void) => {
       const vi = vivarium();
       vi.element("a", "#000000");
       const canvas = document.createElement("canvas");
-      canvas.width = 8;
-      canvas.height = 8;
+      canvas.width = 1;
+      canvas.height = 1;
       return setup({ canvas, automaton: vi.create(), initialGrid, onDeviceLost });
     };
 
@@ -1994,7 +1724,7 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(9, 10);
+      const canvas = createCanvas(3, 3);
 
       await expect(setup({ canvas, automaton })).resolves.toBeDefined();
     });
@@ -2004,15 +1734,11 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
+      const canvas = createCanvas(1, 1);
 
-      await expect(
-        setup({
-          canvas,
-          automaton,
-          initialGrid: [0, 0, 0, 0, 0],
-        }),
-      ).rejects.toThrow("does not match");
+      await expect(setup({ canvas, automaton, initialGrid: [0, 0] })).rejects.toThrow(
+        "does not match",
+      );
     });
 
     test("throws when 2d initialGrid flattened length does not match dimensions", async () => {
@@ -2020,18 +1746,11 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
+      const canvas = createCanvas(1, 1);
 
-      await expect(
-        setup({
-          canvas,
-          automaton,
-          initialGrid: [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-          ],
-        }),
-      ).rejects.toThrow("does not match");
+      await expect(setup({ canvas, automaton, initialGrid: [[0], [0]] })).rejects.toThrow(
+        "does not match",
+      );
     });
 
     test("throws when grid dimensions are not positive integers", async () => {
@@ -2039,7 +1758,7 @@ describe("GPU simulation", () => {
       vi.element("a", "#ff0000");
       const automaton = vi.create();
 
-      const canvas = createCanvas(8, 8);
+      const canvas = createCanvas(1, 1);
 
       await expect(setup({ canvas, automaton, width: 0 })).rejects.toThrow("positive integers");
       await expect(setup({ canvas, automaton, height: 2.5 })).rejects.toThrow("positive integers");
