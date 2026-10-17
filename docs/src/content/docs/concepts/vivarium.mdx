@@ -30,10 +30,10 @@ The neighborhood type determines which cells are considered when evaluating cond
 
 ## Wrapping
 
-By default, the grid does not wrap. Cells at the border always have 8 neighbors in a square neighborhood (or 4 in a cross neighborhood), but positions that fall outside the grid are zero-padded: they are treated as if they contain element 0 (the first element defined, usually the "dead" or "empty" state).
+By default, the grid does not wrap, so cells at the border have fewer neighbors. Positions that fall outside the grid don't match anything.
 
 ```typescript
-// By default (wrapping: false), out-of-bounds neighbor positions are treated as element 0.
+// By default (wrapping: false), positions outside the grid match nothing.
 const vi = vivarium("square");
 // Same as:
 const vi = vivarium("square", { wrapping: false });
