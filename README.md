@@ -70,7 +70,7 @@ const life = vi.create();
 
 ```typescript
 // Create a new canvas (or you could use an existing one)
-const canvas = document.createElement(canvas);
+const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
 
 // Set the canvas size (must be a power of 2). This will be the automaton size as well.
