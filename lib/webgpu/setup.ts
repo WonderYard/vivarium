@@ -356,7 +356,7 @@ export const compute = tgpu.computeFn({
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton rules.
- * - `tgpuRoot` — the underlying TypeGPU root.
+ * - `destroy` — frees the GPU resources; `update`, `draw` and `evolve` do nothing afterwards.
  */
 export const setup = ({
   canvas,
@@ -375,6 +375,7 @@ export const setup = ({
   const pipeline = root.createComputePipeline({ compute });
 
   let frames = 0;
+  let destroyed = false;
   const seed = root.createUniform(d.f32);
 
   const { width, height } = canvas;
@@ -446,6 +447,7 @@ export const setup = ({
 
   // using let because we can reassign this when we update the automaton
   let automatonGroup: TgpuBindGroup;
+  let automatonBuffers: { destroy: () => void }[] = [];
   let palette: number[] = [];
 
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
@@ -457,15 +459,30 @@ export const setup = ({
     const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
     const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
 
+    const neighborhood = root.createUniform(d.u32, gpuNeighborhood);
+    const elements = root.createReadonly(
+      d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
+      gpuElements,
+    );
+    const rulesBuffer = root.createReadonly(d.arrayOf(GpuRule, rules.length), rules);
+    const conditionsBuffer = root.createReadonly(
+      d.arrayOf(GpuCondition, conditions.length),
+      conditions,
+    );
+
     automatonGroup = root.createBindGroup(automatonLayout, {
-      neighborhood: root.createUniform(d.u32, gpuNeighborhood),
-      elements: root.createReadonly(
-        d.arrayOf(GpuElement, Math.max(gpuElements.length, 1)),
-        gpuElements,
-      ),
-      rules: root.createReadonly(d.arrayOf(GpuRule, rules.length), rules),
-      conditions: root.createReadonly(d.arrayOf(GpuCondition, conditions.length), conditions),
+      neighborhood,
+      elements,
+      rules: rulesBuffer,
+      conditions: conditionsBuffer,
     });
+
+    automatonBuffers = [
+      neighborhood.buffer,
+      elements.buffer,
+      rulesBuffer.buffer,
+      conditionsBuffer.buffer,
+    ];
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
   };
@@ -623,6 +640,10 @@ export const setup = ({
    * then call `draw` once to render the latest state to the canvas.
    */
   const update = (): void => {
+    if (destroyed) {
+      return;
+    }
+
     seed.write(Math.random());
 
     pipeline
@@ -641,6 +662,10 @@ export const setup = ({
    * processing before reading the result.
    */
   const draw = async (): Promise<void> => {
+    if (destroyed) {
+      return;
+    }
+
     // In <=1.3.0 there was a bug in the evolve function that would cause the drawing
     // of old data instead of new one. `frames` was updated after updating + drawing.
     // Now we determine which colors buffer to read using the *updated* frames value
@@ -656,7 +681,15 @@ export const setup = ({
     // beneficial, consider drawing GPU-side to avoid reading data every frame.
 
     const rawBuffer = colorsStagingBuffer.buffer;
-    await rawBuffer.mapAsync(GPUMapMode.READ);
+    try {
+      await rawBuffer.mapAsync(GPUMapMode.READ);
+    } catch (error) {
+      // destroy() during the await rejects the pending map; the caller's loop shouldn't crash.
+      if (destroyed) {
+        return;
+      }
+      throw error;
+    }
 
     pixels.set(new Uint32Array(rawBuffer.getMappedRange()));
     g.putImageData(imageData, 0, 0);
@@ -673,6 +706,32 @@ export const setup = ({
     await draw();
   };
 
+  /**
+   * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
+   * and `evolve` do nothing, so a loop still running (e.g. during a React effect
+   * cleanup) doesn't crash. Calling it more than once is safe.
+   */
+  const destroy = (): void => {
+    if (destroyed) {
+      return;
+    }
+    destroyed = true;
+
+    // root.destroy() doesn't free buffers of a root made with initFromDevice, so we do it ourselves.
+    [
+      dimensions.buffer,
+      wrappingBuffer.buffer,
+      seed.buffer,
+      colors0,
+      colors1,
+      ids0,
+      ids1,
+      colorsStagingBuffer,
+      ...automatonBuffers,
+    ].forEach((buffer) => buffer.destroy());
+    root.destroy();
+  };
+
   return {
     update,
     draw,
@@ -682,6 +741,6 @@ export const setup = ({
     writeCellAt,
     writeGrid,
     setAutomaton,
-    tgpuRoot: root,
+    destroy,
   };
 };

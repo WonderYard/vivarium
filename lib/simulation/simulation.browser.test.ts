@@ -1712,6 +1712,69 @@ describe("GPU simulation", () => {
     });
   });
 
+  describe("destroy", () => {
+    const create = () => {
+      const vi = vivarium();
+      vi.element("a", "#000000");
+      const automaton = vi.create();
+      const canvas = document.createElement("canvas");
+      canvas.width = 8;
+      canvas.height = 8;
+      return setup({ canvas, automaton, initialGrid: Array.from({ length: 64 }, () => 0) });
+    };
+
+    const countDestroyedBuffers = (run: () => void): number => {
+      const original = Object.getOwnPropertyDescriptor(GPUBuffer.prototype, "destroy")!;
+      let count = 0;
+      GPUBuffer.prototype.destroy = function (this: GPUBuffer) {
+        count++;
+        (original.value as (this: GPUBuffer) => void).call(this);
+      };
+      try {
+        run();
+      } finally {
+        Object.defineProperty(GPUBuffer.prototype, "destroy", original);
+      }
+      return count;
+    };
+
+    // TypeGPU allocates GPU buffers lazily, so run a frame first to make them all exist.
+    test("frees every buffer the simulation created", async () => {
+      const { evolve, destroy } = create();
+      await evolve();
+
+      // 8 grid buffers (dimensions, wrapping, seed, colors ×2, ids ×2, staging) + 4 automaton buffers.
+      expect(countDestroyedBuffers(destroy)).toBe(12);
+    });
+
+    test("update and draw do nothing after destroy", async () => {
+      const { update, draw, evolve, destroy } = create();
+      destroy();
+      destroy();
+
+      expect(() => update()).not.toThrow();
+      await expect(draw()).resolves.toBeUndefined();
+      await expect(evolve()).resolves.toBeUndefined();
+    });
+
+    test("a draw in flight resolves when destroyed", async () => {
+      const { update, draw, destroy } = create();
+      update();
+      const drawing = draw();
+      destroy();
+
+      await expect(drawing).resolves.toBeUndefined();
+    });
+
+    test("a new simulation works after destroying another", async () => {
+      create().destroy();
+      const { evolve, readGrid } = create();
+      await evolve();
+
+      expect(await readGrid()).toEqual(Array.from({ length: 64 }, () => 0));
+    });
+  });
+
   describe("setup validation", () => {
     const createCanvas = (width: number, height: number): HTMLCanvasElement => {
       const canvas = document.createElement("canvas");
