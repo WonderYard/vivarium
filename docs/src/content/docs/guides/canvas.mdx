@@ -98,3 +98,39 @@ document.getElementById("restore")!.addEventListener("click", () => {
   if (saved) writeGrid(saved);
 });
 ```
+
+## Cleaning up
+
+`destroy` frees the GPU memory held by the simulation. Call it when you no longer need the simulation, for example when you remove its canvas from the page or replace it with a new one:
+
+```typescript
+const { update, draw, destroy } = await setup({ canvas, automaton });
+
+// later, when the simulation is no longer needed
+destroy();
+```
+
+After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash. `readGrid`, `writeGrid`, `writeCell`, `writeCellAt` and `setAutomaton` throw an error. Calling `destroy` more than once is safe.
+
+<Aside type="note" title="Why not wait for garbage collection?">
+  The browser eventually frees the GPU memory of a simulation you no longer reference, but it may
+  take a long time. If you create simulations repeatedly, call `destroy` so their memory doesn't
+  pile up.
+</Aside>
+
+## Handling device loss
+
+The GPU device can be lost, for example when the graphics driver crashes or resets. Pass `onDeviceLost` to `setup` to be notified:
+
+```typescript
+const simulation = await setup({
+  canvas,
+  automaton,
+  onDeviceLost: (info) => {
+    console.warn("GPU device lost:", info.message);
+    // for example, show a button that calls setup again
+  },
+});
+```
+
+Once the device is lost, the simulation behaves as if `destroy` had been called, and its grid can no longer be read. Call `setup` again to create a new simulation; it gets a new device automatically.
