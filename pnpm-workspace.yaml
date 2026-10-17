@@ -9,7 +9,7 @@ catalog:
   "@webgpu/types": ^0.1.74
   tailwindcss: ^4.3.3
   typescript: ~6.0.3
-  unplugin-typegpu: ^0.12.4
+  unplugin-typegpu: 0.12.4
   vite: ^8.3.2
 
 onlyBuiltDependencies:
