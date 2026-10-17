@@ -129,7 +129,7 @@ export const toPng = async ({
  *
  * @param png - The PNG file, e.g. from an `<input type="file">`, a drop event or `fetch(...).then((r) => r.blob())`.
  * @returns A promise of the `automaton`, the flat `grid` of element indices (row-major order), and its `width` and `height`.
- * Set the canvas size to `width` and `height`, then pass `automaton` and `grid` (as `initialGrid`) to {@link setup}.
+ * Pass them all to {@link setup}, with `grid` as `initialGrid`; the canvas can be any size, the grid is stretched over it.
  */
 export const fromPng = async (
   png: Blob,

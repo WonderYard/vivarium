@@ -81,3 +81,24 @@ test("saves a running simulation", async () => {
 
   expect(loaded).toEqual({ automaton, grid: expected, width, height });
 });
+
+test("saves the grid, not the canvas it is stretched over", async () => {
+  const automaton = createAutomaton();
+  const [gridWidth, gridHeight] = [5, 3];
+  const initialGrid = Array.from({ length: gridWidth * gridHeight }, (_, i) => i % 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 32;
+  const simulation = await setup({
+    canvas,
+    width: gridWidth,
+    height: gridHeight,
+    automaton,
+    initialGrid,
+  });
+
+  const loaded = await fromPng(await simulation.toPng());
+  simulation.destroy();
+
+  expect(loaded).toEqual({ automaton, grid: initialGrid, width: gridWidth, height: gridHeight });
+});

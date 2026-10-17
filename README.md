@@ -73,7 +73,7 @@ const life = vi.create();
 const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
 
-// Set the canvas size. This will be the automaton size as well.
+// Set the canvas size. By default, this will be the automaton size as well.
 const size = 256;
 canvas.width = size;
 canvas.height = size;
@@ -102,9 +102,7 @@ const png = await toPng();
 
 // Load it back, rules and all.
 const { automaton, grid, width, height } = await fromPng(png);
-canvas.width = width;
-canvas.height = height;
-await setup({ canvas, automaton, initialGrid: grid });
+await setup({ canvas, width, height, automaton, initialGrid: grid });
 ```
 
 `toPng` is also exported on its own, taking `{ automaton, grid, width, height }`.
