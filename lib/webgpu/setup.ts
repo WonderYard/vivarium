@@ -676,7 +676,7 @@ export const setup = async ({
 
   /**
    * Saves the current grid and automaton as a PNG, one pixel per cell.
-   * Load it back with {@link fromPng}.
+   * Load it back with {@link fromPng}. Rejects if two elements share a color.
    */
   const toPng = async (): Promise<Blob> =>
     encodePng({ automaton: currentAutomaton, grid: await readGrid(), width, height });
