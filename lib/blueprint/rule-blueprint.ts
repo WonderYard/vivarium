@@ -3,8 +3,8 @@ import type { Automaton, Condition, Rule, Strategy } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
 import type { AnyNeighbor, BlueprintContext } from "@/blueprint/types";
-import { toRefIdOrPoint } from "@/blueprint/utils";
-import { acceptMap, neighborhoodPoints } from "@/common/constants";
+import { assertCounts, toRefIdOrPoint } from "@/blueprint/utils";
+import { acceptMap, maxCount, neighborhoodPoints } from "@/common/constants";
 
 /**
  * Blueprint for a rule. Provides methods to add conditions. Returned by {@link RefBlueprint.to | element.to()} or {@link RefBlueprint.to | kind.to()}.
@@ -32,18 +32,18 @@ export class RuleBlueprint extends BaseBlueprint {
    *
    * @param refBlueprintOrNeighbor - The element, kind, or neighbor reference to count.
    * @param count - The accepted count values. Can be individual numbers or arrays. When omitted, matches any count from 1 to the neighborhood size.
+   * @throws If a count value is not a whole number between 0 and the neighborhood size.
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
   public count(
     refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
     ...count: (number | number[])[]
   ): RuleBlueprintWithAccept {
-    let flatCount =
-      this.automaton.neighborhood === "cross" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6, 7, 8];
+    const max = maxCount(this.automaton.neighborhood);
+    const flatCount =
+      count.length !== 0 ? count.flat() : Array.from({ length: max }, (_, i) => i + 1);
 
-    if (count.length !== 0) {
-      flatCount = count.flat();
-    }
+    assertCounts(flatCount, this.automaton.neighborhood);
 
     return this.condition({
       type: "count",
@@ -75,23 +75,18 @@ export class RuleBlueprint extends BaseBlueprint {
   /**
    * Adds a chance condition to the rule. The rule passes with a probability of `part / whole`.
    *
-   * @param part - The numerator of the probability fraction.
-   * @param whole - The denominator of the probability fraction. Defaults to `100`.
+   * @param part - The numerator of the probability fraction, between `0` and `whole`.
+   * @param whole - The denominator of the probability fraction, greater than `0`. Defaults to `100`.
+   * @throws If `whole` is not greater than `0`, or `part` is not between `0` and `whole`.
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
   public chance(part: number, whole = 100): RuleBlueprintWithAccept {
-    if (part < 0) {
-      part = 0;
+    if (!(whole > 0) || !Number.isFinite(whole)) {
+      throw new Error(`Chance whole ${whole} is invalid. Expected a finite number greater than 0.`);
     }
-    if (whole <= 0) {
-      whole = 1;
+    if (!(part >= 0 && part <= whole)) {
+      throw new Error(`Chance part ${part} is invalid. Expected a number in range [0, ${whole}].`);
     }
-    if (part > whole) {
-      part = whole;
-    }
-
-    part = Math.floor(part);
-    whole = Math.floor(whole);
 
     return this.condition({
       type: "chance",

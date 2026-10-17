@@ -553,76 +553,48 @@ test("creates a chance condition with custom whole", () => {
   }
 });
 
-test("clamps negative part to 0 in chance condition", () => {
+test.each([
+  [-5, 100],
+  [1, 0],
+  [1, -5],
+  [200, 100],
+  [Number.NaN, 100],
+  [1, Number.POSITIVE_INFINITY],
+])("throws on invalid chance(%s, %s)", (part, whole) => {
   const vi = vivarium();
   const alive = vi.element("alive", "#ffffff");
 
-  alive.to(alive).chance(-5);
+  expect(() => alive.to(alive).chance(part, whole)).toThrow(/^Chance (part|whole) .* is invalid/);
+});
+
+test("keeps fractional values in chance condition", () => {
+  const vi = vivarium();
+  const alive = vi.element("alive", "#ffffff");
+
+  alive.to(alive).chance(2.5, 10);
 
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
   if (condition.type === "chance") {
-    expect(condition.ratio.part).toBe(0);
+    expect(condition.ratio).toStrictEqual({ part: 2.5, whole: 10 });
   }
 });
 
-test("clamps zero whole to 1 in chance condition", () => {
+test.each([[-1], [9], [1.5]])("throws on invalid count %s in a square neighborhood", (count) => {
   const vi = vivarium();
   const alive = vi.element("alive", "#ffffff");
 
-  alive.to(alive).chance(1, 0);
-
-  const automaton = vi.create();
-  const condition = automaton.rules[0].when[0];
-
-  if (condition.type === "chance") {
-    expect(condition.ratio.whole).toBe(1);
-  }
+  expect(() => alive.to(alive).count(alive, 1, count)).toThrow(
+    new RegExp(`^Count ${count} is invalid. Expected a whole number in range \\[0, 8\\]`),
+  );
 });
 
-test("clamps negative whole to 1 in chance condition", () => {
-  const vi = vivarium();
+test("throws on a count above 4 in a cross neighborhood", () => {
+  const vi = vivarium("cross");
   const alive = vi.element("alive", "#ffffff");
 
-  alive.to(alive).chance(1, -5);
-
-  const automaton = vi.create();
-  const condition = automaton.rules[0].when[0];
-
-  if (condition.type === "chance") {
-    expect(condition.ratio.whole).toBe(1);
-  }
-});
-
-test("clamps part to whole when part exceeds whole in chance condition", () => {
-  const vi = vivarium();
-  const alive = vi.element("alive", "#ffffff");
-
-  alive.to(alive).chance(200, 100);
-
-  const automaton = vi.create();
-  const condition = automaton.rules[0].when[0];
-
-  if (condition.type === "chance") {
-    expect(condition.ratio.part).toBe(100);
-    expect(condition.ratio.whole).toBe(100);
-  }
-});
-
-test("floors fractional values in chance condition", () => {
-  const vi = vivarium();
-  const alive = vi.element("alive", "#ffffff");
-
-  alive.to(alive).chance(3.7, 10.9);
-
-  const automaton = vi.create();
-  const condition = automaton.rules[0].when[0];
-
-  if (condition.type === "chance") {
-    expect(condition.ratio.part).toBe(3);
-    expect(condition.ratio.whole).toBe(10);
-  }
+  expect(() => alive.to(alive).count(alive, 5)).toThrow(/^Count 5 is invalid/);
 });
 
 // ── Accept strategies ───────────────────────────────────────────────
@@ -784,28 +756,40 @@ test("helpers.between with min 0", () => {
   expect(vi.helpers.between(0, 3)).toStrictEqual([0, 1, 2, 3]);
 });
 
+test("helpers.between accepts a range of one value", () => {
+  const vi = vivarium();
+
+  expect(vi.helpers.between(3, 3)).toStrictEqual([3]);
+});
+
 test("helpers.between throws when min is negative", () => {
   const vi = vivarium();
 
-  expect(() => vi.helpers.between(-1, 3)).toThrow(/^min cannot be less than 0/);
+  expect(() => vi.helpers.between(-1, 3)).toThrow(/^Count -1 is invalid/);
 });
 
 test("helpers.between throws when max is greater than 8", () => {
   const vi = vivarium();
 
-  expect(() => vi.helpers.between(0, 9)).toThrow(/^max cannot be more than 8/);
+  expect(() => vi.helpers.between(0, 9)).toThrow(/^Count 9 is invalid/);
 });
 
-test("helpers.between throws when max equals min", () => {
-  const vi = vivarium();
+test("helpers.between throws when max is greater than 4 in a cross neighborhood", () => {
+  const vi = vivarium("cross");
 
-  expect(() => vi.helpers.between(3, 3)).toThrow(/^max cannot be less or equal than min/);
+  expect(() => vi.helpers.between(0, 8)).toThrow(/^Count 8 is invalid/);
 });
 
 test("helpers.between throws when max is less than min", () => {
   const vi = vivarium();
 
-  expect(() => vi.helpers.between(5, 2)).toThrow(/^max cannot be less or equal than min/);
+  expect(() => vi.helpers.between(5, 2)).toThrow(/^max 2 cannot be less than min 5/);
+});
+
+test("helpers.not throws on a value outside the neighborhood", () => {
+  const vi = vivarium("cross");
+
+  expect(() => vi.helpers.not([2, 6])).toThrow(/^Count 6 is invalid/);
 });
 
 // ── Helpers: even() and odd() ───────────────────────────────────────

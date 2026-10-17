@@ -1,5 +1,5 @@
 import * as d from "typegpu/data";
-import type { Point, Strategy } from "../automaton/types";
+import type { Neighborhood, Point, Strategy } from "../automaton/types";
 
 export enum Square {
   TOP_LEFT = "TOP_LEFT",
@@ -32,6 +32,9 @@ export const neighborhoodPoints: Record<Square, Point> = {
   [Square.BOTTOM]: { x: 0, y: 1 },
   [Square.BOTTOM_RIGHT]: { x: 1, y: 1 },
 };
+
+/** The highest neighbor count a cell can have: 8 in a square neighborhood, 4 in a cross. */
+export const maxCount = (neighborhood?: Neighborhood): number => (neighborhood === "cross" ? 4 : 8);
 
 export enum To {
   ELEMENT_ID,

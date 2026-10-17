@@ -33,6 +33,8 @@ You can also pass an array of values:
 alien.to(space).count(alien, [0, 1, 4, 5, 6, 7, 8]);
 ```
 
+Each value must be a whole number from 0 to the neighborhood size (8 for square, 4 for cross), otherwise `count` throws. The helpers below follow the same rule.
+
 When called with no count values, all positive counts are matched (1 through 8 for square, 1 through 4 for cross). Zero is excluded, so this form means "at least one":
 
 ```typescript
@@ -154,6 +156,8 @@ If `whole` is omitted, it defaults to 100:
 // 5% chance
 space.to(alien).chance(5);
 ```
+
+`whole` must be greater than 0 and `part` between 0 and `whole`, otherwise `chance` throws.
 
 ## Multiple conditions
 

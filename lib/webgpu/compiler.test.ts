@@ -165,6 +165,20 @@ describe("COUNT_ELEMENT opcode", () => {
 
     expect(gpu.gpuConditions[0].countOrWithId).toBe(511);
   });
+
+  test("skips counts no cell can have instead of wrapping them", () => {
+    const vi = vivarium("cross");
+    const a = vi.element("a", "#ff0000");
+    a.to(a).count(a, 1);
+    const automaton = vi.create();
+    const condition = automaton.rules[0].when[0];
+    if (condition.type !== "count") throw new Error("expected a count condition");
+    // As left behind by switching to a cross neighborhood, or by a hand-built automaton:
+    // 33 would wrap to 1 << 1, and 1.5 would truncate to 1 << 1.
+    condition.count = [1, 5, 8, 33, -1, 1.5];
+
+    expect(compileGpuAutomaton(automaton).gpuConditions[0].countOrWithId).toBe(0b10);
+  });
 });
 
 // ── COUNT_POINT opcode ──────────────────────────────────────────────

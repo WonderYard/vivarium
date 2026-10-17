@@ -1,4 +1,6 @@
 import type { Neighborhood } from "@/automaton/types";
+import { assertCounts } from "@/blueprint/utils";
+import { maxCount } from "@/common/constants";
 
 /**
  * Helper functions for constructing count arrays used in conditions.
@@ -12,48 +14,33 @@ export class Helpers {
    *
    * @param value - A number or array of numbers to exclude.
    * @returns An array of all valid count values minus the excluded ones.
+   * @throws If a value is not a whole number between 0 and the neighborhood size.
    */
   public not = (value: number | number[]): number[] => {
-    const not =
-      this.neighborhoodName === "cross"
-        ? new Set([0, 1, 2, 3, 4])
-        : new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    const excluded = [value].flat();
+    assertCounts(excluded, this.neighborhoodName);
 
-    if (typeof value === "number") {
-      not.delete(value);
-    } else if (Array.isArray(value)) {
-      value.forEach((value) => {
-        not.delete(value);
-      });
-    }
-
-    return Array.from(not);
+    return Array.from({ length: maxCount(this.neighborhoodName) + 1 }, (_, i) => i).filter(
+      (count) => !excluded.includes(count),
+    );
   };
 
   /**
    * Generates a range of whole numbers from `min` to `max` (inclusive).
    *
    * @param min - The start of the range (must be ≥ 0).
-   * @param max - The end of the range (must be ≤ 8 and greater than `min`). For cross neighborhoods, should not exceed 4.
+   * @param max - The end of the range (must be ≥ `min` and ≤ the neighborhood size: 8 for square, 4 for cross).
    * @returns An array of numbers from `min` to `max`.
+   * @throws If `min` or `max` is not a whole number between 0 and the neighborhood size, or `max` is less than `min`.
    */
   public between = (min: number, max: number): number[] => {
-    if (min < 0) {
-      throw new Error("min cannot be less than 0");
-    }
-    if (max > 8) {
-      throw new Error("max cannot be more than 8");
-    }
-    if (max <= min) {
-      throw new Error("max cannot be less or equal than min");
+    assertCounts([min, max], this.neighborhoodName);
+
+    if (max < min) {
+      throw new Error(`max ${max} cannot be less than min ${min}`);
     }
 
-    const range = [];
-    for (let i = min; i <= max; i++) {
-      range.push(i);
-    }
-
-    return range;
+    return Array.from({ length: max - min + 1 }, (_, i) => min + i);
   };
 
   /**

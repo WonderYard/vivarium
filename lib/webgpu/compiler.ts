@@ -1,5 +1,5 @@
 import type { Automaton, Condition, Count, Is, Point, Rule } from "@/automaton/types";
-import { GpuCondition, GpuElement, GpuRule, Opcode, To } from "@/common/constants";
+import { GpuCondition, GpuElement, GpuRule, maxCount, Opcode, To } from "@/common/constants";
 import { colorToABGR } from "@/common/utils";
 import * as d from "typegpu/data";
 
@@ -54,15 +54,21 @@ const compileCount = (condition: Count, gpuCondition: GpuConditionType, automato
   }
 
   // count
-  gpuCondition.countOrWithId = count.reduce(
-    // Packing numbers as positional bits.
-    // Example: [2, 3] -> 0b000001100
-    (acc, val) => {
-      acc |= 1 << val;
-      return acc;
-    },
-    0,
-  );
+  // The builder rejects invalid counts, but an automaton assembled outside it can still hold
+  // counts no cell can have (e.g. 6 after switching to a cross neighborhood). They can never
+  // match, so they are skipped instead of wrapping around in the bit shift (1 << 33 === 1 << 1).
+  const max = maxCount(automaton.neighborhood);
+  gpuCondition.countOrWithId = count
+    .filter((val) => Number.isInteger(val) && val >= 0 && val <= max)
+    .reduce(
+      // Packing numbers as positional bits.
+      // Example: [2, 3] -> 0b000001100
+      (acc, val) => {
+        acc |= 1 << val;
+        return acc;
+      },
+      0,
+    );
 };
 
 const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Automaton) => {
