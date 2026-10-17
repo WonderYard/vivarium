@@ -375,7 +375,7 @@ export const compute = tgpu.computeFn({
  * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
- * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation stops like after `destroy`; call `setup` again to recreate it on a new device.
+ * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — reads the latest GPU state and renders it to the canvas (async).
@@ -385,7 +385,7 @@ export const compute = tgpu.computeFn({
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton rules.
- * - `destroy` — frees the GPU resources; `update`, `draw` and `evolve` do nothing afterwards.
+ * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
  */
 export const setup = async ({
   canvas,
@@ -403,6 +403,15 @@ export const setup = async ({
 
   let frames = 0;
   let destroyed = false;
+
+  // update, draw and evolve return early instead, so a loop still running doesn't crash.
+  const assertNotDestroyed = (): void => {
+    if (destroyed) {
+      throw new Error(
+        "Simulation is destroyed or its device was lost. Call setup again to create a new one.",
+      );
+    }
+  };
   const seed = root.createUniform(d.f32);
 
   const { width, height } = canvas;
@@ -478,6 +487,8 @@ export const setup = async ({
   let palette: number[] = [];
 
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
+    assertNotDestroyed();
+
     const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } =
       compileGpuAutomaton(automaton);
 
@@ -559,6 +570,8 @@ export const setup = async ({
    * Reads the current grid state from the GPU and returns a flat array of element indices.
    */
   const readGrid = async (): Promise<number[]> => {
+    assertNotDestroyed();
+
     const currentIds = frames % 2 === 0 ? ids0 : ids1;
     const result = await currentIds.read();
     return Array.from(result);
@@ -571,6 +584,8 @@ export const setup = async ({
    * @param elementIndex - The element index to assign to the cell.
    */
   const writeCell = (index: number, elementIndex: number): void => {
+    assertNotDestroyed();
+
     if (index < 0 || index >= width * height) {
       throw new Error(
         `Cell index ${index} is out of bounds. Expected a value in range [0, ${width * height - 1}].`,
@@ -625,6 +640,8 @@ export const setup = async ({
    * @param grid - A flat array of element indices (row-major order) whose length must equal `width * height`.
    */
   const writeGrid = (grid: number[]): void => {
+    assertNotDestroyed();
+
     const totalCells = width * height;
 
     if (grid.length !== totalCells) {
@@ -738,7 +755,8 @@ export const setup = async ({
   /**
    * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
    * and `evolve` do nothing, so a loop still running (e.g. during a React effect
-   * cleanup) doesn't crash. Calling it more than once is safe.
+   * cleanup) doesn't crash, while reads, writes and `setAutomaton` throw.
+   * Calling it more than once is safe.
    */
   const destroy = (): void => {
     if (destroyed) {

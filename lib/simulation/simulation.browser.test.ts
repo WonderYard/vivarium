@@ -1797,6 +1797,21 @@ describe("GPU simulation", () => {
       await expect(evolve()).resolves.toBeUndefined();
     });
 
+    test("reads, writes and setAutomaton throw after destroy", async () => {
+      const vi = vivarium();
+      vi.element("a", "#000000");
+      const automaton = vi.create();
+      const { readGrid, writeCell, writeCellAt, writeGrid, setAutomaton, destroy } = await create();
+      destroy();
+
+      const error = /^Simulation is destroyed/;
+      await expect(readGrid()).rejects.toThrow(error);
+      expect(() => writeCell(0, 0)).toThrow(error);
+      expect(() => writeCellAt(0, 0, 0)).toThrow(error);
+      expect(() => writeGrid(Array.from({ length: 64 }, () => 0))).toThrow(error);
+      expect(() => setAutomaton({ automaton })).toThrow(error);
+    });
+
     test("a draw in flight resolves when destroyed", async () => {
       const { update, draw, destroy } = await create();
       update();
@@ -1866,6 +1881,7 @@ describe("GPU simulation", () => {
       expect(reasons).toEqual(["destroyed"]);
       expect(() => simulation.update()).not.toThrow();
       await expect(simulation.evolve()).resolves.toBeUndefined();
+      expect(() => simulation.writeCell(0, 0)).toThrow(/^Simulation is destroyed/);
     });
 
     test("onDeviceLost is not called after destroy", async () => {
