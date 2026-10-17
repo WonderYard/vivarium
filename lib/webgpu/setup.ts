@@ -139,8 +139,8 @@ const testKind = (kind: number, x: number, y: number) => {
   const id = gridLayout.$.ids[pointToIndex(x, y)];
 
   // Each element has a row of kindWords words in kindBits, with one bit per kind.
-  const word = automatonLayout.$.kindBits[id * automatonLayout.$.kindWords + (kind >> d.u32(5))];
-  const selected = (word >> (kind & d.u32(31))) & d.u32(1);
+  const word = automatonLayout.$.kindBits[id * automatonLayout.$.kindWords + (kind >>> d.u32(5))];
+  const selected = (word >>> (kind & d.u32(31))) & d.u32(1);
   return selected * inBoundsMask(x, y);
 };
 
