@@ -1665,6 +1665,35 @@ describe("GPU simulation", () => {
 
       expect(together).toEqual(alone);
     });
+
+    test("simulations share the compiled shader", async () => {
+      const vi = vivarium();
+      vi.element("a", "#000000");
+      const automaton = vi.create();
+      const create = async () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 8;
+        canvas.height = 8;
+        const simulation = await setup({ canvas, automaton });
+        await simulation.evolve();
+        simulation.destroy();
+      };
+      await create();
+
+      const original = Object.getOwnPropertyDescriptor(GPUDevice.prototype, "createShaderModule")!;
+      let count = 0;
+      GPUDevice.prototype.createShaderModule = function (this: GPUDevice, descriptor) {
+        count++;
+        return (original.value as GPUDevice["createShaderModule"]).call(this, descriptor);
+      };
+      try {
+        await create();
+      } finally {
+        Object.defineProperty(GPUDevice.prototype, "createShaderModule", original);
+      }
+
+      expect(count).toBe(0);
+    });
   });
 
   describe("kind rules", () => {

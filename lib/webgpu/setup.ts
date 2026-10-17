@@ -15,38 +15,38 @@ import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import { compileGpuAutomaton } from "./compiler";
 
-// The device is shared by all simulations and requested on the first setup call, so
-// importing the library works without WebGPU (SSR, Node, unsupported browsers).
-let devicePromise: Promise<GPUDevice> | undefined;
+// A lost device can't be revived: forget it so the next setup creates a new root.
+const watchDeviceLoss = async (device: GPUDevice): Promise<void> => {
+  const info = await device.lost;
+  gpuPromise = undefined;
+  deviceLostListeners.forEach((listener) => listener(info));
+  deviceLostListeners.clear();
+};
+
+// One root (and its device) and one compiled pipeline are shared by all simulations, as
+// TypeGPU recommends. They're created on the first setup call, so importing the library
+// works without WebGPU (SSR, Node, unsupported browsers).
+const createGpu = async () => {
+  try {
+    const root = await tgpu.init();
+    const pipeline = root.createComputePipeline({ compute });
+    void watchDeviceLoss(root.device);
+
+    return { root, pipeline };
+  } catch (error) {
+    // Let the next setup try again instead of failing forever.
+    gpuPromise = undefined;
+    throw error;
+  }
+};
+
+let gpuPromise: ReturnType<typeof createGpu> | undefined;
 
 // One per live simulation, removed by destroy(). Kept here rather than as a device.lost
 // callback per simulation, which would keep a destroyed simulation in memory until the device dies.
 const deviceLostListeners = new Set<(info: GPUDeviceLostInfo) => void>();
 
-const getDevice = (): Promise<GPUDevice> => {
-  devicePromise ??= (async () => {
-    const adapter = await navigator.gpu?.requestAdapter();
-    const device = await adapter?.requestDevice();
-
-    if (!device) {
-      throw new Error("WebGPU is not available");
-    }
-
-    // A lost device can't be revived: forget it so the next setup requests a new one.
-    void device.lost.then((info) => {
-      devicePromise = undefined;
-      deviceLostListeners.forEach((listener) => listener(info));
-      deviceLostListeners.clear();
-    });
-
-    return device;
-  })().catch((error: unknown) => {
-    devicePromise = undefined;
-    throw error;
-  });
-
-  return devicePromise;
-};
+const getGpu = (): ReturnType<typeof createGpu> => (gpuPromise ??= createGpu());
 
 // layouts are predefined
 export const gridLayout = tgpu.bindGroupLayout({
@@ -366,7 +366,7 @@ export const compute = tgpu.computeFn({
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
  * with the defined elements unless an `initialGrid` is provided.
  *
- * Async because the first call requests the WebGPU device, which later simulations share.
+ * Async because the first call initializes WebGPU, which later simulations share.
  * If the device is lost, the next call requests a new one.
  *
  * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
@@ -398,9 +398,8 @@ export const setup = async ({
   initialGrid?: number[] | number[][];
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
-  const device = await getDevice();
-  const root = tgpu.initFromDevice({ device });
-  const pipeline = root.createComputePipeline({ compute });
+  const { root, pipeline } = await getGpu();
+  const { device } = root;
 
   let frames = 0;
   let destroyed = false;
@@ -748,7 +747,7 @@ export const setup = async ({
     destroyed = true;
     deviceLostListeners.delete(handleDeviceLost);
 
-    // root.destroy() doesn't free buffers of a root made with initFromDevice, so we do it ourselves.
+    // The root is shared, so it stays alive; free only this simulation's buffers.
     [
       dimensions.buffer,
       wrappingBuffer.buffer,
@@ -760,7 +759,6 @@ export const setup = async ({
       colorsStagingBuffer,
       ...automatonBuffers,
     ].forEach((buffer) => buffer.destroy());
-    root.destroy();
   };
 
   const handleDeviceLost = (info: GPUDeviceLostInfo): void => {
