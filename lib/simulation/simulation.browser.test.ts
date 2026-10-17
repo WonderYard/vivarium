@@ -398,15 +398,6 @@ describe("GPU simulation", () => {
   describe("kind membership", () => {
     // Elements 8 and 33 extend kind k, element 40 doesn't. When kind conditions packed
     // element indices into 32 bits, 40 wrapped around to 8 and falsely matched.
-    const before = grid8([
-      [0, 0, 0, 0, 0, 0],
-      [0, 8, 0, 0, 0, 40],
-      [0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0],
-      [0, 33, 0, 0, 0, 0],
-    ]);
-
     // 41 elements and 41 kinds, so k is kind 40 and lives in the second word of each row.
     const build =
       (condition: (cell: ElementBlueprint, hit: ElementBlueprint, k: KindBlueprint) => void) =>
@@ -428,28 +419,24 @@ describe("GPU simulation", () => {
       };
 
     test("count kind matches members past index 31 and never aliases", async () => {
+      // Each cell sits between one member and 40: an aliased 40 makes the count 2.
       const after = await step(
         root,
         build((cell, hit, k) => cell.to(hit).count(k, 1)),
-        before,
+        grid([[8, 0, 40, 0, 33]]),
       );
 
-      expect(after.ids[1 * 8 + 2]).toBe(1); // next to 8
-      expect(after.ids[5 * 8 + 2]).toBe(1); // next to 33
-      expect(after.ids[1 * 8 + 6]).toBe(0); // next to 40
-      expect(after.ids[1 * 8 + 4]).toBe(0); // next to 40
+      expect(toRows(after)).toEqual([[8, 1, 40, 1, 33]]);
     });
 
     test("is kind matches members past index 31 and never aliases", async () => {
       const after = await step(
         root,
         build((cell, hit, k) => cell.to(hit).is(Square.LEFT, k)),
-        before,
+        grid([[8, 0, 33, 0, 40, 0]]),
       );
 
-      expect(after.ids[1 * 8 + 2]).toBe(1); // left is 8
-      expect(after.ids[5 * 8 + 2]).toBe(1); // left is 33
-      expect(after.ids[1 * 8 + 6]).toBe(0); // left is 40
+      expect(toRows(after)).toEqual([[8, 1, 33, 1, 40, 0]]);
     });
   });
 
