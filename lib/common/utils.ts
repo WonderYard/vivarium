@@ -1,434 +1,157 @@
+const namedColors: Record<string, string> = {
+  aliceblue: "#f0f8ff",
+  antiquewhite: "#faebd7",
+  aqua: "#00ffff",
+  cyan: "#00ffff",
+  aquamarine: "#7fffd4",
+  azure: "#f0ffff",
+  beige: "#f5f5dc",
+  bisque: "#ffe4c4",
+  black: "#000000",
+  blanchedalmond: "#ffebcd",
+  blue: "#0000ff",
+  blueviolet: "#8a2be2",
+  brown: "#a52a2a",
+  burlywood: "#deb887",
+  cadetblue: "#5f9ea0",
+  chartreuse: "#7fff00",
+  chocolate: "#d2691e",
+  coral: "#ff7f50",
+  cornflowerblue: "#6495ed",
+  cornsilk: "#fff8dc",
+  crimson: "#dc143c",
+  darkblue: "#00008b",
+  darkcyan: "#008b8b",
+  darkgoldenrod: "#b8860b",
+  darkgray: "#a9a9a9",
+  darkgrey: "#a9a9a9",
+  darkgreen: "#006400",
+  darkkhaki: "#bdb76b",
+  darkmagenta: "#8b008b",
+  darkolivegreen: "#556b2f",
+  darkorange: "#ff8c00",
+  darkorchid: "#9932cc",
+  darkred: "#8b0000",
+  darksalmon: "#e9967a",
+  darkseagreen: "#8fbc8f",
+  darkslateblue: "#483d8b",
+  darkslategray: "#2f4f4f",
+  darkslategrey: "#2f4f4f",
+  darkturquoise: "#00ced1",
+  darkviolet: "#9400d3",
+  deeppink: "#ff1493",
+  deepskyblue: "#00bfff",
+  dimgray: "#696969",
+  dimgrey: "#696969",
+  dodgerblue: "#1e90ff",
+  firebrick: "#b22222",
+  floralwhite: "#fffaf0",
+  forestgreen: "#228b22",
+  fuchsia: "#ff00ff",
+  magenta: "#ff00ff",
+  gainsboro: "#dcdcdc",
+  ghostwhite: "#f8f8ff",
+  gold: "#ffd700",
+  goldenrod: "#daa520",
+  gray: "#808080",
+  grey: "#808080",
+  green: "#008000",
+  greenyellow: "#adff2f",
+  honeydew: "#f0fff0",
+  hotpink: "#ff69b4",
+  indianred: "#cd5c5c",
+  indigo: "#4b0082",
+  ivory: "#fffff0",
+  khaki: "#f0e68c",
+  lavender: "#e6e6fa",
+  lavenderblush: "#fff0f5",
+  lawngreen: "#7cfc00",
+  lemonchiffon: "#fffacd",
+  lightblue: "#add8e6",
+  lightcoral: "#f08080",
+  lightcyan: "#e0ffff",
+  lightgoldenrodyellow: "#fafad2",
+  lightgray: "#d3d3d3",
+  lightgrey: "#d3d3d3",
+  lightgreen: "#90ee90",
+  lightpink: "#ffb6c1",
+  lightsalmon: "#ffa07a",
+  lightseagreen: "#20b2aa",
+  lightskyblue: "#87cefa",
+  lightslategray: "#778899",
+  lightslategrey: "#778899",
+  lightsteelblue: "#b0c4de",
+  lightyellow: "#ffffe0",
+  lime: "#00ff00",
+  limegreen: "#32cd32",
+  linen: "#faf0e6",
+  maroon: "#800000",
+  mediumaquamarine: "#66cdaa",
+  mediumblue: "#0000cd",
+  mediumorchid: "#ba55d3",
+  mediumpurple: "#9370db",
+  mediumseagreen: "#3cb371",
+  mediumslateblue: "#7b68ee",
+  mediumspringgreen: "#00fa9a",
+  mediumturquoise: "#48d1cc",
+  mediumvioletred: "#c71585",
+  midnightblue: "#191970",
+  mintcream: "#f5fffa",
+  mistyrose: "#ffe4e1",
+  moccasin: "#ffe4b5",
+  navajowhite: "#ffdead",
+  navy: "#000080",
+  oldlace: "#fdf5e6",
+  olive: "#808000",
+  olivedrab: "#6b8e23",
+  orange: "#ffa500",
+  orangered: "#ff4500",
+  orchid: "#da70d6",
+  palegoldenrod: "#eee8aa",
+  palegreen: "#98fb98",
+  paleturquoise: "#afeeee",
+  palevioletred: "#db7093",
+  papayawhip: "#ffefd5",
+  peachpuff: "#ffdab9",
+  peru: "#cd853f",
+  pink: "#ffc0cb",
+  plum: "#dda0dd",
+  powderblue: "#b0e0e6",
+  purple: "#800080",
+  rebeccapurple: "#663399",
+  red: "#ff0000",
+  rosybrown: "#bc8f8f",
+  royalblue: "#4169e1",
+  saddlebrown: "#8b4513",
+  salmon: "#fa8072",
+  sandybrown: "#f4a460",
+  seagreen: "#2e8b57",
+  seashell: "#fff5ee",
+  sienna: "#a0522d",
+  silver: "#c0c0c0",
+  skyblue: "#87ceeb",
+  slateblue: "#6a5acd",
+  slategray: "#708090",
+  slategrey: "#708090",
+  snow: "#fffafa",
+  springgreen: "#00ff7f",
+  steelblue: "#4682b4",
+  tan: "#d2b48c",
+  teal: "#008080",
+  thistle: "#d8bfd8",
+  tomato: "#ff6347",
+  turquoise: "#40e0d0",
+  violet: "#ee82ee",
+  wheat: "#f5deb3",
+  white: "#ffffff",
+  whitesmoke: "#f5f5f5",
+  yellow: "#ffff00",
+  yellowgreen: "#9acd32",
+};
+
 const mapNamedColor = (color: string): string => {
-  switch (color.toLowerCase()) {
-    case "aliceblue":
-      return "#f0f8ff";
-
-    case "antiquewhite":
-      return "#faebd7";
-
-    case "aqua":
-    case "cyan":
-      return "#00ffff";
-
-    case "aquamarine":
-      return "#7fffd4";
-
-    case "azure":
-      return "#f0ffff";
-
-    case "beige":
-      return "#f5f5dc";
-
-    case "bisque":
-      return "#ffe4c4";
-
-    case "black":
-      return "#000000";
-
-    case "blanchedalmond":
-      return "#ffebcd";
-
-    case "blue":
-      return "#0000ff";
-
-    case "blueviolet":
-      return "#8a2be2";
-
-    case "brown":
-      return "#a52a2a";
-
-    case "burlywood":
-      return "#deb887";
-
-    case "cadetblue":
-      return "#5f9ea0";
-
-    case "chartreuse":
-      return "#7fff00";
-
-    case "chocolate":
-      return "#d2691e";
-
-    case "coral":
-      return "#ff7f50";
-
-    case "cornflowerblue":
-      return "#6495ed";
-
-    case "cornsilk":
-      return "#fff8dc";
-
-    case "crimson":
-      return "#dc143c";
-
-    case "darkblue":
-      return "#00008b";
-
-    case "darkcyan":
-      return "#008b8b";
-
-    case "darkgoldenrod":
-      return "#b8860b";
-
-    case "darkgray":
-    case "darkgrey":
-      return "#a9a9a9";
-
-    case "darkgreen":
-      return "#006400";
-
-    case "darkkhaki":
-      return "#bdb76b";
-
-    case "darkmagenta":
-      return "#8b008b";
-
-    case "darkolivegreen":
-      return "#556b2f";
-
-    case "darkorange":
-      return "#ff8c00";
-
-    case "darkorchid":
-      return "#9932cc";
-
-    case "darkred":
-      return "#8b0000";
-
-    case "darksalmon":
-      return "#e9967a";
-
-    case "darkseagreen":
-      return "#8fbc8f";
-
-    case "darkslateblue":
-      return "#483d8b";
-
-    case "darkslategray":
-    case "darkslategrey":
-      return "#2f4f4f";
-
-    case "darkturquoise":
-      return "#00ced1";
-
-    case "darkviolet":
-      return "#9400d3";
-
-    case "deeppink":
-      return "#ff1493";
-
-    case "deepskyblue":
-      return "#00bfff";
-
-    case "dimgray":
-    case "dimgrey":
-      return "#696969";
-
-    case "dodgerblue":
-      return "#1e90ff";
-
-    case "firebrick":
-      return "#b22222";
-
-    case "floralwhite":
-      return "#fffaf0";
-
-    case "forestgreen":
-      return "#228b22";
-
-    case "fuchsia":
-    case "magenta":
-      return "#ff00ff";
-
-    case "gainsboro":
-      return "#dcdcdc";
-
-    case "ghostwhite":
-      return "#f8f8ff";
-
-    case "gold":
-      return "#ffd700";
-
-    case "goldenrod":
-      return "#daa520";
-
-    case "gray":
-    case "grey":
-      return "#808080";
-
-    case "green":
-      return "#008000";
-
-    case "greenyellow":
-      return "#adff2f";
-
-    case "honeydew":
-      return "#f0fff0";
-
-    case "hotpink":
-      return "#ff69b4";
-
-    case "indianred":
-      return "#cd5c5c";
-
-    case "indigo":
-      return "#4b0082";
-
-    case "ivory":
-      return "#fffff0";
-
-    case "khaki":
-      return "#f0e68c";
-
-    case "lavender":
-      return "#e6e6fa";
-
-    case "lavenderblush":
-      return "#fff0f5";
-
-    case "lawngreen":
-      return "#7cfc00";
-
-    case "lemonchiffon":
-      return "#fffacd";
-
-    case "lightblue":
-      return "#add8e6";
-
-    case "lightcoral":
-      return "#f08080";
-
-    case "lightcyan":
-      return "#e0ffff";
-
-    case "lightgoldenrodyellow":
-      return "#fafad2";
-
-    case "lightgray":
-    case "lightgrey":
-      return "#d3d3d3";
-
-    case "lightgreen":
-      return "#90ee90";
-
-    case "lightpink":
-      return "#ffb6c1";
-
-    case "lightsalmon":
-      return "#ffa07a";
-
-    case "lightseagreen":
-      return "#20b2aa";
-
-    case "lightskyblue":
-      return "#87cefa";
-
-    case "lightslategray":
-    case "lightslategrey":
-      return "#778899";
-
-    case "lightsteelblue":
-      return "#b0c4de";
-
-    case "lightyellow":
-      return "#ffffe0";
-
-    case "lime":
-      return "#00ff00";
-
-    case "limegreen":
-      return "#32cd32";
-
-    case "linen":
-      return "#faf0e6";
-
-    case "maroon":
-      return "#800000";
-
-    case "mediumaquamarine":
-      return "#66cdaa";
-
-    case "mediumblue":
-      return "#0000cd";
-
-    case "mediumorchid":
-      return "#ba55d3";
-
-    case "mediumpurple":
-      return "#9370db";
-
-    case "mediumseagreen":
-      return "#3cb371";
-
-    case "mediumslateblue":
-      return "#7b68ee";
-
-    case "mediumspringgreen":
-      return "#00fa9a";
-
-    case "mediumturquoise":
-      return "#48d1cc";
-
-    case "mediumvioletred":
-      return "#c71585";
-
-    case "midnightblue":
-      return "#191970";
-
-    case "mintcream":
-      return "#f5fffa";
-
-    case "mistyrose":
-      return "#ffe4e1";
-
-    case "moccasin":
-      return "#ffe4b5";
-
-    case "navajowhite":
-      return "#ffdead";
-
-    case "navy":
-      return "#000080";
-
-    case "oldlace":
-      return "#fdf5e6";
-
-    case "olive":
-      return "#808000";
-
-    case "olivedrab":
-      return "#6b8e23";
-
-    case "orange":
-      return "#ffa500";
-
-    case "orangered":
-      return "#ff4500";
-
-    case "orchid":
-      return "#da70d6";
-
-    case "palegoldenrod":
-      return "#eee8aa";
-
-    case "palegreen":
-      return "#98fb98";
-
-    case "paleturquoise":
-      return "#afeeee";
-
-    case "palevioletred":
-      return "#db7093";
-
-    case "papayawhip":
-      return "#ffefd5";
-
-    case "peachpuff":
-      return "#ffdab9";
-
-    case "peru":
-      return "#cd853f";
-
-    case "pink":
-      return "#ffc0cb";
-
-    case "plum":
-      return "#dda0dd";
-
-    case "powderblue":
-      return "#b0e0e6";
-
-    case "purple":
-      return "#800080";
-
-    case "rebeccapurple":
-      return "#663399";
-
-    case "red":
-      return "#ff0000";
-
-    case "rosybrown":
-      return "#bc8f8f";
-
-    case "royalblue":
-      return "#4169e1";
-
-    case "saddlebrown":
-      return "#8b4513";
-
-    case "salmon":
-      return "#fa8072";
-
-    case "sandybrown":
-      return "#f4a460";
-
-    case "seagreen":
-      return "#2e8b57";
-
-    case "seashell":
-      return "#fff5ee";
-
-    case "sienna":
-      return "#a0522d";
-
-    case "silver":
-      return "#c0c0c0";
-
-    case "skyblue":
-      return "#87ceeb";
-
-    case "slateblue":
-      return "#6a5acd";
-
-    case "slategray":
-    case "slategrey":
-      return "#708090";
-
-    case "snow":
-      return "#fffafa";
-
-    case "springgreen":
-      return "#00ff7f";
-
-    case "steelblue":
-      return "#4682b4";
-
-    case "tan":
-      return "#d2b48c";
-
-    case "teal":
-      return "#008080";
-
-    case "thistle":
-      return "#d8bfd8";
-
-    case "tomato":
-      return "#ff6347";
-
-    case "turquoise":
-      return "#40e0d0";
-
-    case "violet":
-      return "#ee82ee";
-
-    case "wheat":
-      return "#f5deb3";
-
-    case "white":
-      return "#ffffff";
-
-    case "whitesmoke":
-      return "#f5f5f5";
-
-    case "yellow":
-      return "#ffff00";
-
-    case "yellowgreen":
-      return "#9acd32";
-
-    default:
-      return color;
-  }
+  const name = color.toLowerCase();
+  return Object.hasOwn(namedColors, name) ? namedColors[name] : color;
 };
 
 /** Returns the color packed as ABGR, or undefined if it is neither a named color nor a hex value. */

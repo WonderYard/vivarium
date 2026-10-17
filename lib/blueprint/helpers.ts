@@ -20,9 +20,7 @@ export class Helpers {
     const excluded = [value].flat();
     assertCounts(excluded, this.neighborhoodName);
 
-    return Array.from({ length: maxCount(this.neighborhoodName) + 1 }, (_, i) => i).filter(
-      (count) => !excluded.includes(count),
-    );
+    return this.counts().filter((count) => !excluded.includes(count));
   };
 
   /**
@@ -49,7 +47,7 @@ export class Helpers {
    * @returns `[0, 2, 4, 6, 8]` for square, `[0, 2, 4]` for cross.
    */
   public even = (): number[] => {
-    return this.neighborhoodName === "cross" ? [0, 2, 4] : [0, 2, 4, 6, 8];
+    return this.counts().filter((count) => count % 2 === 0);
   };
 
   /**
@@ -58,6 +56,9 @@ export class Helpers {
    * @returns `[1, 3, 5, 7]` for square, `[1, 3]` for cross.
    */
   public odd = (): number[] => {
-    return this.neighborhoodName === "cross" ? [1, 3] : [1, 3, 5, 7];
+    return this.counts().filter((count) => count % 2 === 1);
   };
+
+  private counts = (): number[] =>
+    Array.from({ length: maxCount(this.neighborhoodName) + 1 }, (_, i) => i);
 }

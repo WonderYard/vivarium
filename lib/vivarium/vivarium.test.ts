@@ -237,6 +237,13 @@ test("throws on a color it can't parse", () => {
   expect(() => vi.element("a", "rgb(0, 0, 0)")).toThrow(/^Color "rgb\(0, 0, 0\)" is invalid/);
 });
 
+test("accepts named colors in any case, but not object keys", () => {
+  const vi = vivarium();
+
+  expect(() => vi.element("a", "RebeccaPurple")).not.toThrow();
+  expect(() => vi.element("b", "constructor")).toThrow(/^Color "constructor" is invalid/);
+});
+
 test("throws on diagonal neighbors in a cross vivarium", () => {
   const vi = vivarium("cross");
   const a = vi.element("a", "#ffffff");
