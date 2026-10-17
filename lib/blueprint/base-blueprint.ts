@@ -24,13 +24,9 @@ export abstract class BaseBlueprint {
     }
   }
 
-  protected assertUniqueColor(color: Color): void {
+  protected assertColorNotEmpty(color: Color): void {
     if (color.trim().length === 0) {
       throw new Error(`Color cannot be empty`);
-    }
-
-    if (this.automaton.elements.some((element) => element.color === color)) {
-      throw new Error(`Element with color "${color}" already exists`);
     }
   }
 

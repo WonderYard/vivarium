@@ -231,11 +231,11 @@ test("throws on whitespace-only element color", () => {
   expect(() => vi.element("a", "   ")).toThrow(/^Color cannot be empty/);
 });
 
-test("throws on duplicate element color", () => {
+test("allows elements sharing a color", () => {
   const vi = vivarium();
   vi.element("a", "#ffffff");
 
-  expect(() => vi.element("b", "#ffffff")).toThrow(/^Element with color "#ffffff" already exists/);
+  expect(() => vi.element("b", "#ffffff")).not.toThrow();
 });
 
 test("throws on kind and element with same name (kind first)", () => {
