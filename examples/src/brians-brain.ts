@@ -1,5 +1,6 @@
 import "/src/style.css";
 import { setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 
 /* Create */
 
@@ -19,6 +20,8 @@ on.to(dying);
 dying.to(off);
 
 const brain = vi.create();
+
+inspectOnClick(brain, "Brian's Brain");
 
 /* Run */
 

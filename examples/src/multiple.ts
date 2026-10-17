@@ -1,4 +1,5 @@
 import { setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 import "/src/style.css";
 
 /* Create */
@@ -45,6 +46,8 @@ growth.to(coral);
 coral.to(growth).count(coral, 0).chance(1, 500);
 
 const coralGrowth = vi.create();
+
+inspectOnClick(coralGrowth, "Coral Growth");
 
 /* Run */
 

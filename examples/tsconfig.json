@@ -24,6 +24,7 @@
 
     "paths": {
       "@wonderyard/vivarium": ["../lib/main.ts"],
+      "@wonderyard/vivarium/inspect": ["../lib/inspect/inspect.ts"],
       "@/*": ["../lib/*"]
     }
   },

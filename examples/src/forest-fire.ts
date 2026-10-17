@@ -1,5 +1,6 @@
 import "/src/style.css";
 import { setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 
 /* Create */
 
@@ -19,6 +20,8 @@ tree.to(fire).chance(1, 100000).count(fire).accept("any");
 fire.to(empty);
 
 const forest = vi.create();
+
+inspectOnClick(forest, "Forest Fire");
 
 /* Run */
 

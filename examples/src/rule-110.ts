@@ -1,5 +1,6 @@
 import "/src/style.css";
 import { setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 
 /* Create */
 
@@ -24,6 +25,8 @@ bg.to(on).is(vi.neighbor.TOP_LEFT, off).is(vi.neighbor.TOP, on).is(vi.neighbor.T
 bg.to(off).is(vi.neighbor.TOP, bg).accept("none");
 
 const rule110 = vi.create();
+
+inspectOnClick(rule110, "Rule 110");
 
 /* Initialize grid — a single "on" cell at the top right, everything else background */
 

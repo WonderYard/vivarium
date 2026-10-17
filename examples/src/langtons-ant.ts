@@ -1,4 +1,5 @@
 import { ElementBlueprint, setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 import "/src/style.css";
 
 /* Create */
@@ -49,6 +50,8 @@ for (let i = 0; i < neighbors.length; i++) {
 }
 
 const langtonsAnt = vi.create();
+
+inspectOnClick(langtonsAnt, "Langton's Ant");
 
 /* Initialize grid — place ant facing left on a white cell at the center */
 

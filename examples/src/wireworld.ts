@@ -1,5 +1,6 @@
 import "/src/style.css";
 import { setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 
 /* Create */
 
@@ -20,6 +21,8 @@ head.to(tail);
 tail.to(wire);
 
 const wireworld = vi.create();
+
+inspectOnClick(wireworld, "Wireworld");
 
 /* Initialize grid */
 

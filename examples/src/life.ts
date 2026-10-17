@@ -1,5 +1,6 @@
 import "./style.css";
 import { setup, vivarium } from "@wonderyard/vivarium";
+import { inspectOnClick } from "./inspect";
 
 /* Create */
 
@@ -18,6 +19,8 @@ alien.to(alien).count(alien, 2, 3);
 alien.to(space);
 
 const life = vi.create();
+
+inspectOnClick(life, "Life");
 
 /* Run */
 
