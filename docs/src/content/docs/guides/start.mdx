@@ -65,7 +65,7 @@ We're not drawing it on the screen yet. For now we are just defining what an ali
 
 ## Kinds
 
-The second base concept of Vivarium is _kinds_. A kind is not an element, it doesn't have a color and so it cannot be directly represented on a screen. However it can be inherited by elements to share common characteristics. It is not necessary to use _kinds_. Consider it an advanced concept that allows you to write less code and achieve more complex. To start, I'll show you how to define one, which is similar to how we define elements.
+The second base concept of Vivarium is _kinds_. A kind is not an element, it doesn't have a color and so it cannot be directly represented on a screen. However it can be inherited by elements to share common characteristics. It is not necessary to use _kinds_. Consider it an advanced concept that allows you to write less code and achieve more complex behaviors. To start, here's how to define one, which is similar to how we define elements.
 
 ```typescript
 const sentient = vi.kind("sentient");
@@ -94,7 +94,7 @@ Let's create a more interesting system, this time by adding a _condition_ to the
 space.to(alien).count(alien, 1);
 ```
 
-By calling the method `count` we are stating that every time the simulation attempts to apply the rule `space.to(alien)` it must first count the number of whatever we pass as first parameter (`alien` in this case) in from the neighborhood of `space` and compare that with the second argument (`1` in this case). If the condition is met, that is, the number of aliens in the neighborhood of space is exactly 1, then the rule is applied, otherwise it is skipped for the current step.
+By calling the method `count` we are stating that every time the simulation attempts to apply the rule `space.to(alien)` it must first count the number of whatever we pass as first parameter (`alien` in this case) in the neighborhood of `space` and compare that with the second argument (`1` in this case). If the condition is met, that is, the number of aliens in the neighborhood of space is exactly 1, then the rule is applied, otherwise it is skipped for the current step.
 
 With this rule, we are filling the room bit by bit in an interesting pattern. It almost looks like alien tentacles! Eventually the simulation becomes stable and nothing else happens. Can we do any better?
 
@@ -285,4 +285,4 @@ requestAnimationFrame(loop);
 
 ## What's next?
 
-Now that you know the basics, explore the [Concepts](/concepts/vivarium) section to learn about all the features Vivarium has to offer, including different neighborhood types, kinds, advanced conditions, helper functions, and accept strategies.
+Now that you know the basics, explore the [Building blocks](/concepts/vivarium) section to learn about all the features Vivarium has to offer, including different neighborhood types, kinds, advanced conditions, helper functions, and accept strategies.

@@ -46,7 +46,7 @@ import { vivarium, setup } from "@wonderyard/vivarium";
 
 To give you an idea of what the API can offer and how intuitive it can be to reason about rules and conditions, we recreated the most popular cellular automaton: [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life). Now featuring (with a little bit of imagination) green aliens 👽
 
-> We suggest you to read about Game of Life and how it works before continuing reading. If you don't understand clearly what the following code is representing, it's okay! Visit the [docs](https://vivarium.orangenote.dev) for a gentler introduction to cellular automata and what vivarium is meant for.
+> We suggest reading about Game of Life and how it works before continuing reading. If you don't understand clearly what the following code is representing, it's okay! Visit the [docs](https://vivarium.orangenote.dev) for a gentler introduction to cellular automata and what vivarium is meant for.
 
 ```typescript
 const vi = vivarium();
