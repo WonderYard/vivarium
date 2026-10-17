@@ -1617,6 +1617,33 @@ describe("GPU simulation", () => {
     });
   });
 
+  describe("setAutomaton", () => {
+    test("sets cells of elements the new automaton doesn't have to element 0", async () => {
+      const build = (names: string[]) => {
+        const vi = vivarium();
+        names.forEach((name, i) => vi.element(name, `#00000${i}`));
+        return vi.create();
+      };
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 3;
+      canvas.height = 1;
+      const { readGrid, writeGrid, setAutomaton, toPng } = await setup({
+        canvas,
+        automaton: build(["a", "b", "c"]),
+        initialGrid: [[0, 1, 2]],
+      });
+
+      setAutomaton({ automaton: build(["a", "b"]) });
+      const grid = await readGrid();
+
+      expect(grid).toEqual([0, 1, 0]);
+      // A grid read back must stay writable and saveable.
+      expect(() => writeGrid(grid)).not.toThrow();
+      await expect(toPng()).resolves.toBeInstanceOf(Blob);
+    });
+  });
+
   describe("destroy", () => {
     const create = () => {
       const vi = vivarium();

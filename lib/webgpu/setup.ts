@@ -30,13 +30,14 @@ const createGpu = async () => {
   try {
     const root = await tgpu.init();
     const pipeline = root.createComputePipeline({ compute });
+    const clearPipeline = root.createComputePipeline({ compute: clearMissingElements });
     const renderPipeline = root.createRenderPipeline({
       vertex: common.fullScreenTriangle,
       fragment: render,
     });
     void watchDeviceLoss(root.device);
 
-    return { root, pipeline, renderPipeline };
+    return { root, pipeline, clearPipeline, renderPipeline };
   } catch (error) {
     // Let the next setup try again instead of failing forever.
     gpuPromise = undefined;
@@ -364,6 +365,22 @@ export const compute = tgpu.computeFn({
   gridLayout.$.newIds[index] = id;
 });
 
+// Sets cells whose element index is past the end of the elements array to element 0.
+export const clearMissingElements = tgpu.computeFn({
+  workgroupSize: WORKGROUP_SIZE,
+  in: { pos: d.builtin.globalInvocationId },
+})(({ pos }) => {
+  if (pos.x >= gridLayout.$.dimensions.x || pos.y >= gridLayout.$.dimensions.y) {
+    return;
+  }
+
+  const index = pointToIndex(pos.x, pos.y);
+
+  if (gridLayout.$.ids[index] >= std.arrayLength(automatonLayout.$.elements)) {
+    gridLayout.$.ids[index] = d.u32(0);
+  }
+});
+
 // Draws the grid stretched over the whole canvas by looking up each cell's element color.
 export const render = tgpu.fragmentFn({
   in: { uv: d.vec2f },
@@ -403,7 +420,7 @@ export const render = tgpu.fragmentFn({
  * - `writeCell` — updates a single cell by flat index.
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
- * - `setAutomaton` — replaces the automaton rules.
+ * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
  * - `toPng` — saves the current grid and automaton as a PNG, loadable with {@link fromPng}.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
  */
@@ -422,7 +439,7 @@ export const setup = async ({
   initialGrid?: number[] | number[][];
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
-  const { root, pipeline, renderPipeline } = await getGpu();
+  const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;
 
   let frames = 0;
@@ -494,12 +511,24 @@ export const setup = async ({
   let elementCount = 0;
   let currentAutomaton = automaton;
 
+  /**
+   * Replaces the automaton, keeping the grid.
+   *
+   * Cells refer to elements by index, so the new automaton's element at index `i` takes over
+   * every cell holding `i`. When it has fewer elements, cells holding an index it doesn't have
+   * are set to element 0, so the grid stays valid for `readGrid`, `writeGrid` and `toPng`.
+   * Adding the elements back later doesn't restore those cells.
+   *
+   * To load a grid made for another automaton (e.g. from {@link fromPng}), call `setAutomaton`
+   * before `writeGrid`, which only accepts indices of the current automaton.
+   */
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
 
     const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions, gpuKindWords, gpuKindBits } =
       compileGpuAutomaton(automaton);
 
+    const previousElementCount = elementCount;
     elementCount = gpuElements.length;
 
     const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
@@ -543,6 +572,13 @@ export const setup = async ({
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
     currentAutomaton = automaton;
+
+    if (elementCount < previousElementCount) {
+      clearPipeline
+        .with(automatonGroup)
+        .with(currentGrid().group)
+        .dispatchWorkgroups(WORKGROUP_COUNT_W, WORKGROUP_COUNT_H);
+    }
   };
 
   setAutomaton({ automaton });
