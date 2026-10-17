@@ -153,20 +153,21 @@ First, import the `setup` function alongside `vivarium`:
 import { vivarium, setup } from "@wonderyard/vivarium";
 ```
 
-Then, get or create a canvas element and set its dimensions. The canvas width and height determine the grid size of the automaton — every pixel is a cell.
+Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell.
 
 ```typescript
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
 canvas.style.imageRendering = "pixelated";
 
-const size = 256; // a power of 2
+const size = 256;
 canvas.width = size;
 canvas.height = size;
 ```
 
-<Aside type="note" title="Power-of-2 constraint">
-  For performance reasons, canvas width and height must be powers of 2 and at least 8 (e.g. 8, 64,
-  128, 256).
+<Aside type="note" title="Grid size">
+  Pass `width` and `height` to `setup` to use a grid of a different size than the canvas. Any
+  positive integer works (e.g. 300×200), and the grid is stretched over the canvas, so a 64×64 grid
+  on a 512×512 canvas draws each cell as an 8×8 block.
 </Aside>
 
 <Aside type="tip" title="Image rendering">
@@ -266,7 +267,7 @@ const life = vi.create();
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
 canvas.style.imageRendering = "pixelated";
 
-// Set the canvas size (must be a power of 2). This will be the automaton size as well.
+// Set the canvas size. This will be the automaton size as well.
 const size = 256;
 canvas.width = size;
 canvas.height = size;

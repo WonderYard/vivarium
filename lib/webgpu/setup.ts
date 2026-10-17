@@ -4,7 +4,6 @@ import {
   GpuCondition,
   GpuElement,
   GpuRule,
-  MIN_GRID_SIZE,
   Opcode,
   To,
   WORKGROUP_SIZE,
@@ -107,18 +106,17 @@ const inBoundsMask = (x: number, y: number) => {
 const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
-  const widthMask = gridLayout.$.dimensions.x - d.u32(1);
-  const heightMask = gridLayout.$.dimensions.y - d.u32(1);
+  const width = gridLayout.$.dimensions.x;
+  const height = gridLayout.$.dimensions.y;
 
-  // Dimensions are guaranteed to be powers of 2,
-  // so we can use bitmasks to perform modulo operations.
-  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & (1024 - 1) = 1023.
-  // This is equivalent to: (0 - 1) % 1024 = 1023 as expected.
+  // Neighbor offsets are at most 1 cell, so coordinates range from -1 to the dimension.
+  // Adding the dimension before the modulo keeps -1 working in unsigned space:
+  // 0 - 1 = 4294967295, and 4294967295 + width overflows to width - 1.
   // In wrapping mode this wraps OOB coordinates to the opposite edge correctly.
   // In non-wrapping mode, this leads to wrong indices at the edges,
   // but in this mode OOB results are discarded via inBoundsMask,
-  // so the masked index is wrong, but harmless (it still falls within bounds).
-  return (y & heightMask) * gridLayout.$.dimensions.x + (x & widthMask);
+  // so the wrapped index is wrong, but harmless (it still falls within bounds).
+  return ((y + height) % height) * width + ((x + width) % width);
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
@@ -251,6 +249,11 @@ export const compute = tgpu.computeFn({
   const x = pos.x;
   const y = pos.y;
 
+  // The last workgroups overhang the grid when its size isn't a multiple of WORKGROUP_SIZE.
+  if (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y) {
+    return;
+  }
+
   const index = pointToIndex(x, y);
 
   const id = gridLayout.$.ids[index];
@@ -361,12 +364,15 @@ export const compute = tgpu.computeFn({
   gridLayout.$.newIds[index] = id;
 });
 
-// Draws the grid by looking up each cell's element color, one cell per canvas pixel.
+// Draws the grid stretched over the whole canvas by looking up each cell's element color.
 export const render = tgpu.fragmentFn({
-  in: { pos: d.builtin.position },
+  in: { uv: d.vec2f },
   out: d.vec4f,
-})(({ pos }) => {
-  const index = d.u32(pos.y) * gridLayout.$.dimensions.x + d.u32(pos.x);
+})(({ uv }) => {
+  const dimensions = gridLayout.$.dimensions;
+  // uv goes from (0, 0) at the top left to (1, 1) at the bottom right; min guards against rounding up at 1.
+  const cell = std.min(d.vec2u(std.mul(uv, d.vec2f(dimensions))), std.sub(dimensions, d.vec2u(1)));
+  const index = cell.y * dimensions.x + cell.x;
   const id = gridLayout.$.ids[index];
 
   // Colors are packed as ABGR, so the lowest byte is red.
@@ -383,7 +389,9 @@ export const render = tgpu.fragmentFn({
  * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
- * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
+ * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
  * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
@@ -400,11 +408,15 @@ export const render = tgpu.fragmentFn({
  */
 export const setup = async ({
   canvas,
+  width = canvas.width,
+  height = canvas.height,
   automaton,
   initialGrid,
   onDeviceLost,
 }: {
   canvas: HTMLCanvasElement;
+  width?: number;
+  height?: number;
   automaton: Automaton;
   initialGrid?: number[] | number[][];
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
@@ -425,18 +437,8 @@ export const setup = async ({
   };
   const seed = root.createUniform(d.f32);
 
-  const { width, height } = canvas;
-
-  const isPowerOf2 = (n: number) => n > 0 && (n & (n - 1)) === 0;
-
-  if (width < MIN_GRID_SIZE || height < MIN_GRID_SIZE) {
-    throw new Error(
-      `Minimum values for width and height must be >= ${MIN_GRID_SIZE}, but got ${width}x${height}.`,
-    );
-  }
-
-  if (!isPowerOf2(width) || !isPowerOf2(height)) {
-    throw new Error(`Width and height must be powers of 2, but got ${width}x${height}.`);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
   }
 
   const context = root.configureContext({ canvas, alphaMode: "opaque" });
