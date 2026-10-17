@@ -153,20 +153,21 @@ First, import the `setup` function alongside `vivarium`:
 import { vivarium, setup } from "@wonderyard/vivarium";
 ```
 
-Then, get or create a canvas element and set its dimensions. The canvas width and height determine the grid size of the automaton — every pixel is a cell.
+Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell.
 
 ```typescript
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
 canvas.style.imageRendering = "pixelated";
 
-const size = 256; // a power of 2
+const size = 256;
 canvas.width = size;
 canvas.height = size;
 ```
 
-<Aside type="note" title="Power-of-2 constraint">
-  For performance reasons, canvas width and height must be powers of 2 and at least 8 (e.g. 8, 64,
-  128, 256).
+<Aside type="note" title="Grid size">
+  Pass `width` and `height` to `setup` to use a grid of a different size than the canvas. Any
+  positive integer works (e.g. 300×200), and the grid is stretched over the canvas, so a 64×64 grid
+  on a 512×512 canvas draws each cell as an 8×8 block.
 </Aside>
 
 <Aside type="tip" title="Image rendering">
@@ -208,12 +209,12 @@ You can obtain the index of an element by accessing `.index` from its reference:
 console.log(alien.index); // -> 1
 ```
 
-The `setup` function returns `update` and `draw` functions. `update` advances the simulation by one step on the GPU (synchronous), while `draw` reads the result and renders it to the canvas (asynchronous). To create a continuous animation, call them inside a loop:
+The `setup` function returns `update` and `draw` functions. `update` advances the simulation by one step on the GPU (synchronous), while `draw` renders the result to the canvas (also synchronous, nothing is read back from the GPU). To create a continuous animation, call them inside a loop:
 
 ```typescript
-const loop = async () => {
+const loop = () => {
   update();
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);
@@ -222,16 +223,16 @@ requestAnimationFrame(loop);
 Because `update` and `draw` are independent, you can run multiple simulation steps per frame for faster simulations, or skip `update` calls to pause:
 
 ```typescript
-const loop = async () => {
+const loop = () => {
   for (let i = 0; i < simulationSpeed; i++) {
     update();
   }
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 ```
 
-For convenience, `setup` also returns `evolve`, which is a shorthand for calling `update()` + `await draw()`.
+For convenience, `setup` also returns `evolve`, which is a shorthand for calling `update()` + `draw()`.
 
 That's it! Your vivarium is now running on the screen.
 
@@ -266,7 +267,7 @@ const life = vi.create();
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
 canvas.style.imageRendering = "pixelated";
 
-// Set the canvas size (must be a power of 2). This will be the automaton size as well.
+// Set the canvas size. By default, this will be the automaton size as well.
 const size = 256;
 canvas.width = size;
 canvas.height = size;
@@ -275,9 +276,9 @@ canvas.height = size;
 const { update, draw } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that updates and draws the simulation:
-const loop = async () => {
+const loop = () => {
   update();
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

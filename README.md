@@ -73,7 +73,7 @@ const life = vi.create();
 const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
 
-// Set the canvas size (must be a power of 2). This will be the automaton size as well.
+// Set the canvas size. By default, this will be the automaton size as well.
 const size = 256;
 canvas.width = size;
 canvas.height = size;
@@ -82,14 +82,30 @@ canvas.height = size;
 const { evolve } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that evolves the canvas:
-const loop = async () => {
-  await evolve();
+const loop = () => {
+  evolve();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);
 ```
 
 [See the live demo here](https://vivarium-demo.netlify.app/)
+
+### Save and load
+
+A vivarium can be saved as a PNG: each cell becomes one pixel with its element's color, and the automaton is stored inside the image. Anyone can view it as a picture, or load it back into a simulation.
+
+```typescript
+// Save the running simulation as a PNG.
+const { toPng } = await setup({ canvas, automaton: life });
+const png = await toPng();
+
+// Load it back, rules and all.
+const { automaton, grid, width, height } = await fromPng(png);
+await setup({ canvas, width, height, automaton, initialGrid: grid });
+```
+
+`toPng` is also exported on its own, taking `{ automaton, grid, width, height }`.
 
 ## Browser compatibility
 

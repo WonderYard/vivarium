@@ -31,9 +31,9 @@ canvas.height = size;
 
 const { update, draw } = await setup({ canvas, automaton: forest });
 
-const loop = async () => {
+const loop = () => {
   update();
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

@@ -71,7 +71,7 @@ let before = performance.now();
 
 const TIME_FRAME_MS = 1000 / (60 * 10); // 600 updates per second
 
-const loop = async () => {
+const loop = () => {
   const now = performance.now();
   let i = 0;
   while (now - before >= TIME_FRAME_MS && i < 10 /* to avoid freezes */) {
@@ -79,7 +79,7 @@ const loop = async () => {
     before += TIME_FRAME_MS;
     i++;
   }
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

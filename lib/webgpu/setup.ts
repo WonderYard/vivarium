@@ -4,13 +4,13 @@ import {
   GpuCondition,
   GpuElement,
   GpuRule,
-  MIN_GRID_SIZE,
   Opcode,
   To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
+import { toPng as encodePng } from "@/png/png";
 import { randf } from "@typegpu/noise";
-import tgpu, { type TgpuBindGroup } from "typegpu";
+import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import { compileGpuAutomaton } from "./compiler";
@@ -23,16 +23,20 @@ const watchDeviceLoss = async (device: GPUDevice): Promise<void> => {
   deviceLostListeners.clear();
 };
 
-// One root (and its device) and one compiled pipeline are shared by all simulations, as
+// One root (and its device) and one set of compiled pipelines are shared by all simulations, as
 // TypeGPU recommends. They're created on the first setup call, so importing the library
 // works without WebGPU (SSR, Node, unsupported browsers).
 const createGpu = async () => {
   try {
     const root = await tgpu.init();
     const pipeline = root.createComputePipeline({ compute });
+    const renderPipeline = root.createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: render,
+    });
     void watchDeviceLoss(root.device);
 
-    return { root, pipeline };
+    return { root, pipeline, renderPipeline };
   } catch (error) {
     // Let the next setup try again instead of failing forever.
     gpuPromise = undefined;
@@ -53,8 +57,6 @@ export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   wrapping: { uniform: d.u32 },
   seed: { uniform: d.f32 },
-  colors: { storage: d.arrayOf(d.u32), access: "mutable" },
-  newColors: { storage: d.arrayOf(d.u32), access: "mutable" },
   ids: { storage: d.arrayOf(d.u32), access: "mutable" },
   newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
 });
@@ -105,18 +107,17 @@ const inBoundsMask = (x: number, y: number) => {
 const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
-  const widthMask = gridLayout.$.dimensions.x - d.u32(1);
-  const heightMask = gridLayout.$.dimensions.y - d.u32(1);
+  const width = gridLayout.$.dimensions.x;
+  const height = gridLayout.$.dimensions.y;
 
-  // Dimensions are guaranteed to be powers of 2,
-  // so we can use bitmasks to perform modulo operations.
-  // Example: 0 - 1 = 4294967295 in unsigned space, and (0 - 1) & (1024 - 1) = 1023.
-  // This is equivalent to: (0 - 1) % 1024 = 1023 as expected.
+  // Neighbor offsets are at most 1 cell, so coordinates range from -1 to the dimension.
+  // Adding the dimension before the modulo keeps -1 working in unsigned space:
+  // 0 - 1 = 4294967295, and 4294967295 + width overflows to width - 1.
   // In wrapping mode this wraps OOB coordinates to the opposite edge correctly.
   // In non-wrapping mode, this leads to wrong indices at the edges,
   // but in this mode OOB results are discarded via inBoundsMask,
-  // so the masked index is wrong, but harmless (it still falls within bounds).
-  return (y & heightMask) * gridLayout.$.dimensions.x + (x & widthMask);
+  // so the wrapped index is wrong, but harmless (it still falls within bounds).
+  return ((y + height) % height) * width + ((x + width) % width);
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
@@ -249,9 +250,13 @@ export const compute = tgpu.computeFn({
   const x = pos.x;
   const y = pos.y;
 
+  // The last workgroups overhang the grid when its size isn't a multiple of WORKGROUP_SIZE.
+  if (x >= gridLayout.$.dimensions.x || y >= gridLayout.$.dimensions.y) {
+    return;
+  }
+
   const index = pointToIndex(x, y);
 
-  const color = gridLayout.$.colors[index];
   const id = gridLayout.$.ids[index];
 
   const element = automatonLayout.$.elements[id];
@@ -352,14 +357,27 @@ export const compute = tgpu.computeFn({
       }
 
       gridLayout.$.newIds[index] = resolvedId;
-      gridLayout.$.newColors[index] = automatonLayout.$.elements[resolvedId].color;
 
       return;
     }
   }
 
   gridLayout.$.newIds[index] = id;
-  gridLayout.$.newColors[index] = color;
+});
+
+// Draws the grid stretched over the whole canvas by looking up each cell's element color.
+export const render = tgpu.fragmentFn({
+  in: { uv: d.vec2f },
+  out: d.vec4f,
+})(({ uv }) => {
+  const dimensions = gridLayout.$.dimensions;
+  // uv goes from (0, 0) at the top left to (1, 1) at the bottom right; min guards against rounding up at 1.
+  const cell = std.min(d.vec2u(std.mul(uv, d.vec2f(dimensions))), std.sub(dimensions, d.vec2u(1)));
+  const index = cell.y * dimensions.x + cell.x;
+  const id = gridLayout.$.ids[index];
+
+  // Colors are packed as ABGR, so the lowest byte is red.
+  return std.unpack4x8unorm(automatonLayout.$.elements[id].color);
 });
 
 /**
@@ -372,33 +390,40 @@ export const compute = tgpu.computeFn({
  * Use `index` found in `ElementBlueprint` instances to reference elements when building the initialGrid.
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
- * @param options.canvas - The HTML canvas element. Its `width` and `height` define the grid dimensions.
+ * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
  * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
- * - `draw` — reads the latest GPU state and renders it to the canvas (async).
- * - `evolve` — convenience shorthand for `update()` + `await draw()`.
+ * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
+ * - `evolve` — convenience shorthand for `update()` + `draw()`.
  * - `readGrid` — reads the current grid state.
  * - `writeCell` — updates a single cell by flat index.
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton rules.
+ * - `toPng` — saves the current grid and automaton as a PNG, loadable with {@link fromPng}.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
  */
 export const setup = async ({
   canvas,
+  width = canvas.width,
+  height = canvas.height,
   automaton,
   initialGrid,
   onDeviceLost,
 }: {
   canvas: HTMLCanvasElement;
+  width?: number;
+  height?: number;
   automaton: Automaton;
   initialGrid?: number[] | number[][];
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
-  const { root, pipeline } = await getGpu();
+  const { root, pipeline, renderPipeline } = await getGpu();
   const { device } = root;
 
   let frames = 0;
@@ -414,20 +439,11 @@ export const setup = async ({
   };
   const seed = root.createUniform(d.f32);
 
-  const { width, height } = canvas;
-  const g = canvas.getContext("2d") as CanvasRenderingContext2D;
-
-  const isPowerOf2 = (n: number) => n > 0 && (n & (n - 1)) === 0;
-
-  if (width < MIN_GRID_SIZE || height < MIN_GRID_SIZE) {
-    throw new Error(
-      `Minimum values for width and height must be >= ${MIN_GRID_SIZE}, but got ${width}x${height}.`,
-    );
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
   }
 
-  if (!isPowerOf2(width) || !isPowerOf2(height)) {
-    throw new Error(`Width and height must be powers of 2, but got ${width}x${height}.`);
-  }
+  const context = root.configureContext({ canvas, alphaMode: "opaque" });
 
   const flatGrid = initialGrid?.flat();
 
@@ -447,26 +463,14 @@ export const setup = async ({
 
   const wrappingBuffer = root.createUniform(d.u32, automaton.wrapping ? 1 : 0);
 
-  const colors0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
-
-  const colors1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
-
   const ids0 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
 
   const ids1 = root.createBuffer(d.arrayOf(d.u32, width * height)).$usage("storage");
-
-  const colorsStagingBuffer = root
-    .createBuffer(d.arrayOf(d.u32, width * height))
-    .$addFlags(GPUBufferUsage.MAP_READ);
-
-  // no staging buffer needed for ids, since we only need to draw the result
 
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
     seed,
-    colors: colors0,
-    newColors: colors1,
     ids: ids0,
     newIds: ids1,
   });
@@ -475,16 +479,21 @@ export const setup = async ({
     dimensions,
     wrapping: wrappingBuffer,
     seed,
-    colors: colors1,
-    newColors: colors0,
     ids: ids1,
     newIds: ids0,
   });
 
+  // Each update reads the current grid, writes the other one and increments `frames`,
+  // so the parity of `frames` tells which one holds the latest state.
+  const grid0 = { ids: ids0, group: gridGroup0 };
+  const grid1 = { ids: ids1, group: gridGroup1 };
+  const currentGrid = () => (frames % 2 === 0 ? grid0 : grid1);
+
   // using let because we can reassign this when we update the automaton
   let automatonGroup: TgpuBindGroup;
   let automatonBuffers: { destroy: () => void }[] = [];
-  let palette: number[] = [];
+  let elementCount = 0;
+  let currentAutomaton = automaton;
 
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
@@ -492,7 +501,7 @@ export const setup = async ({
     const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } =
       compileGpuAutomaton(automaton);
 
-    palette = gpuElements.map((element) => element.color);
+    elementCount = gpuElements.length;
 
     const rules = gpuRules.length > 0 ? gpuRules : [GpuRule()];
     const conditions = gpuConditions.length > 0 ? gpuConditions : [GpuCondition()];
@@ -525,16 +534,16 @@ export const setup = async ({
     ];
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
+    currentAutomaton = automaton;
   };
 
   setAutomaton({ automaton });
 
-  const colors = new Uint32Array(width * height);
   const ids = new Uint32Array(width * height);
 
   const elementsLength = automaton.elements.length;
 
-  for (let i = 0; i < colors.length; i++) {
+  for (let i = 0; i < ids.length; i++) {
     let elementIndex: number;
 
     if (flatGrid !== undefined) {
@@ -555,16 +564,10 @@ export const setup = async ({
     } else {
       elementIndex = Math.floor(Math.random() * elementsLength);
     }
-    colors[i] = palette[elementIndex];
     ids[i] = elementIndex;
   }
 
-  // and we write the inizialization to the buffers
-  colors0.write(colors);
   ids0.write(ids);
-
-  const imageData = g.createImageData(width, height);
-  const pixels = new Uint32Array(imageData.data.buffer);
 
   /**
    * Reads the current grid state from the GPU and returns a flat array of element indices.
@@ -572,13 +575,12 @@ export const setup = async ({
   const readGrid = async (): Promise<number[]> => {
     assertNotDestroyed();
 
-    const currentIds = frames % 2 === 0 ? ids0 : ids1;
-    const result = await currentIds.read();
+    const result = await currentGrid().ids.read();
     return Array.from(result);
   };
 
   /**
-   * Writes a single cell in the current grid, updating both its element index and color.
+   * Writes a single cell in the current grid.
    *
    * @param index - The flat index of the cell to update (row-major order).
    * @param elementIndex - The element index to assign to the cell.
@@ -596,25 +598,18 @@ export const setup = async ({
       !Number.isFinite(elementIndex) ||
       !Number.isInteger(elementIndex) ||
       elementIndex < 0 ||
-      elementIndex >= palette.length
+      elementIndex >= elementCount
     ) {
       throw new Error(
-        `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`,
+        `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
       );
     }
 
-    const currentIds = frames % 2 === 0 ? ids0 : ids1;
-    const currentColors = frames % 2 === 0 ? colors0 : colors1;
-
-    const data = new Uint32Array([elementIndex]);
-    device.queue.writeBuffer(currentIds.buffer, index * 4, data);
-
-    const colorData = new Uint32Array([palette[elementIndex]]);
-    device.queue.writeBuffer(currentColors.buffer, index * 4, colorData);
+    device.queue.writeBuffer(currentGrid().ids.buffer, index * 4, new Uint32Array([elementIndex]));
   };
 
   /**
-   * Writes a single cell by grid coordinates, updating both its element index and color.
+   * Writes a single cell by grid coordinates.
    *
    * @param x - The column of the cell (0-based, from left).
    * @param y - The row of the cell (0-based, from top).
@@ -633,9 +628,8 @@ export const setup = async ({
   };
 
   /**
-   * Overwrites the entire grid with the given flat array of element indices,
-   * updating both the ids and colors buffers. Useful for restoring a snapshot
-   * or painting the grid in bulk.
+   * Overwrites the entire grid with the given flat array of element indices.
+   * Useful for restoring a snapshot or painting the grid in bulk.
    *
    * @param grid - A flat array of element indices (row-major order) whose length must equal `width * height`.
    */
@@ -651,7 +645,6 @@ export const setup = async ({
     }
 
     const newIds = new Uint32Array(totalCells);
-    const newColors = new Uint32Array(totalCells);
 
     for (let i = 0; i < totalCells; i++) {
       const elementIndex = grid[i];
@@ -660,23 +653,25 @@ export const setup = async ({
         !Number.isFinite(elementIndex) ||
         !Number.isInteger(elementIndex) ||
         elementIndex < 0 ||
-        elementIndex >= palette.length
+        elementIndex >= elementCount
       ) {
         throw new Error(
-          `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${palette.length - 1}].`,
+          `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
         );
       }
 
       newIds[i] = elementIndex;
-      newColors[i] = palette[elementIndex];
     }
 
-    const currentIds = frames % 2 === 0 ? ids0 : ids1;
-    const currentColors = frames % 2 === 0 ? colors0 : colors1;
-
-    device.queue.writeBuffer(currentIds.buffer, 0, newIds);
-    device.queue.writeBuffer(currentColors.buffer, 0, newColors);
+    device.queue.writeBuffer(currentGrid().ids.buffer, 0, newIds);
   };
+
+  /**
+   * Saves the current grid and automaton as a PNG, one pixel per cell.
+   * Load it back with {@link fromPng}.
+   */
+  const toPng = async (): Promise<Blob> =>
+    encodePng({ automaton: currentAutomaton, grid: await readGrid(), width, height });
 
   /**
    * Advances the simulation by one step on the GPU. This function is synchronous
@@ -694,62 +689,35 @@ export const setup = async ({
 
     pipeline
       .with(automatonGroup)
-      .with(frames % 2 === 0 ? gridGroup0 : gridGroup1)
+      .with(currentGrid().group)
       .dispatchWorkgroups(WORKGROUP_COUNT_W, WORKGROUP_COUNT_H);
 
     frames++;
   };
 
   /**
-   * Reads the latest simulation state from the GPU and renders it to the canvas.
-   * Must be called after at least one `update` call.
-   *
-   * This function is asynchronous because it waits for the GPU to finish
-   * processing before reading the result.
+   * Renders the latest simulation state to the canvas. Like `update`, it is synchronous:
+   * it only queues GPU commands, and nothing is read back to the CPU.
    */
-  const draw = async (): Promise<void> => {
+  const draw = (): void => {
     if (destroyed) {
       return;
     }
 
-    // In <=1.3.0 there was a bug in the evolve function that would cause the drawing
-    // of old data instead of new one. `frames` was updated after updating + drawing.
-    // Now we determine which colors buffer to read using the *updated* frames value
-    // (updated at the end of the update function). For instance, after an update
-    // if frames has become odd (from even), colors1 is going to hold the new colors,
-    // because gridGroup0 (even-frame update) uses colors0 as old and colors1 as new.
-    colorsStagingBuffer.copyFrom(frames % 2 === 0 ? colors0 : colors1);
-
-    // We are manually doing these steps, from map to unmap, even though
-    // TgpuBuffer.read exists, because we notice heavy work happening JS-side
-    // due to its readers. Since we don't need to parse data other than putting
-    // it on the canvas, our approach is correct and fast. In the future, if
-    // beneficial, consider drawing GPU-side to avoid reading data every frame.
-
-    const rawBuffer = colorsStagingBuffer.buffer;
-    try {
-      await rawBuffer.mapAsync(GPUMapMode.READ);
-    } catch (error) {
-      // destroy() or a lost device during the await aborts the pending map; the caller's loop shouldn't crash.
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-      throw error;
-    }
-
-    pixels.set(new Uint32Array(rawBuffer.getMappedRange()));
-    g.putImageData(imageData, 0, 0);
-
-    rawBuffer.unmap();
+    renderPipeline
+      .with(automatonGroup)
+      .with(currentGrid().group)
+      .withColorAttachment({ view: context })
+      .draw(3);
   };
 
   /**
    * Convenience function that advances the simulation by one step and draws
-   * the result. Equivalent to calling `update()` followed by `await draw()`.
+   * the result. Equivalent to calling `update()` followed by `draw()`.
    */
-  const evolve = async (): Promise<void> => {
+  const evolve = (): void => {
     update();
-    await draw();
+    draw();
   };
 
   /**
@@ -770,11 +738,8 @@ export const setup = async ({
       dimensions.buffer,
       wrappingBuffer.buffer,
       seed.buffer,
-      colors0,
-      colors1,
       ids0,
       ids1,
-      colorsStagingBuffer,
       ...automatonBuffers,
     ].forEach((buffer) => buffer.destroy());
   };
@@ -796,6 +761,7 @@ export const setup = async ({
     writeCellAt,
     writeGrid,
     setAutomaton,
+    toPng,
     destroy,
   };
 };

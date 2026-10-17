@@ -74,10 +74,10 @@ for (const card of cards) {
     button.textContent = paused ? "Play" : "Pause";
   };
 
-  const loop = async () => {
+  const loop = () => {
     if (!paused) {
       update();
-      await draw();
+      draw();
     }
     requestAnimationFrame(loop);
   };
