@@ -34,9 +34,9 @@ canvas.height = size;
 const { update, draw } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that updates and draws the simulation:
-const loop = async () => {
+const loop = () => {
   update();
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

@@ -82,8 +82,8 @@ canvas.height = size;
 const { evolve } = await setup({ canvas, automaton: life });
 
 // Create a simple loop that evolves the canvas:
-const loop = async () => {
-  await evolve();
+const loop = () => {
+  evolve();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

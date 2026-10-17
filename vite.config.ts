@@ -58,7 +58,7 @@ export default defineConfig({
             headless: true,
             provider: playwright({
               launchOptions: {
-                args: ["--enable-unsafe-webgpu"],
+                args: ["--enable-unsafe-webgpu", "--use-angle=swiftshader"],
               },
             }),
             instances: [{ browser: "chromium" }],

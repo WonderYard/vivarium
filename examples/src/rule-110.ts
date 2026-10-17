@@ -45,9 +45,9 @@ canvas.height = size;
 
 const { update, draw } = await setup({ canvas, automaton: rule110, initialGrid });
 
-const loop = async () => {
+const loop = () => {
   update();
-  await draw();
+  draw();
   requestAnimationFrame(loop);
 };
 requestAnimationFrame(loop);

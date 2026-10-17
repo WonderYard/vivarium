@@ -94,7 +94,7 @@ const TIME_FRAME_MS = 1000 / 20; // 20 updates per second
 
 let shouldDraw = true;
 
-const loop = async () => {
+const loop = () => {
   const now = performance.now();
   let i = 0;
   while (now - before >= TIME_FRAME_MS && i < 10 /* to avoid freezes */) {
@@ -104,7 +104,7 @@ const loop = async () => {
     i++;
   }
   if (shouldDraw) {
-    await draw();
+    draw();
     shouldDraw = false;
   }
   requestAnimationFrame(loop);
