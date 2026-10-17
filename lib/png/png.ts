@@ -1,5 +1,7 @@
 import type { Automaton } from "@/automaton/types";
-import { colorToABGR } from "@/common/utils";
+import { acceptMap } from "@/common/constants";
+import { colorToABGR, parseColor } from "@/common/utils";
+import { assertReferences } from "@/webgpu/compiler";
 
 // The automaton travels in an iTXt chunk (UTF-8, unlike tEXt), so names can use any script.
 const KEYWORD = "vivarium";
@@ -55,6 +57,131 @@ const readText = (png: Uint8Array): string | undefined => {
   }
 
   return undefined;
+};
+
+type Json = Record<string, unknown>;
+
+const MALFORMED = "This PNG has a malformed vivarium automaton in it";
+
+function check(condition: unknown, path: string, expected: string): asserts condition {
+  if (!condition) {
+    throw new Error(`${MALFORMED}: ${path} is not ${expected}.`);
+  }
+}
+
+const isObject = (value: unknown): value is Json =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isString = (value: unknown): value is string => typeof value === "string";
+
+const isPoint = (value: unknown): boolean =>
+  isObject(value) && Number.isInteger(value.x) && Number.isInteger(value.y);
+
+const isRef = (value: unknown): boolean => isString(value) || isPoint(value);
+
+// Checks that value is an array of objects and returns them with their paths.
+const objects = (value: unknown, path: string): [Json, string][] => {
+  check(Array.isArray(value), path, "an array");
+
+  return value.map((item: unknown, i) => {
+    check(isObject(item), `${path}[${i}]`, "an object");
+    return [item, `${path}[${i}]`];
+  });
+};
+
+// The file is untrusted input: check the whole shape before anything reads it.
+const parseAutomaton = (text: string): Automaton => {
+  let automaton: unknown;
+
+  try {
+    automaton = JSON.parse(text);
+  } catch {
+    throw new Error(`${MALFORMED}: it is not valid JSON.`);
+  }
+
+  check(isObject(automaton), "the automaton", "an object");
+  check(
+    automaton.neighborhood === "square" || automaton.neighborhood === "cross",
+    "neighborhood",
+    '"square" or "cross"',
+  );
+  check(typeof automaton.wrapping === "boolean", "wrapping", "a boolean");
+
+  for (const [element, path] of objects(automaton.elements, "elements")) {
+    check(element.type === "element", `${path}.type`, '"element"');
+    check(isString(element.id), `${path}.id`, "a string");
+    check(isString(element.name), `${path}.name`, "a string");
+    check(
+      isString(element.color) && parseColor(element.color) !== undefined,
+      `${path}.color`,
+      "a valid color",
+    );
+    check(
+      Array.isArray(element.extensions) && element.extensions.every(isString),
+      `${path}.extensions`,
+      "an array of strings",
+    );
+  }
+
+  for (const [kind, path] of objects(automaton.kinds, "kinds")) {
+    check(kind.type === "kind", `${path}.type`, '"kind"');
+    check(isString(kind.id), `${path}.id`, "a string");
+    check(isString(kind.name), `${path}.name`, "a string");
+  }
+
+  for (const [rule, path] of objects(automaton.rules, "rules")) {
+    check(
+      rule.fromType === "element" || rule.fromType === "kind",
+      `${path}.fromType`,
+      '"element" or "kind"',
+    );
+    check(isString(rule.fromId), `${path}.fromId`, "a string");
+    check(isRef(rule.to), `${path}.to`, "an id or a point");
+    check(
+      Object.values<unknown>(acceptMap).includes(rule.accept),
+      `${path}.accept`,
+      "a valid accept strategy",
+    );
+
+    for (const [condition, conditionPath] of objects(rule.when, `${path}.when`)) {
+      check(isString(condition.id), `${conditionPath}.id`, "a string");
+
+      if (condition.type === "count") {
+        check(isRef(condition.check), `${conditionPath}.check`, "an id or a point");
+        check(
+          Array.isArray(condition.count) && condition.count.every(Number.isFinite),
+          `${conditionPath}.count`,
+          "an array of numbers",
+        );
+      } else if (condition.type === "is") {
+        check(isPoint(condition.compare), `${conditionPath}.compare`, "a point");
+        check(isRef(condition.with), `${conditionPath}.with`, "an id or a point");
+      } else {
+        check(condition.type === "chance", `${conditionPath}.type`, '"count", "is" or "chance"');
+
+        const { ratio } = condition;
+        check(
+          isObject(ratio) &&
+            typeof ratio.part === "number" &&
+            typeof ratio.whole === "number" &&
+            Number.isFinite(ratio.whole) &&
+            ratio.whole > 0 &&
+            ratio.part >= 0 &&
+            ratio.part <= ratio.whole,
+          `${conditionPath}.ratio`,
+          "a ratio with 0 <= part <= whole and whole > 0",
+        );
+      }
+    }
+  }
+
+  try {
+    assertReferences(automaton as Automaton);
+  } catch (error) {
+    throw new Error(`${MALFORMED}: ${(error as Error).message}`, { cause: error });
+  }
+
+  return automaton as Automaton;
 };
 
 // ABGR, as unsigned so it compares equal to the pixels read through a Uint32Array.
@@ -141,11 +268,7 @@ export const fromPng = async (
     throw new Error("This PNG has no vivarium automaton in it.");
   }
 
-  const automaton = JSON.parse(text) as Automaton;
-
-  if (!Array.isArray(automaton?.elements)) {
-    throw new Error("This PNG has a malformed vivarium automaton in it.");
-  }
+  const automaton = parseAutomaton(text);
 
   // Skip color management, which would shift the colors away from the elements' ones.
   const bitmap = await createImageBitmap(png, {

@@ -13,7 +13,7 @@ import { randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
-import { compileGpuAutomaton } from "./compiler";
+import { compileGpuAutomaton, type GpuAutomaton } from "./compiler";
 
 // A lost device can't be revived: forget it so the next setup creates a new root.
 const watchDeviceLoss = async (device: GPUDevice): Promise<void> => {
@@ -439,6 +439,49 @@ export const setup = async ({
   initialGrid?: number[] | number[][];
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
+  // Run every check before the first allocation, so a throw leaks no GPU buffer.
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
+  }
+
+  const flatGrid = initialGrid?.flat();
+
+  if (flatGrid !== undefined && flatGrid.length !== width * height) {
+    throw new Error(
+      `initialGrid length ${flatGrid.length} does not match the expected length of ${width * height} (width ${width} x height ${height}).`,
+    );
+  }
+
+  const ids = new Uint32Array(width * height);
+
+  const elementsLength = automaton.elements.length;
+
+  for (let i = 0; i < ids.length; i++) {
+    let elementIndex: number;
+
+    if (flatGrid !== undefined) {
+      const rawIndex = flatGrid[i] ?? 0;
+
+      if (
+        !Number.isFinite(rawIndex) ||
+        !Number.isInteger(rawIndex) ||
+        rawIndex < 0 ||
+        rawIndex >= elementsLength
+      ) {
+        throw new Error(
+          `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`,
+        );
+      }
+
+      elementIndex = rawIndex;
+    } else {
+      elementIndex = Math.floor(Math.random() * elementsLength);
+    }
+    ids[i] = elementIndex;
+  }
+
+  const gpuAutomaton = compileGpuAutomaton(automaton);
+
   const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;
 
@@ -453,27 +496,16 @@ export const setup = async ({
       );
     }
   };
-  const seed = root.createUniform(d.f32);
-
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
-    throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
-  }
 
   const context = root.configureContext({ canvas, alphaMode: "opaque" });
-
-  const flatGrid = initialGrid?.flat();
-
-  if (flatGrid !== undefined && flatGrid.length !== width * height) {
-    throw new Error(
-      `initialGrid length ${flatGrid.length} does not match the expected length of ${width * height} (width ${width} x height ${height}).`,
-    );
-  }
 
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
   // Define all the buffers. Creating them depends on width and height only.
   // When automaton changes we don't need to recreate them.
+
+  const seed = root.createUniform(d.f32);
 
   const dimensions = root.createUniform(d.vec2u, [width, height]);
 
@@ -525,9 +557,21 @@ export const setup = async ({
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
 
-    const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions, gpuKindWords, gpuKindBits } =
-      compileGpuAutomaton(automaton);
+    applyAutomaton(automaton, compileGpuAutomaton(automaton));
+  };
 
+  // setup calls it directly with the automaton it compiled before allocating anything.
+  const applyAutomaton = (
+    automaton: Automaton,
+    {
+      gpuNeighborhood,
+      gpuElements,
+      gpuRules,
+      gpuConditions,
+      gpuKindWords,
+      gpuKindBits,
+    }: GpuAutomaton,
+  ): void => {
     const previousElementCount = elementCount;
     elementCount = gpuElements.length;
 
@@ -581,35 +625,7 @@ export const setup = async ({
     }
   };
 
-  setAutomaton({ automaton });
-
-  const ids = new Uint32Array(width * height);
-
-  const elementsLength = automaton.elements.length;
-
-  for (let i = 0; i < ids.length; i++) {
-    let elementIndex: number;
-
-    if (flatGrid !== undefined) {
-      const rawIndex = flatGrid[i] ?? 0;
-
-      if (
-        !Number.isFinite(rawIndex) ||
-        !Number.isInteger(rawIndex) ||
-        rawIndex < 0 ||
-        rawIndex >= elementsLength
-      ) {
-        throw new Error(
-          `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`,
-        );
-      }
-
-      elementIndex = rawIndex;
-    } else {
-      elementIndex = Math.floor(Math.random() * elementsLength);
-    }
-    ids[i] = elementIndex;
-  }
+  applyAutomaton(automaton, gpuAutomaton);
 
   ids0.write(ids);
 
@@ -632,9 +648,9 @@ export const setup = async ({
   const writeCell = (index: number, elementIndex: number): void => {
     assertNotDestroyed();
 
-    if (index < 0 || index >= width * height) {
+    if (!Number.isInteger(index) || index < 0 || index >= width * height) {
       throw new Error(
-        `Cell index ${index} is out of bounds. Expected a value in range [0, ${width * height - 1}].`,
+        `Cell index ${index} is out of bounds. Expected an integer in range [0, ${width * height - 1}].`,
       );
     }
 
@@ -660,12 +676,16 @@ export const setup = async ({
    * @param elementIndex - The element index to assign to the cell.
    */
   const writeCellAt = (x: number, y: number, elementIndex: number): void => {
-    if (x < 0 || x >= width) {
-      throw new Error(`Column ${x} is out of bounds. Expected a value in range [0, ${width - 1}].`);
+    if (!Number.isInteger(x) || x < 0 || x >= width) {
+      throw new Error(
+        `Column ${x} is out of bounds. Expected an integer in range [0, ${width - 1}].`,
+      );
     }
 
-    if (y < 0 || y >= height) {
-      throw new Error(`Row ${y} is out of bounds. Expected a value in range [0, ${height - 1}].`);
+    if (!Number.isInteger(y) || y < 0 || y >= height) {
+      throw new Error(
+        `Row ${y} is out of bounds. Expected an integer in range [0, ${height - 1}].`,
+      );
     }
 
     writeCell(y * width + x, elementIndex);

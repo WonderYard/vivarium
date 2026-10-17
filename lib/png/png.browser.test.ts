@@ -1,3 +1,4 @@
+import type { Automaton } from "@/automaton/types";
 import { fromPng, toPng } from "@/png/png";
 import { vivarium } from "@/vivarium/vivarium";
 import { setup } from "@/webgpu/setup";
@@ -58,6 +59,34 @@ test("rejects pixels painted with a color that matches no element", async () => 
   ]);
 
   await expect(fromPng(tampered)).rejects.toThrow("Pixel at (0, 0) has color #0000ffff");
+});
+
+test("rejects a malformed automaton", async () => {
+  // toPng stores JSON.stringify(automaton), so toJSON swaps in a malformed one.
+  const pngWith = (edit: (automaton: Record<string, any>) => void) => {
+    const automaton = createAutomaton();
+    const stored = JSON.parse(JSON.stringify(automaton));
+    edit(stored);
+    return toPng({
+      automaton: { ...automaton, toJSON: () => stored } as Automaton,
+      grid,
+      width,
+      height,
+    });
+  };
+
+  await expect(
+    fromPng(await pngWith((a) => (a.elements[1].color = "rgb(1, 2, 3)"))),
+  ).rejects.toThrow("elements[1].color is not a valid color");
+  await expect(fromPng(await pngWith((a) => (a.neighborhood = "hex")))).rejects.toThrow(
+    "neighborhood is not",
+  );
+  await expect(fromPng(await pngWith((a) => delete a.rules[0].when[0].with))).rejects.toThrow(
+    "rules[0].when[0].with is not an id or a point",
+  );
+  await expect(fromPng(await pngWith((a) => (a.rules[0].to = "missing")))).rejects.toThrow(
+    'Rule 0 references "missing"',
+  );
 });
 
 test("rejects elements sharing a color", async () => {

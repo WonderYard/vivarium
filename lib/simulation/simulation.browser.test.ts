@@ -1365,6 +1365,8 @@ describe("GPU simulation", () => {
 
       expect(() => writeCell(1, 0)).toThrow("out of bounds");
       expect(() => writeCell(-1, 0)).toThrow("out of bounds");
+      expect(() => writeCell(0.5, 0)).toThrow("out of bounds");
+      expect(() => writeCell(NaN, 0)).toThrow("out of bounds");
     });
 
     test("writeCell throws on invalid element index", async () => {
@@ -1454,6 +1456,8 @@ describe("GPU simulation", () => {
       expect(() => writeCellAt(-1, 0, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0, 1, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0, -1, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(0.5, 0, 0)).toThrow("out of bounds");
+      expect(() => writeCellAt(0, NaN, 0)).toThrow("out of bounds");
     });
   });
 

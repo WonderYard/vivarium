@@ -1,5 +1,6 @@
 import type { Automaton, Color } from "@/automaton/types";
 import type { BlueprintContext } from "@/blueprint/types";
+import { parseColor } from "@/common/utils";
 
 export abstract class BaseBlueprint {
   protected abstract automaton: Automaton;
@@ -24,9 +25,15 @@ export abstract class BaseBlueprint {
     }
   }
 
-  protected assertColorNotEmpty(color: Color): void {
+  protected assertColor(color: Color): void {
     if (color.trim().length === 0) {
       throw new Error(`Color cannot be empty`);
+    }
+
+    if (parseColor(color) === undefined) {
+      throw new Error(
+        `Color "${color}" is invalid. Expected a CSS named color or a hex value (e.g. "green", "#FF7A45").`,
+      );
     }
   }
 

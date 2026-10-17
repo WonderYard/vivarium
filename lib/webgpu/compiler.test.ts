@@ -777,3 +777,64 @@ describe("real-world automata compilation", () => {
     expect(gpu.gpuConditions[condIdx].countOrWithId).toBe((1 << 1) | (1 << 2)); // 1 or 2
   });
 });
+
+// ── Reference checks ────────────────────────────────────────────────
+
+describe("reference checks", () => {
+  const automaton = () => {
+    const vi = vivarium();
+    const kind = vi.kind("k");
+    const a = vi.element("a", "#000000", [kind]);
+    a.to(a).count(a).is(vi.neighbor.TOP, kind);
+    return vi.create();
+  };
+
+  test("throws on an unknown rule target", () => {
+    const broken = automaton();
+    broken.rules[0].to = "missing";
+
+    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references "missing"');
+  });
+
+  test("throws on an unknown rule source", () => {
+    const broken = automaton();
+    broken.rules[0].fromId = "missing";
+
+    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references "missing"');
+  });
+
+  test("throws on a source of the wrong type", () => {
+    const broken = automaton();
+    broken.rules[0].fromType = "kind";
+
+    expect(() => compileGpuAutomaton(broken)).toThrow("which is not a kind");
+  });
+
+  test("throws on an unknown condition reference", () => {
+    const broken = automaton();
+    broken.rules[0].when[1] = { type: "is", id: "c", compare: { x: 0, y: 0 }, with: "missing" };
+
+    expect(() => compileGpuAutomaton(broken)).toThrow('Condition 1 of rule 0 references "missing"');
+  });
+
+  test("throws on an unknown extension", () => {
+    const broken = automaton();
+    broken.elements[0].extensions = ["missing"];
+
+    expect(() => compileGpuAutomaton(broken)).toThrow('Element "a" references "missing"');
+  });
+
+  test("throws on a point that is not a neighbor", () => {
+    const broken = automaton();
+    broken.rules[0].to = { x: 2, y: 0 };
+
+    expect(() => compileGpuAutomaton(broken)).toThrow("(2, 0), which is not a neighbor");
+  });
+
+  test("throws on shared ids", () => {
+    const broken = automaton();
+    broken.kinds[0].id = broken.elements[0].id;
+
+    expect(() => compileGpuAutomaton(broken)).toThrow("ids must be unique");
+  });
+});

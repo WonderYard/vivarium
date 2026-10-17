@@ -231,6 +231,27 @@ test("throws on whitespace-only element color", () => {
   expect(() => vi.element("a", "   ")).toThrow(/^Color cannot be empty/);
 });
 
+test("throws on a color it can't parse", () => {
+  const vi = vivarium();
+
+  expect(() => vi.element("a", "rgb(0, 0, 0)")).toThrow(/^Color "rgb\(0, 0, 0\)" is invalid/);
+});
+
+test("throws on diagonal neighbors in a cross vivarium", () => {
+  const vi = vivarium("cross");
+  const a = vi.element("a", "#ffffff");
+
+  // @ts-expect-error TOP_LEFT is not a cross neighbor
+  expect(() => a.to(Square.TOP_LEFT)).toThrow(/^Neighbor "TOP_LEFT" is invalid/);
+  // @ts-expect-error TOP_LEFT is not a cross neighbor
+  expect(() => a.to(a).count(Square.TOP_LEFT)).toThrow(/^Neighbor "TOP_LEFT" is invalid/);
+  // @ts-expect-error TOP_LEFT is not a cross neighbor
+  expect(() => a.to(a).is(Square.TOP_LEFT, a)).toThrow(/^Neighbor "TOP_LEFT" is invalid/);
+  // @ts-expect-error TOP_LEFT is not a cross neighbor
+  expect(() => a.to(a).is(vi.neighbor.TOP, Square.TOP_LEFT)).toThrow(/^Neighbor "TOP_LEFT"/);
+  expect(() => a.to(vi.neighbor.TOP).is(vi.neighbor.LEFT, vi.neighbor.SELF)).not.toThrow();
+});
+
 test("allows elements sharing a color", () => {
   const vi = vivarium();
   vi.element("a", "#ffffff");

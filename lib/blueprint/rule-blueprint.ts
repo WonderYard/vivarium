@@ -1,15 +1,15 @@
 import { nanoid } from "nanoid";
-import type { Automaton, Condition, Rule, Strategy } from "@/automaton/types";
+import type { Automaton, Condition, Neighborhood, Rule, Strategy } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
-import type { AnyNeighbor, BlueprintContext } from "@/blueprint/types";
-import { assertCounts, toRefIdOrPoint } from "@/blueprint/utils";
-import { acceptMap, maxCount, neighborhoodPoints } from "@/common/constants";
+import type { BlueprintContext, Neighbor } from "@/blueprint/types";
+import { assertCounts, toPoint, toRefIdOrPoint } from "@/blueprint/utils";
+import { acceptMap, maxCount } from "@/common/constants";
 
 /**
  * Blueprint for a rule. Provides methods to add conditions. Returned by {@link RefBlueprint.to | element.to()} or {@link RefBlueprint.to | kind.to()}.
  */
-export class RuleBlueprint extends BaseBlueprint {
+export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBlueprint {
   constructor(
     protected context: BlueprintContext,
     protected automaton: Automaton,
@@ -18,12 +18,12 @@ export class RuleBlueprint extends BaseBlueprint {
     super();
   }
 
-  private condition(when: Condition): RuleBlueprintWithAccept {
+  private condition(when: Condition): RuleBlueprintWithAccept<N> {
     this.assertNotCreated();
 
     this.rule.when = [...this.rule.when, when];
 
-    return new RuleBlueprintWithAccept(this.context, this.automaton, this.rule);
+    return new RuleBlueprintWithAccept<N>(this.context, this.automaton, this.rule);
   }
 
   /**
@@ -36,9 +36,9 @@ export class RuleBlueprint extends BaseBlueprint {
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
   public count(
-    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
+    refBlueprintOrNeighbor: RefBlueprint | Neighbor<N>,
     ...count: (number | number[])[]
-  ): RuleBlueprintWithAccept {
+  ): RuleBlueprintWithAccept<N> {
     const max = maxCount(this.automaton.neighborhood);
     const flatCount =
       count.length !== 0 ? count.flat() : Array.from({ length: max }, (_, i) => i + 1);
@@ -48,7 +48,7 @@ export class RuleBlueprint extends BaseBlueprint {
     return this.condition({
       type: "count",
       id: nanoid(),
-      check: toRefIdOrPoint(refBlueprintOrNeighbor),
+      check: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
       count: flatCount,
     });
   }
@@ -61,14 +61,14 @@ export class RuleBlueprint extends BaseBlueprint {
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
   public is(
-    neighbor: AnyNeighbor,
-    refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
-  ): RuleBlueprintWithAccept {
+    neighbor: Neighbor<N>,
+    refBlueprintOrNeighbor: RefBlueprint | Neighbor<N>,
+  ): RuleBlueprintWithAccept<N> {
     return this.condition({
       type: "is",
       id: nanoid(),
-      compare: neighborhoodPoints[neighbor],
-      with: toRefIdOrPoint(refBlueprintOrNeighbor),
+      compare: toPoint(neighbor, this.automaton.neighborhood),
+      with: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
     });
   }
 
@@ -80,7 +80,7 @@ export class RuleBlueprint extends BaseBlueprint {
    * @throws If `whole` is not greater than `0`, or `part` is not between `0` and `whole`.
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
-  public chance(part: number, whole = 100): RuleBlueprintWithAccept {
+  public chance(part: number, whole = 100): RuleBlueprintWithAccept<N> {
     if (!(whole > 0) || !Number.isFinite(whole)) {
       throw new Error(`Chance whole ${whole} is invalid. Expected a finite number greater than 0.`);
     }
@@ -100,7 +100,9 @@ export class RuleBlueprint extends BaseBlueprint {
  * Extended rule blueprint that additionally exposes the {@link RuleBlueprintWithAccept.accept | accept} method
  * for choosing how multiple conditions are evaluated.
  */
-export class RuleBlueprintWithAccept extends RuleBlueprint {
+export class RuleBlueprintWithAccept<
+  N extends Neighborhood = Neighborhood,
+> extends RuleBlueprint<N> {
   /**
    * Sets the acceptance strategy for multiple conditions on this rule.
    *

@@ -59,10 +59,14 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    * @param extensions - An optional array of kinds this element extends.
    * @returns An {@link ElementBlueprint} that can be used to define rules.
    */
-  public element(name: string, color: Color, extensions: KindBlueprint[] = []): ElementBlueprint {
+  public element(
+    name: string,
+    color: Color,
+    extensions: KindBlueprint[] = [],
+  ): ElementBlueprint<N> {
     this.assertNotCreated();
     this.assertUniqueName(name);
-    this.assertColorNotEmpty(color);
+    this.assertColor(color);
 
     const element = {
       type: "element",
@@ -74,7 +78,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     const index = this.automaton.elements.push(element) - 1;
 
-    return new ElementBlueprint(this.context, this.automaton, element, index);
+    return new ElementBlueprint<N>(this.context, this.automaton, element, index);
   }
 
   /**
@@ -83,7 +87,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    * @param name - A unique name identifying this kind.
    * @returns A {@link KindBlueprint} that can be used to define shared rules.
    */
-  public kind(name: string): KindBlueprint {
+  public kind(name: string): KindBlueprint<N> {
     this.assertNotCreated();
     this.assertUniqueName(name);
 
@@ -95,7 +99,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     this.automaton.kinds.push(kind);
 
-    return new KindBlueprint(this.context, this.automaton, kind);
+    return new KindBlueprint<N>(this.context, this.automaton, kind);
   }
 
   /**

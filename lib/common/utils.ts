@@ -431,19 +431,17 @@ const mapNamedColor = (color: string): string => {
   }
 };
 
-export const colorToABGR = (color: string) => {
-  color = mapNamedColor(color);
-
-  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  color = color.replace(
-    shorthandRegex,
+/** Returns the color packed as ABGR, or undefined if it is neither a named color nor a hex value. */
+export const parseColor = (color: string): number | undefined => {
+  const hex = mapNamedColor(color).replace(
+    /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
     (_, r: string, g: string, b: string) => r + r + g + g + b + b,
   );
 
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 
   if (!result) {
-    throw new Error(`Bad color: ${color}`);
+    return undefined;
   }
 
   const r = parseInt(result[1], 16);
@@ -451,4 +449,14 @@ export const colorToABGR = (color: string) => {
   const b = parseInt(result[3], 16);
 
   return 0xff000000 | (b << 16) | (g << 8) | r;
+};
+
+export const colorToABGR = (color: string): number => {
+  const abgr = parseColor(color);
+
+  if (abgr === undefined) {
+    throw new Error(`Bad color: ${color}`);
+  }
+
+  return abgr;
 };
