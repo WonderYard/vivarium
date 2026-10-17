@@ -15,6 +15,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rolldownOptions: {
+      external: [/^typegpu(\/|$)/, /^@typegpu\//, "nanoid"],
       input: Object.fromEntries(
         glob
           .sync("lib/**/*.ts", {
