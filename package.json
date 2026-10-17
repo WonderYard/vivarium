@@ -24,6 +24,10 @@
     ".": {
       "types": "./dist/main.d.ts",
       "import": "./dist/main.js"
+    },
+    "./inspect": {
+      "types": "./dist/inspect/inspect.d.ts",
+      "import": "./dist/inspect/inspect.js"
     }
   },
   "scripts": {
