@@ -75,6 +75,11 @@ export const automatonLayout = tgpu.bindGroupLayout({
     storage: d.arrayOf(GpuCondition),
     access: "readonly",
   },
+  kindWords: { uniform: d.u32 },
+  kindBits: {
+    storage: d.arrayOf(d.u32),
+    access: "readonly",
+  },
 });
 
 // Because functions reference layouts and not groups,
@@ -127,20 +132,14 @@ const testNeighbor = (checkId: number, x: number, y: number) => {
   return selected * inBoundsMask(x, y);
 };
 
-const testIdInPack = (packedIds: number, x: number, y: number) => {
+const testKind = (kind: number, x: number, y: number) => {
   "use gpu";
 
-  const idMask = gridLayout.$.ids[pointToIndex(x, y)];
+  const id = gridLayout.$.ids[pointToIndex(x, y)];
 
-  // check if id is in the bits
-  const selected = std.select(
-    d.u32(0),
-    d.u32(1),
-    // Note: in unsigned space if idMask is > 31 it's gonna loop back to 0,
-    // so we cannot allow ids greater than 31 here. However no error is thrown,
-    // so to keep gpu logic simple we do the check during the compile step.
-    (packedIds & (d.u32(1) << idMask)) !== d.u32(0),
-  );
+  // Each element has a row of kindWords words in kindBits, with one bit per kind.
+  const word = automatonLayout.$.kindBits[id * automatonLayout.$.kindWords + (kind >> d.u32(5))];
+  const selected = (word >> (kind & d.u32(31))) & d.u32(1);
   return selected * inBoundsMask(x, y);
 };
 
@@ -176,20 +175,20 @@ const checkIdCount = (x: number, y: number, checkId: number, packedCount: number
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
-const checkIdsCount = (x: number, y: number, packedIds: number, packedCount: number) => {
+const checkKindCount = (x: number, y: number, kind: number, packedCount: number) => {
   "use gpu";
 
   const crossCountMask =
-    testIdInPack(packedIds, x, y - 1) +
-    testIdInPack(packedIds, x - 1, y) +
-    testIdInPack(packedIds, x + 1, y) +
-    testIdInPack(packedIds, x, y + 1);
+    testKind(kind, x, y - 1) +
+    testKind(kind, x - 1, y) +
+    testKind(kind, x + 1, y) +
+    testKind(kind, x, y + 1);
 
   const squareCountMask =
-    testIdInPack(packedIds, x - 1, y - 1) +
-    testIdInPack(packedIds, x + 1, y - 1) +
-    testIdInPack(packedIds, x - 1, y + 1) +
-    testIdInPack(packedIds, x + 1, y + 1);
+    testKind(kind, x - 1, y - 1) +
+    testKind(kind, x + 1, y - 1) +
+    testKind(kind, x - 1, y + 1) +
+    testKind(kind, x + 1, y + 1);
 
   const countMask = crossCountMask + automatonLayout.$.neighborhood * squareCountMask;
 
@@ -218,10 +217,10 @@ const comparePointWithId = (x: number, y: number, comparePoint: d.v2u, withId: n
   return selected * inBoundsMask(cx, cy);
 };
 
-const comparePointWithKindId = (x: number, y: number, comparePoint: d.v2u, packedIds: number) => {
+const comparePointWithKind = (x: number, y: number, comparePoint: d.v2u, kind: number) => {
   "use gpu";
 
-  return testIdInPack(packedIds, x + comparePoint.x, y + comparePoint.y);
+  return testKind(kind, x + comparePoint.x, y + comparePoint.y);
 };
 
 const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPoint: d.v2u) => {
@@ -298,7 +297,7 @@ export const compute = tgpu.computeFn({
           break;
         }
         case Opcode.COUNT_KIND: {
-          passing += checkIdsCount(x, y, condition.checkId, condition.countOrWithId);
+          passing += checkKindCount(x, y, condition.checkId, condition.countOrWithId);
           break;
         }
         case Opcode.IS_ELEMENT: {
@@ -320,7 +319,7 @@ export const compute = tgpu.computeFn({
           break;
         }
         case Opcode.IS_KIND: {
-          passing += comparePointWithKindId(
+          passing += comparePointWithKind(
             x,
             y,
             condition.checkPointOrComparePoint,
@@ -498,7 +497,7 @@ export const setup = async ({
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
 
-    const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } =
+    const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions, gpuKindWords, gpuKindBits } =
       compileGpuAutomaton(automaton);
 
     elementCount = gpuElements.length;
@@ -516,12 +515,19 @@ export const setup = async ({
       d.arrayOf(GpuCondition, conditions.length),
       conditions,
     );
+    const kindWords = root.createUniform(d.u32, gpuKindWords);
+    const kindBits = root.createReadonly(
+      d.arrayOf(d.u32, Math.max(gpuKindBits.length, 1)),
+      gpuKindBits,
+    );
 
     automatonGroup = root.createBindGroup(automatonLayout, {
       neighborhood,
       elements,
       rules: rulesBuffer,
       conditions: conditionsBuffer,
+      kindWords,
+      kindBits,
     });
 
     // Work already submitted with the old buffers still completes after destroy().
@@ -531,6 +537,8 @@ export const setup = async ({
       elements.buffer,
       rulesBuffer.buffer,
       conditionsBuffer.buffer,
+      kindWords.buffer,
+      kindBits.buffer,
     ];
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);

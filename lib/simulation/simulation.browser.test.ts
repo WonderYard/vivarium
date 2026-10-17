@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type { Automaton } from "@/automaton/types";
+import type { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
 import { GpuCondition, GpuElement, GpuRule, Square, WORKGROUP_SIZE } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
@@ -82,7 +83,8 @@ async function gpuEvolve(
   const WORKGROUP_COUNT_W = Math.ceil(width / WORKGROUP_SIZE[0]);
   const WORKGROUP_COUNT_H = Math.ceil(height / WORKGROUP_SIZE[1]);
 
-  const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions } = compileGpuAutomaton(automaton);
+  const { gpuNeighborhood, gpuElements, gpuRules, gpuConditions, gpuKindWords, gpuKindBits } =
+    compileGpuAutomaton(automaton);
 
   const dimensions = root.createBuffer(d.vec2u, d.vec2u(width, height)).$usage("uniform");
 
@@ -114,6 +116,10 @@ async function gpuEvolve(
     rules: root.createBuffer(d.arrayOf(GpuRule, rules.length), rules).$usage("storage"),
     conditions: root
       .createBuffer(d.arrayOf(GpuCondition, conditions.length), conditions)
+      .$usage("storage"),
+    kindWords: root.createBuffer(d.u32, gpuKindWords).$usage("uniform"),
+    kindBits: root
+      .createBuffer(d.arrayOf(d.u32, Math.max(gpuKindBits.length, 1)), gpuKindBits)
       .$usage("storage"),
   });
 
@@ -384,6 +390,66 @@ describe("GPU simulation", () => {
 
       // The middle cell has 2 warm neighbors: fire on its left and lava on its right → becomes fire
       expect(toRows(after)).toEqual([[1, 1, 2]]);
+    });
+  });
+
+  // ── Kind membership ───────────────────────────────────────────
+
+  describe("kind membership", () => {
+    // Elements 8 and 33 extend kind k, element 40 doesn't. When kind conditions packed
+    // element indices into 32 bits, 40 wrapped around to 8 and falsely matched.
+    const before = grid8([
+      [0, 0, 0, 0, 0, 0],
+      [0, 8, 0, 0, 0, 40],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 33, 0, 0, 0, 0],
+    ]);
+
+    // 41 elements and 41 kinds, so k is kind 40 and lives in the second word of each row.
+    const build =
+      (condition: (cell: ElementBlueprint, hit: ElementBlueprint, k: KindBlueprint) => void) =>
+      (vi: ReturnType<typeof vivarium>) => {
+        for (let i = 0; i < 40; i++) {
+          vi.kind(`filler${i}`);
+        }
+        const k = vi.kind("k");
+        const cell = vi.element("cell", "#ff0000");
+        const hit = vi.element("hit", "#00ff00");
+        for (let i = 2; i <= 40; i++) {
+          vi.element(
+            `e${i}`,
+            `#${i.toString(16).padStart(6, "0")}`,
+            i === 8 || i === 33 ? [k] : [],
+          );
+        }
+        condition(cell, hit, k);
+      };
+
+    test("count kind matches members past index 31 and never aliases", async () => {
+      const after = await step(
+        root,
+        build((cell, hit, k) => cell.to(hit).count(k, 1)),
+        before,
+      );
+
+      expect(after.ids[1 * 8 + 2]).toBe(1); // next to 8
+      expect(after.ids[5 * 8 + 2]).toBe(1); // next to 33
+      expect(after.ids[1 * 8 + 6]).toBe(0); // next to 40
+      expect(after.ids[1 * 8 + 4]).toBe(0); // next to 40
+    });
+
+    test("is kind matches members past index 31 and never aliases", async () => {
+      const after = await step(
+        root,
+        build((cell, hit, k) => cell.to(hit).is(Square.LEFT, k)),
+        before,
+      );
+
+      expect(after.ids[1 * 8 + 2]).toBe(1); // left is 8
+      expect(after.ids[5 * 8 + 2]).toBe(1); // left is 33
+      expect(after.ids[1 * 8 + 6]).toBe(0); // left is 40
     });
   });
 
@@ -1595,8 +1661,8 @@ describe("GPU simulation", () => {
       const { evolve, destroy } = await create();
       evolve();
 
-      // 5 grid buffers (dimensions, wrapping, seed, ids ×2) + 4 automaton buffers.
-      expect(countDestroyedBuffers(destroy)).toBe(9);
+      // 5 grid buffers (dimensions, wrapping, seed, ids ×2) + 6 automaton buffers.
+      expect(countDestroyedBuffers(destroy)).toBe(11);
     });
 
     test("setAutomaton frees the previous automaton buffers", async () => {
@@ -1606,7 +1672,7 @@ describe("GPU simulation", () => {
       const { update, setAutomaton, destroy } = await create();
       update();
 
-      expect(countDestroyedBuffers(() => setAutomaton({ automaton }))).toBe(4);
+      expect(countDestroyedBuffers(() => setAutomaton({ automaton }))).toBe(6);
       destroy();
     });
 

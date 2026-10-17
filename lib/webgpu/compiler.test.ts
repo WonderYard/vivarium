@@ -200,7 +200,7 @@ describe("COUNT_POINT opcode", () => {
 // ── COUNT_KIND opcode ───────────────────────────────────────────────
 
 describe("COUNT_KIND opcode", () => {
-  test("counting by kind uses COUNT_KIND opcode with packed element IDs", () => {
+  test("counting by kind uses COUNT_KIND opcode with the kind index", () => {
     const gpu = compile((vi) => {
       const conductor = vi.kind("conductor");
       vi.element("empty", "#000000");
@@ -215,9 +215,11 @@ describe("COUNT_KIND opcode", () => {
     expect(gpu.gpuConditions).toHaveLength(1);
     expect(gpu.gpuConditions[0].opcode).toBe(Opcode.COUNT_KIND);
 
-    // conductor includes wire(1), head(2), tail(3)
-    // packed: (1 << 1) | (1 << 2) | (1 << 3) = 2 | 4 | 8 = 14
-    expect(gpu.gpuConditions[0].checkId).toBe(14);
+    // conductor is kind 0
+    expect(gpu.gpuConditions[0].checkId).toBe(0);
+    // wire(1), head(2) and tail(3) extend kind 0, empty(0) doesn't
+    expect(gpu.gpuKindWords).toBe(1);
+    expect(gpu.gpuKindBits).toEqual([0, 1, 1, 1]);
 
     // count [1, 2] -> (1 << 1) | (1 << 2) = 2 | 4 = 6
     expect(gpu.gpuConditions[0].countOrWithId).toBe(6);
@@ -270,7 +272,7 @@ describe("IS_POINT opcode", () => {
 // ── IS_KIND opcode ──────────────────────────────────────────────────
 
 describe("IS_KIND opcode", () => {
-  test("is condition with kind uses IS_KIND opcode and packed IDs", () => {
+  test("is condition with kind uses IS_KIND opcode and the kind index", () => {
     const gpu = compile((vi) => {
       const conductor = vi.kind("conductor");
       const empty = vi.element("empty", "#000000");
@@ -289,9 +291,8 @@ describe("IS_KIND opcode", () => {
     expect(gpu.gpuConditions[0].checkPointOrComparePoint.x).toBe(0);
     expect(gpu.gpuConditions[0].checkPointOrComparePoint.y).toBe(NEG1);
 
-    // conductor includes wire(1), head(2), tail(3)
-    // packed: (1 << 1) | (1 << 2) | (1 << 3) = 14
-    expect(gpu.gpuConditions[0].countOrWithId).toBe(14);
+    // conductor is kind 0
+    expect(gpu.gpuConditions[0].countOrWithId).toBe(0);
   });
 });
 
@@ -562,8 +563,9 @@ describe("multiple conditions per rule", () => {
 // ── Edge cases ──────────────────────────────────────────────────────
 
 describe("edge cases", () => {
-  test("element at index 0 used in kind condition packs correctly", () => {
+  test("kind conditions refer to the kind index, not to element indices", () => {
     const gpu = compile((vi) => {
+      vi.kind("unused");
       const k = vi.kind("k");
       const a = vi.element("a", "#ff0000", [k]);
       const b = vi.element("b", "#00ff00");
@@ -572,28 +574,31 @@ describe("edge cases", () => {
     });
 
     expect(gpu.gpuConditions[0].opcode).toBe(Opcode.COUNT_KIND);
-    // a is index 0 -> packed = (1 << 0) = 1
     expect(gpu.gpuConditions[0].checkId).toBe(1);
+    // a extends kind 1 -> bit 1
+    expect(gpu.gpuKindBits).toEqual([0b10, 0]);
   });
 
-  test("throws when element index > 31 is used in kind condition", () => {
-    expect(() => {
-      compile((vi) => {
-        const k = vi.kind("k");
+  test("membership table has no limit on elements or kinds", () => {
+    const gpu = compile((vi) => {
+      const kinds = Array.from({ length: 40 }, (_, i) => vi.kind(`k${i}`));
 
-        // Create 32 elements without the kind extension
-        for (let i = 0; i < 32; i++) {
-          vi.element(`e${i}`, `#${i.toString(16).padStart(6, "0")}`);
-        }
+      for (let i = 0; i < 39; i++) {
+        vi.element(`e${i}`, `#${i.toString(16).padStart(6, "0")}`);
+      }
 
-        // Element at index 32 extends kind k
-        const e32 = vi.element("e32", "#ffffff", [k]);
-        vi.element("trigger", "#aabbcc");
+      // Element at index 39 extends kinds 0, 31 and 39
+      const e39 = vi.element("e39", "#ffffff", [kinds[0], kinds[31], kinds[39]]);
+      e39.to(e39).count(kinds[39], 1);
+    });
 
-        // This count condition references kind k, which includes element index 32
-        e32.to(e32).count(k, 1);
-      });
-    }).toThrow(/index greater than 31/);
+    expect(gpu.gpuConditions[0].checkId).toBe(39);
+    // 40 kinds need 2 words per element
+    expect(gpu.gpuKindWords).toBe(2);
+    expect(gpu.gpuKindBits).toHaveLength(40 * 2);
+    // bits 0 and 31 in the first word (unsigned), bit 39 - 32 = 7 in the second
+    expect(gpu.gpuKindBits.slice(39 * 2)).toEqual([2 ** 31 + 1, 1 << 7]);
+    expect(gpu.gpuKindBits.slice(0, 39 * 2).every((word) => word === 0)).toBe(true);
   });
 
   test("element with no rules has equal ruleStart and ruleEnd", () => {
