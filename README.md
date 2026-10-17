@@ -20,7 +20,7 @@ Read the [docs](https://vivarium.orangenote.dev) to get started, or continue rea
 
 ### Install
 
-Install Vivarium as a dependency. No other dependencies required.
+Install Vivarium as a dependency. No peer dependencies required.
 
 ```bash
 npm i @wonderyard/vivarium
