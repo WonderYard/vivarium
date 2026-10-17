@@ -160,6 +160,8 @@ export type GpuAutomaton = {
   gpuConditions: GpuConditionType[];
   gpuKindWords: number;
   gpuKindBits: number[];
+  /** For each gpu rule, the index of the rule in `automaton.rules` it was compiled from. Not uploaded. */
+  gpuRuleSources: number[];
 };
 
 export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
@@ -195,6 +197,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
     }, elementRulesByElementIndex);
 
   const rules: (Rule & { conditionsStart: number; conditionsEnd: number })[] = [];
+  const gpuRuleSources: number[] = [];
   let conditions: Condition[] = [];
   const conditionsByRuleIndex = new Map<number, [number, number]>();
 
@@ -224,6 +227,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
         conditionsStart,
         conditionsEnd,
       });
+      gpuRuleSources.push(ruleIndex);
     });
   });
 
@@ -323,5 +327,6 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
     gpuConditions,
     gpuKindWords,
     gpuKindBits,
+    gpuRuleSources,
   };
 };

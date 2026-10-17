@@ -516,6 +516,21 @@ describe("kind rule merging", () => {
     expect(gpu.gpuRules[2].conditionsEnd).toBe(condEnd);
   });
 
+  test("gpuRuleSources maps each gpu rule back to its source rule", () => {
+    const gpu = compile((vi) => {
+      const k = vi.kind("k");
+      const empty = vi.element("empty", "#000000");
+      const a = vi.element("a", "#111111", [k]);
+      vi.element("b", "#222222", [k]);
+
+      k.to(empty); // rule 0
+      a.to(empty); // rule 1
+    });
+
+    // a: own rule first, then the kind rule; b: the kind rule
+    expect(gpu.gpuRuleSources).toEqual([1, 0, 0]);
+  });
+
   test("kind rule conditions are shared when extending elements have different numbers of own rules", () => {
     const gpu = compile((vi) => {
       const k = vi.kind("k");
