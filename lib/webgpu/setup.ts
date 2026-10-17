@@ -9,6 +9,7 @@ import {
   To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
+import { toPng as encodePng } from "@/png/png";
 import { randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
@@ -396,6 +397,7 @@ export const render = tgpu.fragmentFn({
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton rules.
+ * - `toPng` — saves the current grid and automaton as a PNG, loadable with {@link fromPng}.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
  */
 export const setup = async ({
@@ -489,6 +491,7 @@ export const setup = async ({
   let automatonGroup: TgpuBindGroup;
   let automatonBuffers: { destroy: () => void }[] = [];
   let elementCount = 0;
+  let currentAutomaton = automaton;
 
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
@@ -529,6 +532,7 @@ export const setup = async ({
     ];
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
+    currentAutomaton = automaton;
   };
 
   setAutomaton({ automaton });
@@ -661,6 +665,13 @@ export const setup = async ({
   };
 
   /**
+   * Saves the current grid and automaton as a PNG, one pixel per cell.
+   * Load it back with {@link fromPng}.
+   */
+  const toPng = async (): Promise<Blob> =>
+    encodePng({ automaton: currentAutomaton, grid: await readGrid(), width, height });
+
+  /**
    * Advances the simulation by one step on the GPU. This function is synchronous
    * — it only queues GPU commands without waiting for them to complete.
    *
@@ -748,6 +759,7 @@ export const setup = async ({
     writeCellAt,
     writeGrid,
     setAutomaton,
+    toPng,
     destroy,
   };
 };

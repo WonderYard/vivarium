@@ -91,6 +91,24 @@ requestAnimationFrame(loop);
 
 [See the live demo here](https://vivarium-demo.netlify.app/)
 
+### Save and load
+
+A vivarium can be saved as a PNG: each cell becomes one pixel with its element's color, and the automaton is stored inside the image. Anyone can view it as a picture, or load it back into a simulation.
+
+```typescript
+// Save the running simulation as a PNG.
+const { toPng } = await setup({ canvas, automaton: life });
+const png = await toPng();
+
+// Load it back, rules and all.
+const { automaton, grid, width, height } = await fromPng(png);
+canvas.width = width;
+canvas.height = height;
+await setup({ canvas, automaton, initialGrid: grid });
+```
+
+`toPng` is also exported on its own, taking `{ automaton, grid, width, height }`.
+
 ## Browser compatibility
 
 Vivarium runs its simulation entirely on the GPU thanks to the WebGPU API and its compute shaders. WebGPU is a relatively new technology. It is available since Chrome 113, Safari 26. See implementation status in other browsers [here](https://github.com/gpuweb/gpuweb/wiki/Implementation-Status). Vivarium has been tested on Chrome 139 for macOS and Safari 26.0 for macOS, showing better performances on Chrome overall.
