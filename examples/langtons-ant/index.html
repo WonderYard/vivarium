@@ -61,8 +61,12 @@
           <pre data-prefix="9"><code>const antOnBlack = kind("antOnBlack")</code></pre>
           <pre data-prefix="10"></pre>
           <pre data-prefix="11"><code>for (let i = 0; i &lt; 4; i++) {</code></pre>
-          <pre data-prefix="12"><code>  antsOnWhite[i] = element(`antOnWhite${i}`, "#ff000" + i, [antOnWhite])</code></pre>
-          <pre data-prefix="13"><code>  antsOnBlack[i] = element(`antOnBlack${i}`, "#ff000" + (4 + i), [antOnBlack])</code></pre>
+          <pre
+            data-prefix="12"
+          ><code>  antsOnWhite[i] = element(`antOnWhite${i}`, "#ff000" + i, [antOnWhite])</code></pre>
+          <pre
+            data-prefix="13"
+          ><code>  antsOnBlack[i] = element(`antOnBlack${i}`, "#ff000" + (4 + i), [antOnBlack])</code></pre>
           <pre data-prefix="14"><code>}</code></pre>
           <pre data-prefix="15"></pre>
           <pre data-prefix="16"><code>antOnWhite.to(black)</code></pre>
@@ -70,10 +74,18 @@
           <pre data-prefix="18"></pre>
           <pre data-prefix="19"><code>for (let i = 0; i &lt; 4; i++) {</code></pre>
           <pre data-prefix="20"><code>  const from = neighbors[cw(cw(i))]</code></pre>
-          <pre data-prefix="21"><code>  white.to(antsOnWhite[i]).is(from, antsOnWhite[ccw(i)])</code></pre>
-          <pre data-prefix="22"><code>  white.to(antsOnWhite[i]).is(from, antsOnBlack[cw(i)])</code></pre>
-          <pre data-prefix="23"><code>  black.to(antsOnBlack[i]).is(from, antsOnWhite[ccw(i)])</code></pre>
-          <pre data-prefix="24"><code>  black.to(antsOnBlack[i]).is(from, antsOnBlack[cw(i)])</code></pre>
+          <pre
+            data-prefix="21"
+          ><code>  white.to(antsOnWhite[i]).is(from, antsOnWhite[ccw(i)])</code></pre>
+          <pre
+            data-prefix="22"
+          ><code>  white.to(antsOnWhite[i]).is(from, antsOnBlack[cw(i)])</code></pre>
+          <pre
+            data-prefix="23"
+          ><code>  black.to(antsOnBlack[i]).is(from, antsOnWhite[ccw(i)])</code></pre>
+          <pre
+            data-prefix="24"
+          ><code>  black.to(antsOnBlack[i]).is(from, antsOnBlack[cw(i)])</code></pre>
           <pre data-prefix="25"><code>}</code></pre>
           <pre data-prefix="26"></pre>
           <pre data-prefix="27"><code>const langtonsAnt = create()</code></pre>

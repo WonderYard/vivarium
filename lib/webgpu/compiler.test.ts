@@ -793,14 +793,14 @@ describe("reference checks", () => {
     const broken = automaton();
     broken.rules[0].to = 99;
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references 99');
+    expect(() => compileGpuAutomaton(broken)).toThrow("Rule 0 references 99");
   });
 
   test("throws on an unknown rule source", () => {
     const broken = automaton();
     broken.rules[0].fromId = 99;
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references 99');
+    expect(() => compileGpuAutomaton(broken)).toThrow("Rule 0 references 99");
   });
 
   test("throws on a source of the wrong type", () => {
@@ -814,7 +814,7 @@ describe("reference checks", () => {
     const broken = automaton();
     broken.rules[0].when[1] = { type: "is", id: 99, compare: { x: 0, y: 0 }, with: 99 };
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Condition 1 of rule 0 references 99');
+    expect(() => compileGpuAutomaton(broken)).toThrow("Condition 1 of rule 0 references 99");
   });
 
   test("throws on an unknown extension", () => {
