@@ -55,7 +55,7 @@
           <pre data-prefix="3"><code>const ccw = (i) =&gt; (i + 3) % 4</code></pre>
           <pre data-prefix="4"></pre>
           <pre data-prefix="5"><code>const white = element("white", "#99bbee")</code></pre>
-          <pre data-prefix="6"><code>const black = element("black", "#000000")</code></pre>
+          <pre data-prefix="6"><code>const black = element("black", "black")</code></pre>
           <pre data-prefix="7"></pre>
           <pre data-prefix="8"><code>const antOnWhite = kind("antOnWhite")</code></pre>
           <pre data-prefix="9"><code>const antOnBlack = kind("antOnBlack")</code></pre>
@@ -63,10 +63,10 @@
           <pre data-prefix="11"><code>for (let i = 0; i &lt; 4; i++) {</code></pre>
           <pre
             data-prefix="12"
-          ><code>  antsOnWhite[i] = element(`antOnWhite${i}`, "#ff000" + i, [antOnWhite])</code></pre>
+          ><code>  antsOnWhite[i] = element(`antOnWhite${i}`, "red", [antOnWhite])</code></pre>
           <pre
             data-prefix="13"
-          ><code>  antsOnBlack[i] = element(`antOnBlack${i}`, "#ff000" + (4 + i), [antOnBlack])</code></pre>
+          ><code>  antsOnBlack[i] = element(`antOnBlack${i}`, "red", [antOnBlack])</code></pre>
           <pre data-prefix="14"><code>}</code></pre>
           <pre data-prefix="15"></pre>
           <pre data-prefix="16"><code>antOnWhite.to(black)</code></pre>
