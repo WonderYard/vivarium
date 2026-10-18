@@ -371,7 +371,7 @@ const compute = tgpu.computeFn({
 });
 
 // Sets cells whose element index is past the end of the elements array to element 0.
-export const clearMissingElements = tgpu.computeFn({
+const clearMissingElements = tgpu.computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
@@ -387,7 +387,7 @@ export const clearMissingElements = tgpu.computeFn({
 });
 
 // Draws the grid stretched over the whole canvas by looking up each cell's element color.
-export const render = tgpu.fragmentFn({
+const render = tgpu.fragmentFn({
   in: { uv: d.vec2f },
   out: d.vec4f,
 })(({ uv }) => {

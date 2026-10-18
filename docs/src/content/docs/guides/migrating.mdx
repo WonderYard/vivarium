@@ -1,0 +1,74 @@
+---
+title: Migrating to 3.0
+description: What to change when upgrading from Vivarium 2.x.
+---
+
+Vivarium 3.0 changes how a simulation starts, draws and stops. Most apps need the first three changes below; the rest only matter if you relied on the old behavior.
+
+## `setup` is async
+
+`setup` now requests the WebGPU device on its first call instead of when the library is imported, so it returns a `Promise`. Importing Vivarium no longer needs WebGPU.
+
+```typescript
+// 2.x
+const { update, draw } = setup({ canvas, automaton });
+
+// 3.0
+const { update, draw } = await setup({ canvas, automaton });
+```
+
+## `tgpuRoot` is replaced by `destroy`
+
+`setup` no longer returns the TypeGPU root. To free the simulation's GPU memory, call `destroy`. After that, `update`, `draw` and `evolve` do nothing, and reads, writes and `setAutomaton` throw. See [Cleaning up](/guides/canvas/#cleaning-up).
+
+```typescript
+// 2.x
+const { tgpuRoot } = setup({ canvas, automaton });
+tgpuRoot.destroy();
+
+// 3.0
+const { destroy } = await setup({ canvas, automaton });
+destroy();
+```
+
+## `draw` renders on the GPU
+
+`draw` and `evolve` are synchronous: the grid is rendered by the GPU instead of being read back and painted on a `2d` context. The canvas must not already have a `2d` or `webgl` context. To draw on top of the simulation, stack another canvas over it. To combine it into a 2D canvas you already draw on, call `ctx.drawImage(canvas, 0, 0)` after `draw()`.
+
+```typescript
+// 2.x
+update();
+await draw();
+
+// 3.0
+update();
+draw();
+```
+
+## Ids are numbers
+
+Ids in `Automaton`, elements, kinds and conditions are numbers instead of strings, and building the same blueprint twice gives the same ids. `setup` rejects automata with string ids, so rebuild automata saved as JSON with 2.x from their blueprint.
+
+## Invalid input throws
+
+3.0 throws where 2.x clamped values, skipped them or compiled a wrong shader:
+
+- `count`, `not` and `between` throw on values outside `[0, neighborhood size]`, and `chance` throws unless `whole` is a positive number and `part` is in `[0, whole]`.
+- `vi.element()` throws on colors it can't parse.
+- Diagonal neighbors throw in a `cross` vivarium, and fail type checking.
+- `setup` and `setAutomaton` throw on automata the builder couldn't make, for example hand-built ones with an unknown neighborhood, duplicate names or counts past the neighborhood size. The error names the field, like `rules[0].when[1].count[2]`.
+- `setup` throws on grids larger than the device allows, instead of a simulation that silently never updates or resets to element 0. With default limits that's about 33.5 million cells, and 524280 cells per side.
+
+## Import from the package entry
+
+Since 2.0.2, the package only exposes its entry, so deep imports such as `@wonderyard/vivarium/dist/automaton/types` fail. The automaton types are now exported from the entry:
+
+```typescript
+import type { Automaton } from "@wonderyard/vivarium";
+```
+
+## Other behavior changes
+
+- `setAutomaton` sets cells holding an element the new automaton doesn't have to element 0.
+- `chance` outcomes come from the simulation's `seed` and step number. Pass the same `seed` to replay a run. See [Reproducible runs](/guides/start/#reproducible-runs).
+- `typegpu` and `@typegpu/noise` are installed as regular dependencies instead of being bundled.
