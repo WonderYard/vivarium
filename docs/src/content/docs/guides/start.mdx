@@ -170,7 +170,7 @@ canvas.height = size;
   Pass `width` and `height` to `setup` to use a grid of a different size than the canvas. Any
   positive integer works (e.g. 300×200), and the grid is stretched over the canvas, so a 64×64 grid
   on a 512×512 canvas draws each cell as an 8×8 block. A grid can have up to 2^25 cells (about
-  5792×5792); `setup` throws on larger ones.
+  5792×5792) and up to 524280 cells per side; `setup` throws on larger ones.
 </Aside>
 
 <Aside type="tip" title="Image rendering">

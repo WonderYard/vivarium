@@ -416,7 +416,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
- * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792); larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792), and `width` and `height` at most 524280 each; larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
