@@ -153,7 +153,7 @@ First, import the `setup` function alongside `vivarium`:
 import { vivarium, setup } from "@wonderyard/vivarium";
 ```
 
-Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell.
+Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell. The simulation draws through a WebGPU context, so the canvas must not already have a `2d` or `webgl` context.
 
 ```typescript
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
@@ -204,6 +204,17 @@ You can obtain the index of an element by accessing `.index` from its reference:
 console.log(alien.index); // -> 1
 ```
 
+Without an `initialGrid`, every cell gets a random element, each equally likely. To keep the grid random but change the mix, pass `{ weights }` instead, mapping element names to relative weights. Elements left out are never picked:
+
+```typescript
+const { update, draw } = await setup({
+  canvas,
+  automaton: life,
+  // about 90% space and 10% aliens, same as { space: 90, alien: 10 }
+  initialGrid: { weights: { [space.name]: 9, [alien.name]: 1 } },
+});
+```
+
 The `setup` function returns `update` and `draw` functions. `update` advances the simulation by one step on the GPU (synchronous), while `draw` renders the result to the canvas (also synchronous, nothing is read back from the GPU). To create a continuous animation, call them inside a loop:
 
 ```typescript
@@ -230,6 +241,18 @@ const loop = () => {
 For convenience, `setup` also returns `evolve`, which is a shorthand for calling `update()` + `draw()`.
 
 That's it! Your vivarium is now running on the screen.
+
+### Reproducible runs
+
+Each run starts from a different random grid, and `chance` conditions roll differently every time. To replay a run, pass a `seed`, an integer from `0` to `2^32 - 1`. The same seed, automaton, options and calls give the same initial grid and the same `chance` outcomes at every step. Without a seed, `setup` picks a random one and returns it, so you can replay a run you liked:
+
+```typescript
+const { update, draw, seed } = await setup({ canvas, automaton: life });
+console.log(seed); // e.g. 2954871023
+
+// later, the exact same run
+await setup({ canvas, automaton: life, seed: 2954871023 });
+```
 
 ## Putting it all together
 

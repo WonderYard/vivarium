@@ -35,8 +35,7 @@ By default, the grid does not wrap, so cells at the border have fewer neighbors.
 ```typescript
 // By default (wrapping: false), positions outside the grid match nothing.
 const vi = vivarium("square");
-// Same as:
-const vi = vivarium("square", { wrapping: false });
+// Same as: vivarium("square", { wrapping: false })
 ```
 
 When wrapping is enabled, the grid wraps toroidally (like a donut) — cells at one edge treat cells at the opposite edge as their neighbors. You can enable this behavior by passing a second options argument:
