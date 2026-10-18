@@ -1,8 +1,8 @@
-import { nanoid } from "nanoid";
 import type { Automaton, Condition, Neighborhood, Rule, Strategy } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
 import type { BlueprintContext, Neighbor } from "@/blueprint/types";
+import { isPart, isWhole } from "@/automaton/validate";
 import { assertCounts, toPoint, toRefIdOrPoint } from "@/blueprint/utils";
 import { acceptMap, maxCount } from "@/common/constants";
 
@@ -27,7 +27,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
   }
 
   /**
-   * Adds a count condition to the rule. The rule passes only if the number of matching neighbors
+   * Adds a count condition to the rule. The condition passes only if the number of matching neighbors
    * equals one of the specified count values.
    *
    * @param refBlueprintOrNeighbor - The element, kind, or neighbor reference to count.
@@ -47,7 +47,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
 
     return this.condition({
       type: "count",
-      id: nanoid(),
+      id: this.context.nextId++,
       check: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
       count: flatCount,
     });
@@ -66,14 +66,14 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
   ): RuleBlueprintWithAccept<N> {
     return this.condition({
       type: "is",
-      id: nanoid(),
+      id: this.context.nextId++,
       compare: toPoint(neighbor, this.automaton.neighborhood),
       with: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
     });
   }
 
   /**
-   * Adds a chance condition to the rule. The rule passes with a probability of `part / whole`.
+   * Adds a chance condition to the rule. The condition passes with a probability of `part / whole`.
    *
    * @param part - The numerator of the probability fraction, between `0` and `whole`.
    * @param whole - The denominator of the probability fraction, greater than `0`. Defaults to `100`.
@@ -81,16 +81,16 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
   public chance(part: number, whole = 100): RuleBlueprintWithAccept<N> {
-    if (!(whole > 0) || !Number.isFinite(whole)) {
+    if (!isWhole(whole)) {
       throw new Error(`Chance whole ${whole} is invalid. Expected a finite number greater than 0.`);
     }
-    if (!(part >= 0 && part <= whole)) {
+    if (!isPart(part, whole)) {
       throw new Error(`Chance part ${part} is invalid. Expected a number in range [0, ${whole}].`);
     }
 
     return this.condition({
       type: "chance",
-      id: nanoid(),
+      id: this.context.nextId++,
       ratio: { part, whole },
     });
   }

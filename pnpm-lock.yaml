@@ -6,18 +6,12 @@ settings:
 
 catalogs:
   default:
-    '@tailwindcss/vite':
-      specifier: ^4.3.3
-      version: 4.3.3
     '@types/node':
       specifier: ^26.6.4
       version: 26.6.4
     '@webgpu/types':
       specifier: ^0.1.74
       version: 0.1.74
-    tailwindcss:
-      specifier: ^4.3.3
-      version: 4.3.3
     typescript:
       specifier: ~6.0.3
       version: 6.0.3
@@ -35,9 +29,6 @@ importers:
       '@typegpu/noise':
         specifier: 0.12.0
         version: 0.12.0(typegpu@0.12.6)
-      nanoid:
-        specifier: ^6.0.1
-        version: 6.0.1
       typegpu:
         specifier: 0.12.6
         version: 0.12.6
@@ -3156,11 +3147,6 @@ packages:
   nanoid@3.3.19:
     resolution: {integrity: sha512-Y2tUNy4ouw6tq5oDSKeQYGOyhkUBhNOcGV/02KC+6kd9eDGqdZd++mjMiIDilrBYvjEnCYvVtsuHCuP+okSfug==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@6.0.1:
-    resolution: {integrity: sha512-3wVS3i51pE2pi1k5FFL/95BGfVS0kSsvDVuGXHOtxox/TywUmtgq+3qiTOTbs9J7KfHaXPiN171k/A6dBnaXFw==}
-    engines: {node: ^22 || ^24 || >=26}
     hasBin: true
 
   natural-compare@1.4.0:
@@ -7151,8 +7137,6 @@ snapshots:
   mute-stream@3.0.0: {}
 
   nanoid@3.3.19: {}
-
-  nanoid@6.0.1: {}
 
   natural-compare@1.4.0: {}
 

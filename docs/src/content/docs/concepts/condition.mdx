@@ -49,6 +49,8 @@ You can also count by neighbor reference instead of a specific element. This cou
 space.to(alien).count(vi.neighbor.TOP, 3);
 ```
 
+If the referenced position is outside a non-wrapping grid, there is no element to count, so the condition fails whatever the counts, `0` included.
+
 #### Helpers
 
 Helpers are convenience functions exposed through `vi.helpers` that make it easier to construct count arrays.
@@ -132,7 +134,7 @@ const { neighbor } = vi;
 space.to(alien).is(neighbor.TOP, sentient);
 ```
 
-Compare two neighbor positions (the rule passes if both positions hold the same element):
+Compare two neighbor positions (the condition passes if both positions hold the same element):
 
 ```typescript
 const { neighbor } = vi;
@@ -158,6 +160,8 @@ space.to(alien).chance(5);
 ```
 
 `whole` must be greater than 0 and `part` between 0 and `whole`, otherwise `chance` throws.
+
+To get the same `chance` outcomes on every run, pass a `seed` to `setup` (see [Reproducible runs](/guides/start/#reproducible-runs)).
 
 ## Multiple conditions
 

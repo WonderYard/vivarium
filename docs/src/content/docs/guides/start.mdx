@@ -143,6 +143,8 @@ const life = vi.create();
 
 After calling `create`, no more elements, kinds, or rules can be added. Think of it as locking in your design before running the experiment.
 
+You can also assemble an automaton object yourself with the exported `Automaton` types, for example in an editor. `setup` and `setAutomaton` check it first: it must be one `create` could have returned, apart from its ids (which only need to be unique) and elements sharing a color. Otherwise they throw an error naming the first bad field, such as `rules[0].when[1].count[2]`.
+
 ## Running the simulation
 
 You've designed your vivarium — now it's time to bring it to life! Vivarium uses [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) to run the simulation entirely on the GPU, which makes it fast even on large grids. All you need is a `<canvas>` element and a few lines of code.
@@ -153,7 +155,7 @@ First, import the `setup` function alongside `vivarium`:
 import { vivarium, setup } from "@wonderyard/vivarium";
 ```
 
-Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell.
+Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell. The simulation draws through a WebGPU context, so the canvas must not already have a `2d` or `webgl` context. To draw on top of the simulation, stack another canvas over it. To combine it into a 2D canvas you already draw on, call `ctx.drawImage(canvas, 0, 0)` after `draw()`.
 
 ```typescript
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
@@ -167,7 +169,8 @@ canvas.height = size;
 <Aside type="note" title="Grid size">
   Pass `width` and `height` to `setup` to use a grid of a different size than the canvas. Any
   positive integer works (e.g. 300×200), and the grid is stretched over the canvas, so a 64×64 grid
-  on a 512×512 canvas draws each cell as an 8×8 block.
+  on a 512×512 canvas draws each cell as an 8×8 block. A grid can have up to 2^25 cells (about
+  5792×5792) and up to 524280 cells per side; `setup` throws on larger ones.
 </Aside>
 
 <Aside type="tip" title="Image rendering">
@@ -204,6 +207,17 @@ You can obtain the index of an element by accessing `.index` from its reference:
 console.log(alien.index); // -> 1
 ```
 
+Without an `initialGrid`, every cell gets a random element, each equally likely. To keep the grid random but change the mix, pass `{ weights }` instead, mapping element names to relative weights. Elements left out are never picked:
+
+```typescript
+const { update, draw } = await setup({
+  canvas,
+  automaton: life,
+  // about 90% space and 10% aliens, same as { space: 90, alien: 10 }
+  initialGrid: { weights: { [space.name]: 9, [alien.name]: 1 } },
+});
+```
+
 The `setup` function returns `update` and `draw` functions. `update` advances the simulation by one step on the GPU (synchronous), while `draw` renders the result to the canvas (also synchronous, nothing is read back from the GPU). To create a continuous animation, call them inside a loop:
 
 ```typescript
@@ -230,6 +244,18 @@ const loop = () => {
 For convenience, `setup` also returns `evolve`, which is a shorthand for calling `update()` + `draw()`.
 
 That's it! Your vivarium is now running on the screen.
+
+### Reproducible runs
+
+Each run starts from a different random grid, and `chance` conditions roll differently every time. To replay a run, pass a `seed`, an integer from `0` to `2^32 - 1`. The same seed, automaton, options and calls give the same initial grid and the same `chance` outcomes at every step, on any device and browser. A new vivarium version may change the outcomes of a seed. Without a seed, `setup` picks a random one and returns it, so you can replay a run you liked:
+
+```typescript
+const { update, draw, seed } = await setup({ canvas, automaton: life });
+console.log(seed); // e.g. 2954871023
+
+// later, the exact same run
+await setup({ canvas, automaton: life, seed: 2954871023 });
+```
 
 ## Putting it all together
 

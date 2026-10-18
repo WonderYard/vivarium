@@ -7,7 +7,7 @@
   </head>
   <body>
     <div class="flex justify-center">
-      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100">
+      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-140">
         <div class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full">
           <div class="flex flex-row gap-2 items-center">
             <a class="btn btn-soft btn-square btn-sm" href="/"
@@ -37,7 +37,7 @@
           </div>
         </div>
 
-        <div class="card image-full shadow-sm border border-base-300 w-full sm:max-w-100">
+        <div class="card image-full shadow-sm border border-base-300 w-full sm:max-w-140">
           <figure class="aspect-square">
             <canvas class="w-full" id="example-canvas"></canvas>
           </figure>
@@ -52,29 +52,51 @@
         <div
           class="mockup-code w-full bg-linear-to-b from-base-200 to-base-100 rounded-b-none text-base-content before:hidden"
         >
-          <pre data-prefix="1"><code>const w = element("w", "white")</code></pre>
-          <pre data-prefix="2"><code>const b = element("b", "black")</code></pre>
-          <pre data-prefix="3"></pre>
-          <pre data-prefix="4"><code>const wAnt = kind("wAnt")</code></pre>
-          <pre data-prefix="5"><code>const bAnt = kind("bAnt")</code></pre>
-          <pre data-prefix="6"></pre>
-          <pre data-prefix="7">// R=Right, B=Bottom, L=Left, T=Top</pre>
-          <pre data-prefix="8"><code>const wL = element("wL", "red", [wAnt])</code></pre>
-          <pre data-prefix="9"><code>// ...7 more elements (color/facing)</code></pre>
+          <pre data-prefix="1"><code>const neighbors = [RIGHT, BOTTOM, LEFT, TOP]</code></pre>
+          <pre data-prefix="2"><code>const cw = (i) =&gt; (i + 1) % 4</code></pre>
+          <pre data-prefix="3"><code>const ccw = (i) =&gt; (i + 3) % 4</code></pre>
+          <pre data-prefix="4"></pre>
+          <pre data-prefix="5"><code>const white = element("white", "#99bbee")</code></pre>
+          <pre data-prefix="6"><code>const black = element("black", "black")</code></pre>
+          <pre data-prefix="7"></pre>
+          <pre data-prefix="8"><code>const antOnWhite = kind("antOnWhite")</code></pre>
+          <pre data-prefix="9"><code>const antOnBlack = kind("antOnBlack")</code></pre>
           <pre data-prefix="10"></pre>
-          <pre data-prefix="11"><code>wAnt.to(b)</code></pre>
-          <pre data-prefix="12"><code>bAnt.to(w)</code></pre>
-          <pre data-prefix="13"></pre>
-          <pre data-prefix="14"><code>w.to(wL).is(RIGHT, wB)</code></pre>
-          <pre data-prefix="15"><code>// ...15 more rules (color/facing/turn)</code></pre>
-          <pre data-prefix="16"></pre>
-          <pre data-prefix="17"><code>const langtonsAnt = create()</code></pre>
+          <pre data-prefix="11"><code>for (let i = 0; i &lt; 4; i++) {</code></pre>
+          <pre
+            data-prefix="12"
+          ><code>  antsOnWhite[i] = element(`antOnWhite${i}`, "red", [antOnWhite])</code></pre>
+          <pre
+            data-prefix="13"
+          ><code>  antsOnBlack[i] = element(`antOnBlack${i}`, "red", [antOnBlack])</code></pre>
+          <pre data-prefix="14"><code>}</code></pre>
+          <pre data-prefix="15"></pre>
+          <pre data-prefix="16"><code>antOnWhite.to(black)</code></pre>
+          <pre data-prefix="17"><code>antOnBlack.to(white)</code></pre>
+          <pre data-prefix="18"></pre>
+          <pre data-prefix="19"><code>for (let i = 0; i &lt; 4; i++) {</code></pre>
+          <pre data-prefix="20"><code>  const from = neighbors[cw(cw(i))]</code></pre>
+          <pre
+            data-prefix="21"
+          ><code>  white.to(antsOnWhite[i]).is(from, antsOnWhite[ccw(i)])</code></pre>
+          <pre
+            data-prefix="22"
+          ><code>  white.to(antsOnWhite[i]).is(from, antsOnBlack[cw(i)])</code></pre>
+          <pre
+            data-prefix="23"
+          ><code>  black.to(antsOnBlack[i]).is(from, antsOnWhite[ccw(i)])</code></pre>
+          <pre
+            data-prefix="24"
+          ><code>  black.to(antsOnBlack[i]).is(from, antsOnBlack[cw(i)])</code></pre>
+          <pre data-prefix="25"><code>}</code></pre>
+          <pre data-prefix="26"></pre>
+          <pre data-prefix="27"><code>const langtonsAnt = create()</code></pre>
         </div>
         <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
           Read the docs
         </a>
         <div
-          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-100 left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
+          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-140 left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
         >
           <div class="divider mt-0 mb-0"></div>
           <code class="text-xs">@wonderyard/vivarium</code>

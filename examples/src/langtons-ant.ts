@@ -14,7 +14,7 @@ const ccw = (i: number) => (i - 1 + neighbors.length) % neighbors.length;
 
 // Ground states
 const white = vi.element("white", "#99bbee");
-const black = vi.element("black", "#000000");
+const black = vi.element("black", "black");
 
 // Kinds to generalize ant departure rules no matter the ant's orientation
 const antOnWhite = vi.kind("antOnWhite");
@@ -24,8 +24,8 @@ const antsOnWhite: ElementBlueprint[] = [];
 const antsOnBlack: ElementBlueprint[] = [];
 
 for (let i = 0; i < neighbors.length; i++) {
-  antsOnWhite.push(vi.element(`antOnWhite${i}`, "#ff000" + i, [antOnWhite]));
-  antsOnBlack.push(vi.element(`antOnBlack${i}`, "#ff000" + (neighbors.length + i), [antOnBlack]));
+  antsOnWhite.push(vi.element(`antOnWhite${i}`, "red", [antOnWhite]));
+  antsOnBlack.push(vi.element(`antOnBlack${i}`, "red", [antOnBlack]));
 }
 
 // --- Ant departure rules ---

@@ -1,19 +1,17 @@
 import type { Automaton } from "@/automaton/types";
-import {
-  Accept,
-  GpuCondition,
-  GpuElement,
-  GpuRule,
-  Opcode,
-  To,
-  WORKGROUP_SIZE,
-} from "@/common/constants";
-import { toPng as encodePng } from "@/png/png";
-import { randf } from "@typegpu/noise";
+import { Accept, Opcode, To, WORKGROUP_SIZE } from "@/common/constants";
+import { mulberry32 } from "@/common/utils";
+import { hash, randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
-import { compileGpuAutomaton, type GpuAutomaton } from "./compiler";
+import {
+  compileGpuAutomaton,
+  GpuCondition,
+  GpuElement,
+  GpuRule,
+  type GpuAutomaton,
+} from "./compiler";
 
 // A lost device can't be revived: forget it so the next setup creates a new root.
 const watchDeviceLoss = async (device: GPUDevice): Promise<void> => {
@@ -54,15 +52,16 @@ const deviceLostListeners = new Set<(info: GPUDeviceLostInfo) => void>();
 const getGpu = (): ReturnType<typeof createGpu> => (gpuPromise ??= createGpu());
 
 // layouts are predefined
-export const gridLayout = tgpu.bindGroupLayout({
+const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   wrapping: { uniform: d.u32 },
-  seed: { uniform: d.f32 },
+  // x is the simulation seed, y the step number.
+  seed: { uniform: d.vec2u },
   ids: { storage: d.arrayOf(d.u32), access: "mutable" },
   newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
 });
 
-export const automatonLayout = tgpu.bindGroupLayout({
+const automatonLayout = tgpu.bindGroupLayout({
   neighborhood: { uniform: d.u32 },
   elements: {
     storage: d.arrayOf(GpuElement),
@@ -199,8 +198,8 @@ const checkKindCount = (x: number, y: number, kind: number, packedCount: number)
 const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
   "use gpu";
 
-  const px = x + d.u32(checkPoint.x);
-  const py = y + d.u32(checkPoint.y);
+  const px = x + checkPoint.x;
+  const py = y + checkPoint.y;
   const pointIndex = pointToIndex(px, py);
   const checkId = gridLayout.$.ids[pointIndex];
   const selected = checkIdCount(x, y, checkId, packedCount);
@@ -243,7 +242,7 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
 };
 
 // also the main compute function has no variable dependencies
-export const compute = tgpu.computeFn({
+const compute = tgpu.computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
@@ -262,8 +261,11 @@ export const compute = tgpu.computeFn({
   const element = automatonLayout.$.elements[id];
 
   // Seed once per invocation so that each CHANCE condition draws a fresh sample.
-  randf.seed3(
-    d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), gridLayout.$.seed),
+  // The hash gives each step of a seed a distinct u32, passed as two 16-bit halves that f32 holds
+  // exactly: the step itself as an f32 would repeat after 2^24 steps.
+  const stepSeed = hash(gridLayout.$.seed.y) ^ gridLayout.$.seed.x;
+  randf.seed4(
+    d.vec4f(d.vec2f(pos.xy), d.f32(stepSeed & d.u32(0xffff)), d.f32(stepSeed >>> d.u32(16))),
   );
 
   const ruleStart = element.ruleStart;
@@ -346,8 +348,8 @@ export const compute = tgpu.computeFn({
       const toType = rule.toType as To;
 
       if (toType === To.POINT) {
-        const nx = x + d.u32(rule.toNeighbor.x);
-        const ny = y + d.u32(rule.toNeighbor.y);
+        const nx = x + rule.toNeighbor.x;
+        const ny = y + rule.toNeighbor.y;
         // pointToIndex always returns a valid array index, even for OOB coordinates.
         // When OOB in non-wrapping mode, mask is 0, so the read value is multiplied away.
         const pointIndex = pointToIndex(nx, ny);
@@ -366,7 +368,7 @@ export const compute = tgpu.computeFn({
 });
 
 // Sets cells whose element index is past the end of the elements array to element 0.
-export const clearMissingElements = tgpu.computeFn({
+const clearMissingElements = tgpu.computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
@@ -382,7 +384,7 @@ export const clearMissingElements = tgpu.computeFn({
 });
 
 // Draws the grid stretched over the whole canvas by looking up each cell's element color.
-export const render = tgpu.fragmentFn({
+const render = tgpu.fragmentFn({
   in: { uv: d.vec2f },
   out: d.vec4f,
 })(({ uv }) => {
@@ -396,9 +398,13 @@ export const render = tgpu.fragmentFn({
   return std.unpack4x8unorm(automatonLayout.$.elements[id].color);
 });
 
+// Cells hold element indices, so initialGrid, writeCell and writeGrid accept the same ones.
+const isElementIndex = (value: number, elementCount: number): boolean =>
+  Number.isInteger(value) && value >= 0 && value < elementCount;
+
 /**
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
- * with the defined elements unless an `initialGrid` is provided.
+ * with the defined elements, each equally likely, unless an `initialGrid` gives the cells or the weights.
  *
  * Async because the first call initializes WebGPU, which later simulations share.
  * If the device is lost, the next call requests a new one.
@@ -407,11 +413,16 @@ export const render = tgpu.fragmentFn({
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
- * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792), and `width` and `height` at most 524280 each; larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
- * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
+ * Or pass `{ weights }` to keep random initialization with element names mapped to relative weights: `{ weights: { empty: 9, tree: 1 } }`
+ * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
+ * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
+ * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step, on any device and browser. A new vivarium version may change the outcomes of a seed. Defaults to a random one, readable as `seed` on the result to replay the run.
+ * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy` and its grid is gone; call `setup` again to recreate it on a new device. To resume, pass a grid saved earlier with `readGrid` as `initialGrid`.
+ * @throws If the automaton is not one {@link VivariumBlueprint.create | create()} could have made, apart from its ids (which only need to be unique) and elements sharing a color. The error names the first bad field, e.g. `rules[0].when[1].count[2]`.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
@@ -421,8 +432,8 @@ export const render = tgpu.fragmentFn({
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
- * - `toPng` — saves the current grid and automaton as a PNG, loadable with {@link fromPng}.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
+ * - `seed` — the seed of this run, the given one or the random default.
  */
 export const setup = async ({
   canvas,
@@ -430,13 +441,15 @@ export const setup = async ({
   height = canvas.height,
   automaton,
   initialGrid,
+  seed = Math.floor(Math.random() * 2 ** 32),
   onDeviceLost,
 }: {
   canvas: HTMLCanvasElement;
   width?: number;
   height?: number;
   automaton: Automaton;
-  initialGrid?: number[] | number[][];
+  initialGrid?: number[] | number[][] | { weights: Record<string, number> };
+  seed?: number;
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
   // Run every check before the first allocation, so a throw leaks no GPU buffer.
@@ -444,7 +457,16 @@ export const setup = async ({
     throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
   }
 
-  const flatGrid = initialGrid?.flat();
+  if (!Number.isInteger(seed) || seed < 0 || seed >= 2 ** 32) {
+    throw new Error(`Seed ${seed} is invalid. Expected an integer in range [0, 2^32).`);
+  }
+
+  // Validates the automaton too, before anything below reads it.
+  const gpuAutomaton = compileGpuAutomaton(automaton);
+
+  const random = mulberry32(seed);
+
+  const flatGrid = Array.isArray(initialGrid) ? initialGrid.flat() : undefined;
 
   if (flatGrid !== undefined && flatGrid.length !== width * height) {
     throw new Error(
@@ -456,34 +478,86 @@ export const setup = async ({
 
   const elementsLength = automaton.elements.length;
 
+  // Running totals of the weights, by element index: a cell picks the first one above a random point in [0, total).
+  const cumulativeWeights: number[] = [];
+  let totalWeight = 0;
+
+  if (initialGrid !== undefined && !Array.isArray(initialGrid)) {
+    const { weights } = initialGrid;
+
+    for (const name of Object.keys(weights)) {
+      if (!automaton.elements.some((element) => element.name === name)) {
+        throw new Error(
+          `Weight given for "${name}", but the automaton has no element with that name.`,
+        );
+      }
+    }
+
+    for (const { name } of automaton.elements) {
+      // hasOwn so an element named like an Object.prototype key (e.g. toString) reads as left out.
+      const weight = Object.hasOwn(weights, name) ? weights[name] : 0;
+
+      if (!Number.isFinite(weight) || weight < 0) {
+        throw new Error(`Weight ${weight} of "${name}" is invalid. Expected a finite number >= 0.`);
+      }
+
+      totalWeight += weight;
+      cumulativeWeights.push(totalWeight);
+    }
+
+    if (totalWeight <= 0) {
+      throw new Error("Weights must add up to more than 0.");
+    }
+  }
+
   for (let i = 0; i < ids.length; i++) {
     let elementIndex: number;
 
     if (flatGrid !== undefined) {
       const rawIndex = flatGrid[i] ?? 0;
 
-      if (
-        !Number.isFinite(rawIndex) ||
-        !Number.isInteger(rawIndex) ||
-        rawIndex < 0 ||
-        rawIndex >= elementsLength
-      ) {
+      if (!isElementIndex(rawIndex, elementsLength)) {
         throw new Error(
           `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`,
         );
       }
 
       elementIndex = rawIndex;
+    } else if (totalWeight > 0) {
+      const point = random() * totalWeight;
+      elementIndex = cumulativeWeights.findIndex((weight) => point < weight);
     } else {
-      elementIndex = Math.floor(Math.random() * elementsLength);
+      elementIndex = Math.floor(random() * elementsLength);
     }
     ids[i] = elementIndex;
   }
 
-  const gpuAutomaton = compileGpuAutomaton(automaton);
-
   const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;
+
+  // Past this, WebGPU rejects the grid's bind groups without throwing, and every update silently
+  // zeroes the grid. The device is requested with default limits: 128 MiB, about 33.5M cells.
+  const maxCells = Math.floor(
+    Math.min(device.limits.maxStorageBufferBindingSize, device.limits.maxBufferSize) / 4,
+  );
+
+  if (width * height > maxCells) {
+    throw new Error(
+      `Grid ${width}x${height} has ${width * height} cells, but this device allows at most ${maxCells}.`,
+    );
+  }
+
+  // Past this, the update's dispatch is rejected without throwing, and the grid never changes.
+  // Default limits allow 65535 workgroups per dimension: 524280 cells of width or height.
+  const maxWorkgroups = device.limits.maxComputeWorkgroupsPerDimension;
+  const maxWidth = maxWorkgroups * WORKGROUP_SIZE[0];
+  const maxHeight = maxWorkgroups * WORKGROUP_SIZE[1];
+
+  if (width > maxWidth || height > maxHeight) {
+    throw new Error(
+      `Grid ${width}x${height} is too wide or tall: this device allows at most ${maxWidth} columns and ${maxHeight} rows.`,
+    );
+  }
 
   let frames = 0;
   let destroyed = false;
@@ -505,7 +579,7 @@ export const setup = async ({
   // Define all the buffers. Creating them depends on width and height only.
   // When automaton changes we don't need to recreate them.
 
-  const seed = root.createUniform(d.f32);
+  const seedBuffer = root.createUniform(d.vec2u);
 
   const dimensions = root.createUniform(d.vec2u, [width, height]);
 
@@ -518,7 +592,7 @@ export const setup = async ({
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
-    seed,
+    seed: seedBuffer,
     ids: ids0,
     newIds: ids1,
   });
@@ -526,7 +600,7 @@ export const setup = async ({
   const gridGroup1 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
-    seed,
+    seed: seedBuffer,
     ids: ids1,
     newIds: ids0,
   });
@@ -541,18 +615,19 @@ export const setup = async ({
   let automatonGroup: TgpuBindGroup;
   let automatonBuffers: { destroy: () => void }[] = [];
   let elementCount = 0;
-  let currentAutomaton = automaton;
 
   /**
    * Replaces the automaton, keeping the grid.
    *
    * Cells refer to elements by index, so the new automaton's element at index `i` takes over
    * every cell holding `i`. When it has fewer elements, cells holding an index it doesn't have
-   * are set to element 0, so the grid stays valid for `readGrid`, `writeGrid` and `toPng`.
+   * are set to element 0, so the grid stays valid for `readGrid` and `writeGrid`.
    * Adding the elements back later doesn't restore those cells.
    *
-   * To load a grid made for another automaton (e.g. from {@link fromPng}), call `setAutomaton`
+   * To load a grid made for another automaton, call `setAutomaton`
    * before `writeGrid`, which only accepts indices of the current automaton.
+   *
+   * @throws If the automaton is invalid, as `setup` does, leaving the current one running.
    */
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
@@ -615,7 +690,6 @@ export const setup = async ({
     ];
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
-    currentAutomaton = automaton;
 
     if (elementCount < previousElementCount) {
       clearPipeline
@@ -635,8 +709,7 @@ export const setup = async ({
   const readGrid = async (): Promise<number[]> => {
     assertNotDestroyed();
 
-    const result = await currentGrid().ids.read();
-    return Array.from(result);
+    return currentGrid().ids.read();
   };
 
   /**
@@ -654,17 +727,15 @@ export const setup = async ({
       );
     }
 
-    if (
-      !Number.isFinite(elementIndex) ||
-      !Number.isInteger(elementIndex) ||
-      elementIndex < 0 ||
-      elementIndex >= elementCount
-    ) {
+    if (!isElementIndex(elementIndex, elementCount)) {
       throw new Error(
         `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
       );
     }
 
+    // Raw write instead of TypeGPU's write/patch: these keep a CPU copy of the whole grid
+    // (4 bytes per cell, per buffer) only to stage the bytes, and patch was ~4x slower per call
+    // (typegpu 0.12.6). A u32 array needs no padding, so the raw bytes are the layout.
     device.queue.writeBuffer(currentGrid().ids.buffer, index * 4, new Uint32Array([elementIndex]));
   };
 
@@ -713,12 +784,7 @@ export const setup = async ({
     for (let i = 0; i < totalCells; i++) {
       const elementIndex = grid[i];
 
-      if (
-        !Number.isFinite(elementIndex) ||
-        !Number.isInteger(elementIndex) ||
-        elementIndex < 0 ||
-        elementIndex >= elementCount
-      ) {
+      if (!isElementIndex(elementIndex, elementCount)) {
         throw new Error(
           `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
         );
@@ -727,15 +793,9 @@ export const setup = async ({
       newIds[i] = elementIndex;
     }
 
+    // Raw write for the same reason as in writeCell.
     device.queue.writeBuffer(currentGrid().ids.buffer, 0, newIds);
   };
-
-  /**
-   * Saves the current grid and automaton as a PNG, one pixel per cell.
-   * Load it back with {@link fromPng}. Rejects if two elements share a color.
-   */
-  const toPng = async (): Promise<Blob> =>
-    encodePng({ automaton: currentAutomaton, grid: await readGrid(), width, height });
 
   /**
    * Advances the simulation by one step on the GPU. This function is synchronous
@@ -749,7 +809,7 @@ export const setup = async ({
       return;
     }
 
-    seed.write(Math.random());
+    seedBuffer.write([seed, frames >>> 0]);
 
     pipeline
       .with(automatonGroup)
@@ -788,7 +848,8 @@ export const setup = async ({
    * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
    * and `evolve` do nothing, so a loop still running (e.g. during a React effect
    * cleanup) doesn't crash, while reads, writes and `setAutomaton` throw.
-   * Calling it more than once is safe.
+   * Calls made before it still complete: a pending `readGrid` resolves
+   * with the grid as it was. Calling it more than once is safe.
    */
   const destroy = (): void => {
     if (destroyed) {
@@ -801,7 +862,7 @@ export const setup = async ({
     [
       dimensions.buffer,
       wrappingBuffer.buffer,
-      seed.buffer,
+      seedBuffer.buffer,
       ids0,
       ids1,
       ...automatonBuffers,
@@ -825,7 +886,7 @@ export const setup = async ({
     writeCellAt,
     writeGrid,
     setAutomaton,
-    toPng,
     destroy,
+    seed,
   };
 };

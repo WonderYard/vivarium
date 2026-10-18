@@ -8,11 +8,11 @@ const vi = vivarium("cross");
 
 const sea = vi.element("sea", "darkblue");
 const coral = vi.element("coral", "coral");
-const growth = vi.element("growth", "#ffff00");
+const growth = vi.element("growth", "yellow");
 
-const bubble = vi.element("bubble", "#0000ff");
-// Looks the same as bubble (colors must be unique): a bubble that has decided to rise on the next step.
-const rising = vi.element("rising", "#0000fe");
+const bubble = vi.element("bubble", "blue");
+// Looks the same as bubble: a bubble that has decided to rise on the next step.
+const rising = vi.element("rising", "blue");
 
 // The sea above a rising bubble always takes it, so the bubble is never lost or duplicated.
 sea.to(bubble).is(vi.neighbor.BOTTOM, rising);

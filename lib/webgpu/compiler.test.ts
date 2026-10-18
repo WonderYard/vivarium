@@ -1,3 +1,4 @@
+import type { Automaton } from "@/automaton/types";
 import { describe, expect, test } from "vitest";
 import { Accept, Opcode, Square, To } from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
@@ -164,20 +165,6 @@ describe("COUNT_ELEMENT opcode", () => {
     });
 
     expect(gpu.gpuConditions[0].countOrWithId).toBe(511);
-  });
-
-  test("skips counts no cell can have instead of wrapping them", () => {
-    const vi = vivarium("cross");
-    const a = vi.element("a", "#ff0000");
-    a.to(a).count(a, 1);
-    const automaton = vi.create();
-    const condition = automaton.rules[0].when[0];
-    if (condition.type !== "count") throw new Error("expected a count condition");
-    // As left behind by switching to a cross neighborhood, or by a hand-built automaton:
-    // 33 would wrap to 1 << 1, and 1.5 would truncate to 1 << 1.
-    condition.count = [1, 5, 8, 33, -1, 1.5];
-
-    expect(compileGpuAutomaton(automaton).gpuConditions[0].countOrWithId).toBe(0b10);
   });
 });
 
@@ -793,63 +780,174 @@ describe("real-world automata compilation", () => {
   });
 });
 
-// ── Reference checks ────────────────────────────────────────────────
+// ── Automaton checks ────────────────────────────────────────────────
 
-describe("reference checks", () => {
-  const automaton = () => {
-    const vi = vivarium();
+// setup and setAutomaton compile the automaton before using it, so these are the checks a
+// hand-built automaton (e.g. from an editor) gets: valid means the builder could have made it.
+describe("automaton checks", () => {
+  const automaton = (neighborhood?: "square" | "cross"): Record<string, any> => {
+    const vi = vivarium(neighborhood);
     const kind = vi.kind("k");
     const a = vi.element("a", "#000000", [kind]);
-    a.to(a).count(a).is(vi.neighbor.TOP, kind);
+    vi.element("b", "#ffffff");
+    a.to(a).count(a, 1).is(vi.neighbor.TOP, kind).chance(1, 2);
     return vi.create();
   };
 
-  test("throws on an unknown rule target", () => {
-    const broken = automaton();
-    broken.rules[0].to = "missing";
+  const cases: [string, (a: Record<string, any>) => void, string][] = [
+    [
+      "an unknown neighborhood",
+      (a) => (a.neighborhood = "hex"),
+      'neighborhood is "hex", expected "square" or "cross".',
+    ],
+    [
+      "no elements",
+      (a) => ((a.elements = []), (a.rules = [])),
+      "elements is [], expected at least one element.",
+    ],
+    [
+      "a blank name",
+      (a) => (a.elements[0].name = " "),
+      'elements[0].name is " ", expected a non-blank name no other element or kind has.',
+    ],
+    [
+      "a duplicate element name",
+      (a) => (a.elements[1].name = "a"),
+      'elements[1].name is "a", expected a non-blank name no other element or kind has.',
+    ],
+    [
+      "a kind named like an element",
+      (a) => (a.kinds[0].name = "a"),
+      'kinds[0].name is "a", expected a non-blank name no other element or kind has.',
+    ],
+    [
+      "a shared id",
+      (a) => (a.kinds[0].id = a.elements[0].id),
+      "kinds[0].id is 1, expected an integer id no other element or kind has.",
+    ],
+    [
+      "a bad color",
+      (a) => (a.elements[1].color = "rgb(1, 2, 3)"),
+      'elements[1].color is "rgb(1, 2, 3)", expected a CSS named color or a hex value.',
+    ],
+    [
+      "an unknown extension",
+      (a) => (a.elements[0].extensions = [99]),
+      "elements[0].extensions[0] is 99, expected a kind id.",
+    ],
+    [
+      "an unknown rule source",
+      (a) => (a.rules[0].fromId = 99),
+      "rules[0].fromId is 99, expected an element id.",
+    ],
+    [
+      "a source of the wrong type",
+      (a) => (a.rules[0].fromType = "kind"),
+      "rules[0].fromId is 1, expected a kind id.",
+    ],
+    [
+      "an unknown rule target",
+      (a) => (a.rules[0].to = 99),
+      "rules[0].to is 99, expected an element id or a square neighbor.",
+    ],
+    [
+      "an undefined rule target",
+      (a) => (a.rules[0].to = undefined),
+      "rules[0].to is undefined, expected an element id or a square neighbor.",
+    ],
+    [
+      "a point that is not a neighbor",
+      (a) => (a.rules[0].to = { x: 2, y: 0 }),
+      'rules[0].to is {"x":2,"y":0}, expected an element id or a square neighbor.',
+    ],
+    [
+      "an unknown accept strategy",
+      (a) => (a.rules[0].accept = 9),
+      "rules[0].accept is 9, expected 0, 1, 2 or 3 (all, any, one or none).",
+    ],
+    [
+      "an unknown condition type",
+      (a) => (a.rules[0].when[0] = { type: "bogus", id: 99 }),
+      'rules[0].when[0].type is "bogus", expected "count", "is" or "chance".',
+    ],
+    [
+      "an undefined count target",
+      (a) => (a.rules[0].when[0].check = undefined),
+      "rules[0].when[0].check is undefined, expected an element id, a kind id or a square neighbor.",
+    ],
+    [
+      "a count over the neighborhood size",
+      (a) => (a.rules[0].when[0].count = [1, 9]),
+      "rules[0].when[0].count[1] is 9, expected a whole number in [0, 8] for a square neighborhood.",
+    ],
+    [
+      "a fractional count",
+      (a) => (a.rules[0].when[0].count = [1.5]),
+      "rules[0].when[0].count[0] is 1.5, expected a whole number in [0, 8] for a square neighborhood.",
+    ],
+    [
+      "an undefined is target",
+      (a) => (a.rules[0].when[1].with = undefined),
+      "rules[0].when[1].with is undefined, expected an element id, a kind id or a square neighbor.",
+    ],
+    [
+      "an unknown is target",
+      (a) => (a.rules[0].when[1].with = 99),
+      "rules[0].when[1].with is 99, expected an element id, a kind id or a square neighbor.",
+    ],
+    [
+      "an id as is compare",
+      (a) => (a.rules[0].when[1].compare = 1),
+      "rules[0].when[1].compare is 1, expected a square neighbor.",
+    ],
+    [
+      "a chance whole of 0",
+      (a) => (a.rules[0].when[2].ratio.whole = 0),
+      "rules[0].when[2].ratio.whole is 0, expected a finite number greater than 0.",
+    ],
+    [
+      "a chance part over its whole",
+      (a) => (a.rules[0].when[2].ratio.part = 3),
+      "rules[0].when[2].ratio.part is 3, expected a number in [0, 2].",
+    ],
+    [
+      "a chance part of NaN",
+      (a) => (a.rules[0].when[2].ratio.part = NaN),
+      "rules[0].when[2].ratio.part is NaN, expected a number in [0, 2].",
+    ],
+  ];
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references "missing"');
+  test.each(cases)("throws on %s", (_, edit, message) => {
+    const broken = automaton();
+    edit(broken);
+
+    expect(() => compileGpuAutomaton(broken as Automaton)).toThrow(message);
   });
 
-  test("throws on an unknown rule source", () => {
-    const broken = automaton();
-    broken.rules[0].fromId = "missing";
+  test("throws on counts no cell can have in a cross neighborhood", () => {
+    // As left behind by switching an editor's automaton from square to cross.
+    const broken = automaton("cross");
+    broken.rules[0].when[0].count = [1, 5];
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references "missing"');
+    expect(() => compileGpuAutomaton(broken as Automaton)).toThrow(
+      "rules[0].when[0].count[1] is 5, expected a whole number in [0, 4] for a cross neighborhood.",
+    );
   });
 
-  test("throws on a source of the wrong type", () => {
-    const broken = automaton();
-    broken.rules[0].fromType = "kind";
+  test("throws on a diagonal in a cross neighborhood", () => {
+    const broken = automaton("cross");
+    broken.rules[0].to = { x: 1, y: 1 };
 
-    expect(() => compileGpuAutomaton(broken)).toThrow("which is not a kind");
+    expect(() => compileGpuAutomaton(broken as Automaton)).toThrow(
+      'rules[0].to is {"x":1,"y":1}, expected an element id or a cross neighbor.',
+    );
   });
 
-  test("throws on an unknown condition reference", () => {
-    const broken = automaton();
-    broken.rules[0].when[1] = { type: "is", id: "c", compare: { x: 0, y: 0 }, with: "missing" };
+  test("allows shared colors and condition ids that repeat element ids", () => {
+    const shared = automaton();
+    shared.elements[1].color = shared.elements[0].color;
+    shared.rules[0].when[0].id = shared.elements[0].id;
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Condition 1 of rule 0 references "missing"');
-  });
-
-  test("throws on an unknown extension", () => {
-    const broken = automaton();
-    broken.elements[0].extensions = ["missing"];
-
-    expect(() => compileGpuAutomaton(broken)).toThrow('Element "a" references "missing"');
-  });
-
-  test("throws on a point that is not a neighbor", () => {
-    const broken = automaton();
-    broken.rules[0].to = { x: 2, y: 0 };
-
-    expect(() => compileGpuAutomaton(broken)).toThrow("(2, 0), which is not a neighbor");
-  });
-
-  test("throws on shared ids", () => {
-    const broken = automaton();
-    broken.kinds[0].id = broken.elements[0].id;
-
-    expect(() => compileGpuAutomaton(broken)).toThrow("ids must be unique");
+    expect(() => compileGpuAutomaton(shared as Automaton)).not.toThrow();
   });
 });

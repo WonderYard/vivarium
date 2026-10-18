@@ -32,6 +32,8 @@ space.to(vi.neighbor.TOP);
 
 In this example, every `space` cell becomes a copy of whatever element is directly above it. This is useful for simulating gravity, flow, or other directional effects.
 
+If the position is outside a non-wrapping grid, the cell stays as it is. The rule still counts as applied, so no later rule is checked for that cell during that step.
+
 You can also use `vi.neighbor.SELF` to keep the cell as itself, which can be combined with conditions:
 
 ```typescript
@@ -50,7 +52,7 @@ See [Condition](/concepts/condition) for all available condition types.
 
 ## Rule ordering
 
-Rules are evaluated in the order they are declared, from first to last. The first rule whose conditions pass wins — no further rules are checked for that cell during that step.
+An element's rules are evaluated in the order they are declared, from first to last, followed by the rules of its kinds (see [Rules on kinds](#rules-on-kinds)). The first rule whose conditions pass wins — no further rules are checked for that cell during that step.
 
 This means you should declare specific rules first and general fallback rules last:
 

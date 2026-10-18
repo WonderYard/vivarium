@@ -7,7 +7,7 @@
   </head>
   <body>
     <div class="flex justify-center">
-      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-100">
+      <div class="relative p-4 pb-16! sm:p-0 sm:py-8 flex flex-col gap-6 w-full sm:w-140">
         <div class="flex flex-row gap-2 sm:gap-4 justify-between items-center w-full">
           <div class="flex flex-row gap-2 items-center">
             <a class="btn btn-soft btn-square btn-sm" href="/"
@@ -87,24 +87,49 @@
         >
           <pre data-prefix="1"><code>const sea = element("sea", "darkblue")</code></pre>
           <pre data-prefix="2"><code>const coral = element("coral", "coral")</code></pre>
-          <pre data-prefix="3"><code>const growth = element("growth", "red")</code></pre>
-          <pre data-prefix="4"></pre>
-          <pre data-prefix="5"><code>sea.to(growth)</code></pre>
-          <pre data-prefix="6"><code>  .count(growth)</code></pre>
-          <pre data-prefix="7"><code>  .chance(53, 100)</code></pre>
-          <pre data-prefix="8"><code>growth.to(coral)</code></pre>
-          <pre data-prefix="9"></pre>
-          <pre data-prefix="10"><code>const automaton = create()</code></pre>
-          <pre data-prefix="11"></pre>
-          <pre data-prefix="12"><code>for (const canvas of canvases) {</code></pre>
-          <pre data-prefix="13"><code>  await setup({ canvas, automaton, grid })</code></pre>
-          <pre data-prefix="14"><code>}</code></pre>
+          <pre data-prefix="3"><code>const growth = element("growth", "yellow")</code></pre>
+          <pre data-prefix="4"><code>const bubble = element("bubble", "blue")</code></pre>
+          <pre data-prefix="5"><code>const rising = element("rising", "blue")</code></pre>
+          <pre data-prefix="6"></pre>
+          <pre data-prefix="7"><code>sea.to(bubble).is(BOTTOM, rising)</code></pre>
+          <pre data-prefix="8"><code>sea.to(growth)</code></pre>
+          <pre data-prefix="9"><code>  .is(BOTTOM, growth)</code></pre>
+          <pre data-prefix="10"><code>  .chance(50, 100)</code></pre>
+          <pre data-prefix="11"><code>  .accept("all")</code></pre>
+          <pre data-prefix="12"><code>sea.to(growth)</code></pre>
+          <pre data-prefix="13"><code>  .count(growth, 1)</code></pre>
+          <pre data-prefix="14"><code>  .chance(42, 100)</code></pre>
+          <pre data-prefix="15"><code>  .accept("all")</code></pre>
+          <pre data-prefix="16"><code>sea.to(bubble).chance(1, 5000)</code></pre>
+          <pre data-prefix="17"></pre>
+          <pre data-prefix="18"><code>bubble.to(sea).chance(1, 200)</code></pre>
+          <pre data-prefix="19"><code>bubble.to(rising).chance(4, 7)</code></pre>
+          <pre data-prefix="20"></pre>
+          <pre data-prefix="21"><code>rising.to(sea).is(TOP, sea)</code></pre>
+          <pre data-prefix="22"><code>rising.to(sea).is(TOP, coral)</code></pre>
+          <pre data-prefix="23"><code>rising.to(sea)</code></pre>
+          <pre data-prefix="24"><code>  .is(TOP, bubble)</code></pre>
+          <pre data-prefix="25"><code>  .is(TOP, rising)</code></pre>
+          <pre data-prefix="26"><code>  .accept("any")</code></pre>
+          <pre data-prefix="27"><code>rising.to(sea).is(TOP, TOP).accept("none")</code></pre>
+          <pre data-prefix="28"><code>rising.to(bubble)</code></pre>
+          <pre data-prefix="29"></pre>
+          <pre data-prefix="30"><code>growth.to(coral)</code></pre>
+          <pre data-prefix="31"><code>coral.to(growth).count(coral, 0).chance(1, 500)</code></pre>
+          <pre data-prefix="32"></pre>
+          <pre data-prefix="33"><code>const coralGrowth = create()</code></pre>
+          <pre data-prefix="34"></pre>
+          <pre data-prefix="35"><code>for (const canvas of canvases) {</code></pre>
+          <pre
+            data-prefix="36"
+          ><code>  await setup({ canvas, automaton: coralGrowth, initialGrid })</code></pre>
+          <pre data-prefix="37"><code>}</code></pre>
         </div>
         <a class="btn btn-accent self-center" href="https://vivarium.orangenote.dev">
           Read the docs
         </a>
         <div
-          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-100 left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
+          class="fixed bg-base-100 pb-4 flex flex-col items-center w-full sm:max-w-140 left-0 sm:left-auto bottom-0 shadow-[0_-1rem_1rem_0] shadow-base-100"
         >
           <div class="divider mt-0 mb-0"></div>
           <code class="text-xs">@wonderyard/vivarium</code>

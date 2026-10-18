@@ -32,7 +32,16 @@ const size = 256;
 canvas.width = size;
 canvas.height = size;
 
-const { update, draw } = await setup({ canvas, automaton: forest });
+const { update, draw } = await setup({
+  canvas,
+  automaton: forest,
+  initialGrid: {
+    weights: {
+      [empty.name]: 10,
+      [tree.name]: 3,
+    },
+  },
+});
 
 const loop = () => {
   update();
