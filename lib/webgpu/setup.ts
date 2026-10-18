@@ -401,6 +401,10 @@ export const render = tgpu.fragmentFn({
   return std.unpack4x8unorm(automatonLayout.$.elements[id].color);
 });
 
+// Cells hold element indices, so initialGrid, writeCell and writeGrid accept the same ones.
+const isElementIndex = (value: number, elementCount: number): boolean =>
+  Number.isInteger(value) && value >= 0 && value < elementCount;
+
 /**
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
  * with the defined elements, each equally likely, unless an `initialGrid` gives the cells or the weights.
@@ -512,12 +516,7 @@ export const setup = async ({
     if (flatGrid !== undefined) {
       const rawIndex = flatGrid[i] ?? 0;
 
-      if (
-        !Number.isFinite(rawIndex) ||
-        !Number.isInteger(rawIndex) ||
-        rawIndex < 0 ||
-        rawIndex >= elementsLength
-      ) {
+      if (!isElementIndex(rawIndex, elementsLength)) {
         throw new Error(
           `Element index ${rawIndex} from initialGrid is invalid. Expected a finite integer in range [0, ${elementsLength - 1}]. Make sure to use ElementBlueprint.index to build the initialGrid with pre-existing indices.`,
         );
@@ -718,12 +717,7 @@ export const setup = async ({
       );
     }
 
-    if (
-      !Number.isFinite(elementIndex) ||
-      !Number.isInteger(elementIndex) ||
-      elementIndex < 0 ||
-      elementIndex >= elementCount
-    ) {
+    if (!isElementIndex(elementIndex, elementCount)) {
       throw new Error(
         `Element index ${elementIndex} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
       );
@@ -780,12 +774,7 @@ export const setup = async ({
     for (let i = 0; i < totalCells; i++) {
       const elementIndex = grid[i];
 
-      if (
-        !Number.isFinite(elementIndex) ||
-        !Number.isInteger(elementIndex) ||
-        elementIndex < 0 ||
-        elementIndex >= elementCount
-      ) {
+      if (!isElementIndex(elementIndex, elementCount)) {
         throw new Error(
           `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
         );
