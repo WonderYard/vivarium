@@ -26,7 +26,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
   }
 
   /**
-   * Adds a count condition to the rule. The rule passes only if the number of matching neighbors
+   * Adds a count condition to the rule. The condition passes only if the number of matching neighbors
    * equals one of the specified count values.
    *
    * @param refBlueprintOrNeighbor - The element, kind, or neighbor reference to count.
@@ -72,7 +72,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
   }
 
   /**
-   * Adds a chance condition to the rule. The rule passes with a probability of `part / whole`.
+   * Adds a chance condition to the rule. The condition passes with a probability of `part / whole`.
    *
    * @param part - The numerator of the probability fraction, between `0` and `whole`.
    * @param whole - The denominator of the probability fraction, greater than `0`. Defaults to `100`.

@@ -403,7 +403,7 @@ export const render = tgpu.fragmentFn({
 
 /**
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
- * with the defined elements, each equally likely, unless an `initialGrid` is provided.
+ * with the defined elements, each equally likely, unless an `initialGrid` gives the cells or the weights.
  *
  * Async because the first call initializes WebGPU, which later simulations share.
  * If the device is lost, the next call requests a new one.
