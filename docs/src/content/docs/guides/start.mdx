@@ -153,7 +153,7 @@ First, import the `setup` function alongside `vivarium`:
 import { vivarium, setup } from "@wonderyard/vivarium";
 ```
 
-Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell. The simulation draws through a WebGPU context, so the canvas must not already have a `2d` or `webgl` context.
+Then, get or create a canvas element and set its dimensions. By default, the canvas width and height determine the grid size of the automaton — every pixel is a cell. The simulation draws through a WebGPU context, so the canvas must not already have a `2d` or `webgl` context. To draw on top of the simulation, stack another canvas over it. To combine it into a 2D canvas you already draw on, call `ctx.drawImage(canvas, 0, 0)` after `draw()`.
 
 ```typescript
 const canvas = document.getElementById("life-canvas") as HTMLCanvasElement;
