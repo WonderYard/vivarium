@@ -1,170 +1,219 @@
-import type { Automaton, Point } from "@/automaton/types";
-import { acceptMap } from "@/common/constants";
+import type { Automaton, Neighborhood, Point } from "@/automaton/types";
+import { acceptMap, maxCount } from "@/common/constants";
 import { parseColor } from "@/common/utils";
 
 type Json = Record<string, unknown>;
 
-function check(condition: unknown, path: string, expected: string): asserts condition {
-  if (!condition) {
-    throw new Error(`${path} is not ${expected}.`);
-  }
-}
-
 const isObject = (value: unknown): value is Json =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const isString = (value: unknown): value is string => typeof value === "string";
+// The checks the builder makes on its arguments and assertAutomaton makes on a whole automaton,
+// so both agree on what is valid.
 
-const isPoint = (value: unknown): boolean =>
-  isObject(value) && Number.isInteger(value.x) && Number.isInteger(value.y);
+/** A non-blank string. */
+export const isName = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
 
-const isRef = (value: unknown): boolean => Number.isInteger(value) || isPoint(value);
+/** A whole number of neighbors a cell can have: 0 to 8 for square (the default), 0 to 4 for cross. */
+export const isCount = (value: unknown, neighborhood?: Neighborhood): boolean =>
+  Number.isInteger(value) && (value as number) >= 0 && (value as number) <= maxCount(neighborhood);
+
+/** A point of the neighborhood, the cell itself included: no diagonals in a cross. */
+export const isNeighbor = (value: unknown, neighborhood: Neighborhood): value is Point =>
+  isObject(value) &&
+  [value.x, value.y].every((v) => v === -1 || v === 0 || v === 1) &&
+  (neighborhood === "square" || value.x === 0 || value.y === 0);
+
+/** The whole of a chance ratio: a finite number greater than 0. */
+export const isWhole = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+/** The part of a chance ratio: a number in [0, whole]. */
+export const isPart = (value: unknown, whole: number): value is number =>
+  typeof value === "number" && value >= 0 && value <= whole;
+
+// Short enough for an error message: numbers as they are (NaN too), short JSON, or else the type.
+const show = (value: unknown): string => {
+  if (typeof value === "number" || value === undefined) return String(value);
+
+  const json = JSON.stringify(value);
+  if (json !== undefined && json.length <= 40) return json;
+
+  return Array.isArray(value)
+    ? "an array"
+    : typeof value === "object"
+      ? "an object"
+      : `a ${typeof value}`;
+};
+
+function check(
+  condition: unknown,
+  path: string,
+  value: unknown,
+  expected: string,
+): asserts condition {
+  if (!condition) {
+    throw new Error(`${path} is ${show(value)}, expected ${expected}.`);
+  }
+}
 
 // Checks that value is an array of objects and returns them with their paths.
 const objects = (value: unknown, path: string): [Json, string][] => {
-  check(Array.isArray(value), path, "an array");
+  check(Array.isArray(value), path, value, "an array");
 
   return value.map((item: unknown, i) => {
-    check(isObject(item), `${path}[${i}]`, "an object");
+    check(isObject(item), `${path}[${i}]`, item, "an object");
     return [item, `${path}[${i}]`];
   });
 };
 
 /**
- * Throws if an id is shared, or if a rule, condition or extension references an id the automaton
- * doesn't have or a point that isn't a neighbor. The builder never produces these, but automata
- * assembled outside it (or loaded with `fromPng`) can. `undefined` targets are left to the compiler.
+ * Throws unless the automaton is one the builder could have made, apart from its ids and colors:
+ * ids only need to be unique among elements and kinds, and elements may share a color.
+ * The error names the first bad field by its path, e.g. `rules[0].when[1].count[2]`.
+ *
+ * Automata reach `setup`, `setAutomaton` and `fromPng` from outside the builder too (an editor,
+ * a file), so these check them before anything reads them.
  */
-export const assertReferences = (automaton: Automaton): void => {
-  const elementIds = new Set(automaton.elements.map((element) => element.id));
-  const kindIds = new Set(automaton.kinds.map((kind) => kind.id));
-  const refIds = new Set([...elementIds, ...kindIds]);
-
-  if (refIds.size !== automaton.elements.length + automaton.kinds.length) {
-    throw new Error("Element and kind ids must be unique.");
-  }
-
-  const assertRef = (
-    ref: number | Point | undefined,
-    where: string,
-    ids: Set<number>,
-    expected: string,
-  ): void => {
-    if (typeof ref === "number" && !ids.has(ref)) {
-      throw new Error(`${where} references ${ref}, which is not ${expected}.`);
-    }
-
-    if (typeof ref === "object" && ![ref.x, ref.y].every((v) => v === -1 || v === 0 || v === 1)) {
-      throw new Error(`${where} references (${ref.x}, ${ref.y}), which is not a neighbor.`);
-    }
-  };
-
-  automaton.elements.forEach((element) => {
-    element.extensions.forEach((kindId) =>
-      assertRef(kindId, `Element "${element.name}"`, kindIds, "a kind"),
-    );
-  });
-
-  automaton.rules.forEach((rule, i) => {
-    const where = `Rule ${i}`;
-
-    if (rule.fromType === "kind") {
-      assertRef(rule.fromId, where, kindIds, "a kind");
-    } else {
-      assertRef(rule.fromId, where, elementIds, "an element");
-    }
-    assertRef(rule.to, where, elementIds, "an element");
-
-    rule.when.forEach((condition, j) => {
-      const where = `Condition ${j} of rule ${i}`;
-
-      if (condition.type === "count") {
-        assertRef(condition.check, where, refIds, "an element or a kind");
-      } else if (condition.type === "is") {
-        assertRef(condition.compare, where, new Set(), "a neighbor");
-        assertRef(condition.with, where, refIds, "an element or a kind");
-      }
-    });
-  });
-};
-
-/** Checks the whole shape of an untrusted automaton, then its references, before anything reads it. */
 export function assertAutomaton(automaton: unknown): asserts automaton is Automaton {
-  check(isObject(automaton), "the automaton", "an object");
+  check(isObject(automaton), "the automaton", automaton, "an object");
+
+  const { neighborhood } = automaton;
   check(
-    automaton.neighborhood === "square" || automaton.neighborhood === "cross",
+    neighborhood === "square" || neighborhood === "cross",
     "neighborhood",
+    neighborhood,
     '"square" or "cross"',
   );
-  check(typeof automaton.wrapping === "boolean", "wrapping", "a boolean");
+  check(typeof automaton.wrapping === "boolean", "wrapping", automaton.wrapping, "a boolean");
 
-  for (const [element, path] of objects(automaton.elements, "elements")) {
-    check(element.type === "element", `${path}.type`, '"element"');
-    check(Number.isInteger(element.id), `${path}.id`, "an integer");
-    check(isString(element.name), `${path}.name`, "a string");
+  const elements = objects(automaton.elements, "elements");
+  check(elements.length > 0, "elements", automaton.elements, "at least one element");
+  const kinds = objects(automaton.kinds, "kinds");
+
+  const elementIds = new Set<unknown>();
+  const kindIds = new Set<unknown>();
+  const names = new Set<unknown>();
+
+  // Like the builder: ids and names are unique across elements and kinds.
+  const identify = (ref: Json, path: string, type: "element" | "kind", ids: Set<unknown>) => {
+    check(ref.type === type, `${path}.type`, ref.type, `"${type}"`);
     check(
-      isString(element.color) && parseColor(element.color) !== undefined,
+      Number.isInteger(ref.id) && !elementIds.has(ref.id) && !kindIds.has(ref.id),
+      `${path}.id`,
+      ref.id,
+      "an integer id no other element or kind has",
+    );
+    check(
+      isName(ref.name) && !names.has(ref.name),
+      `${path}.name`,
+      ref.name,
+      "a non-blank name no other element or kind has",
+    );
+    ids.add(ref.id);
+    names.add(ref.name);
+  };
+
+  elements.forEach(([element, path]) => identify(element, path, "element", elementIds));
+  kinds.forEach(([kind, path]) => identify(kind, path, "kind", kindIds));
+
+  for (const [element, path] of elements) {
+    check(
+      typeof element.color === "string" && parseColor(element.color) !== undefined,
       `${path}.color`,
-      "a valid color",
+      element.color,
+      "a CSS named color or a hex value",
     );
-    check(
-      Array.isArray(element.extensions) && element.extensions.every(Number.isInteger),
-      `${path}.extensions`,
-      "an array of integers",
+    check(Array.isArray(element.extensions), `${path}.extensions`, element.extensions, "an array");
+    element.extensions.forEach((id: unknown, i) =>
+      check(kindIds.has(id), `${path}.extensions[${i}]`, id, "a kind id"),
     );
   }
 
-  for (const [kind, path] of objects(automaton.kinds, "kinds")) {
-    check(kind.type === "kind", `${path}.type`, '"kind"');
-    check(Number.isInteger(kind.id), `${path}.id`, "an integer");
-    check(isString(kind.name), `${path}.name`, "a string");
-  }
+  const neighbor = `a ${neighborhood} neighbor`;
+  const isRef = (value: unknown) => elementIds.has(value) || kindIds.has(value);
 
   for (const [rule, path] of objects(automaton.rules, "rules")) {
     check(
       rule.fromType === "element" || rule.fromType === "kind",
       `${path}.fromType`,
+      rule.fromType,
       '"element" or "kind"',
     );
-    check(Number.isInteger(rule.fromId), `${path}.fromId`, "an integer");
-    check(isRef(rule.to), `${path}.to`, "an id or a point");
+    check(
+      (rule.fromType === "element" ? elementIds : kindIds).has(rule.fromId),
+      `${path}.fromId`,
+      rule.fromId,
+      rule.fromType === "element" ? "an element id" : "a kind id",
+    );
+    check(
+      elementIds.has(rule.to) || isNeighbor(rule.to, neighborhood),
+      `${path}.to`,
+      rule.to,
+      `an element id or ${neighbor}`,
+    );
     check(
       Object.values<unknown>(acceptMap).includes(rule.accept),
       `${path}.accept`,
-      "a valid accept strategy",
+      rule.accept,
+      "0, 1, 2 or 3 (all, any, one or none)",
     );
 
     for (const [condition, conditionPath] of objects(rule.when, `${path}.when`)) {
-      check(Number.isInteger(condition.id), `${conditionPath}.id`, "an integer");
+      check(Number.isInteger(condition.id), `${conditionPath}.id`, condition.id, "an integer");
 
       if (condition.type === "count") {
-        check(isRef(condition.check), `${conditionPath}.check`, "an id or a point");
         check(
-          Array.isArray(condition.count) && condition.count.every(Number.isFinite),
+          isRef(condition.check) || isNeighbor(condition.check, neighborhood),
+          `${conditionPath}.check`,
+          condition.check,
+          `an element id, a kind id or ${neighbor}`,
+        );
+        check(
+          Array.isArray(condition.count),
           `${conditionPath}.count`,
-          "an array of numbers",
+          condition.count,
+          "an array",
+        );
+        condition.count.forEach((count: unknown, i) =>
+          check(
+            isCount(count, neighborhood),
+            `${conditionPath}.count[${i}]`,
+            count,
+            `a whole number in [0, ${maxCount(neighborhood)}] for a ${neighborhood} neighborhood`,
+          ),
         );
       } else if (condition.type === "is") {
-        check(isPoint(condition.compare), `${conditionPath}.compare`, "a point");
-        check(isRef(condition.with), `${conditionPath}.with`, "an id or a point");
-      } else {
-        check(condition.type === "chance", `${conditionPath}.type`, '"count", "is" or "chance"');
-
-        const { ratio } = condition;
         check(
-          isObject(ratio) &&
-            typeof ratio.part === "number" &&
-            typeof ratio.whole === "number" &&
-            Number.isFinite(ratio.whole) &&
-            ratio.whole > 0 &&
-            ratio.part >= 0 &&
-            ratio.part <= ratio.whole,
-          `${conditionPath}.ratio`,
-          "a ratio with 0 <= part <= whole and whole > 0",
+          isNeighbor(condition.compare, neighborhood),
+          `${conditionPath}.compare`,
+          condition.compare,
+          neighbor,
         );
+        check(
+          isRef(condition.with) || isNeighbor(condition.with, neighborhood),
+          `${conditionPath}.with`,
+          condition.with,
+          `an element id, a kind id or ${neighbor}`,
+        );
+      } else if (condition.type === "chance") {
+        const { ratio } = condition;
+        check(isObject(ratio), `${conditionPath}.ratio`, ratio, "an object");
+        check(
+          isWhole(ratio.whole),
+          `${conditionPath}.ratio.whole`,
+          ratio.whole,
+          "a finite number greater than 0",
+        );
+        check(
+          isPart(ratio.part, ratio.whole),
+          `${conditionPath}.ratio.part`,
+          ratio.part,
+          `a number in [0, ${ratio.whole}]`,
+        );
+      } else {
+        check(false, `${conditionPath}.type`, condition.type, '"count", "is" or "chance"');
       }
     }
   }
-
-  assertReferences(automaton as Automaton);
 }

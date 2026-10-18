@@ -2,7 +2,14 @@
 
 import type { Automaton } from "@/automaton/types";
 import type { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
-import { GpuCondition, GpuElement, GpuRule, Square, WORKGROUP_SIZE } from "@/common/constants";
+import {
+  type Accept,
+  GpuCondition,
+  GpuElement,
+  GpuRule,
+  Square,
+  WORKGROUP_SIZE,
+} from "@/common/constants";
 import { vivarium } from "@/vivarium/vivarium";
 import { compileGpuAutomaton } from "@/webgpu/compiler";
 import { automatonLayout, gridLayout, compute, setup } from "@/webgpu/setup";
@@ -1928,6 +1935,24 @@ describe("GPU simulation", () => {
 
       await expect(setup({ canvas, automaton, width: 0 })).rejects.toThrow("positive integers");
       await expect(setup({ canvas, automaton, height: 2.5 })).rejects.toThrow("positive integers");
+    });
+
+    test("setup and setAutomaton throw on an automaton the builder couldn't make", async () => {
+      const vi = vivarium();
+      const a = vi.element("a", "#ff0000");
+      a.to(a);
+      const automaton = vi.create();
+      // Before, this rule silently never fired.
+      const broken = { ...automaton, rules: [{ ...automaton.rules[0], accept: 9 as Accept }] };
+      const message = "rules[0].accept is 9, expected 0, 1, 2 or 3 (all, any, one or none).";
+
+      const canvas = createCanvas(1, 1);
+
+      await expect(setup({ canvas, automaton: broken })).rejects.toThrow(message);
+
+      const { setAutomaton, destroy } = await setup({ canvas, automaton });
+      expect(() => setAutomaton({ automaton: broken })).toThrow(message);
+      destroy();
     });
 
     describe("grid size limit", () => {

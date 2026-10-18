@@ -77,15 +77,17 @@ test("rejects a malformed automaton", async () => {
 
   await expect(
     fromPng(await pngWith((a) => (a.elements[1].color = "rgb(1, 2, 3)"))),
-  ).rejects.toThrow("elements[1].color is not a valid color");
+  ).rejects.toThrow(
+    'elements[1].color is "rgb(1, 2, 3)", expected a CSS named color or a hex value.',
+  );
   await expect(fromPng(await pngWith((a) => (a.neighborhood = "hex")))).rejects.toThrow(
-    "neighborhood is not",
+    'neighborhood is "hex"',
   );
   await expect(fromPng(await pngWith((a) => delete a.rules[0].when[0].with))).rejects.toThrow(
-    "rules[0].when[0].with is not an id or a point",
+    "rules[0].when[0].with is undefined",
   );
   await expect(fromPng(await pngWith((a) => (a.rules[0].to = 99)))).rejects.toThrow(
-    "Rule 0 references 99",
+    "malformed vivarium automaton in it: rules[0].to is 99",
   );
 });
 
