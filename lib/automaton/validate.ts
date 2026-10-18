@@ -72,8 +72,8 @@ const objects = (value: unknown, path: string): [Json, string][] => {
  * ids only need to be unique among elements and kinds, and elements may share a color.
  * The error names the first bad field by its path, e.g. `rules[0].when[1].count[2]`.
  *
- * Automata reach `setup`, `setAutomaton` and `fromPng` from outside the builder too (an editor,
- * a file), so these check them before anything reads them.
+ * Automata reach `setup` and `setAutomaton` from outside the builder too (an editor, a file),
+ * so these check them before anything reads them.
  */
 export function assertAutomaton(automaton: unknown): asserts automaton is Automaton {
   check(isObject(automaton), "the automaton", automaton, "an object");
