@@ -1450,7 +1450,7 @@ describe("GPU simulation", () => {
       const canvas = document.createElement("canvas");
       canvas.width = 3;
       canvas.height = 1;
-      const { readGrid, writeGrid, setAutomaton } = await setup({
+      const { readGrid, writeGrid, setAutomaton, toPng } = await setup({
         canvas,
         automaton: build(["a", "b", "c"]),
         initialGrid: [[0, 1, 2]],
@@ -1460,8 +1460,9 @@ describe("GPU simulation", () => {
       const grid = await readGrid();
 
       expect(grid).toEqual([0, 1, 0]);
-      // A grid read back must stay writable.
+      // A grid read back must stay writable and saveable.
       expect(() => writeGrid(grid)).not.toThrow();
+      await expect(toPng()).resolves.toBeInstanceOf(Blob);
     });
   });
 
