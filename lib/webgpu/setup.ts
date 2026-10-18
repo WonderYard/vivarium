@@ -461,6 +461,9 @@ export const setup = async ({
     throw new Error(`Seed ${seed} is invalid. Expected an integer in range [0, 2^32).`);
   }
 
+  // Validates the automaton too, before anything below reads it.
+  const gpuAutomaton = compileGpuAutomaton(automaton);
+
   const random = mulberry32(seed);
 
   const flatGrid = Array.isArray(initialGrid) ? initialGrid.flat() : undefined;
@@ -528,8 +531,6 @@ export const setup = async ({
     }
     ids[i] = elementIndex;
   }
-
-  const gpuAutomaton = compileGpuAutomaton(automaton);
 
   const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;

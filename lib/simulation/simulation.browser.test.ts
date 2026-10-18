@@ -1630,6 +1630,23 @@ describe("GPU simulation", () => {
       await expect(setup({ canvas, automaton })).resolves.toBeDefined();
     });
 
+    test("names the bad field of a malformed automaton before reading it", async () => {
+      const canvas = createCanvas(1, 1);
+      const noElements = { neighborhood: "square", wrapping: false, kinds: [], rules: [] };
+      const nullElement = { ...noElements, elements: [null] };
+
+      await expect(
+        setup({ canvas, automaton: noElements as unknown as Automaton }),
+      ).rejects.toThrow("elements is undefined, expected an array.");
+      await expect(
+        setup({
+          canvas,
+          automaton: nullElement as unknown as Automaton,
+          initialGrid: { weights: { a: 1 } },
+        }),
+      ).rejects.toThrow("elements[0] is null, expected an object.");
+    });
+
     test("throws when initialGrid length does not match dimensions", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
