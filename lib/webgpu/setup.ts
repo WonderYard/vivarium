@@ -1,20 +1,18 @@
 import type { Automaton } from "@/automaton/types";
-import {
-  Accept,
-  GpuCondition,
-  GpuElement,
-  GpuRule,
-  Opcode,
-  To,
-  WORKGROUP_SIZE,
-} from "@/common/constants";
+import { Accept, Opcode, To, WORKGROUP_SIZE } from "@/common/constants";
 import { mulberry32 } from "@/common/utils";
 import { toPng as encodePng } from "@/png/png";
 import { hash, randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
-import { compileGpuAutomaton, type GpuAutomaton } from "./compiler";
+import {
+  compileGpuAutomaton,
+  GpuCondition,
+  GpuElement,
+  GpuRule,
+  type GpuAutomaton,
+} from "./compiler";
 
 // A lost device can't be revived: forget it so the next setup creates a new root.
 const watchDeviceLoss = async (device: GPUDevice): Promise<void> => {
@@ -465,6 +463,9 @@ export const setup = async ({
     throw new Error(`Seed ${seed} is invalid. Expected an integer in range [0, 2^32).`);
   }
 
+  // Validates the automaton too, before anything below reads it.
+  const gpuAutomaton = compileGpuAutomaton(automaton);
+
   const random = mulberry32(seed);
 
   const flatGrid = Array.isArray(initialGrid) ? initialGrid.flat() : undefined;
@@ -532,8 +533,6 @@ export const setup = async ({
     }
     ids[i] = elementIndex;
   }
-
-  const gpuAutomaton = compileGpuAutomaton(automaton);
 
   const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;
