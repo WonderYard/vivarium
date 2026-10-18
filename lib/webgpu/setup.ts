@@ -420,7 +420,7 @@ export const render = tgpu.fragmentFn({
  * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
  * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
  * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step. Defaults to a random one, readable as `seed` on the result to replay the run.
- * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
+ * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy` and its grid is gone; call `setup` again to recreate it on a new device. To resume, pass a grid saved earlier with `readGrid` as `initialGrid`.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
@@ -855,8 +855,9 @@ export const setup = async ({
   /**
    * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
    * and `evolve` do nothing, so a loop still running (e.g. during a React effect
-   * cleanup) doesn't crash, while reads, writes and `setAutomaton` throw.
-   * Calling it more than once is safe.
+   * cleanup) doesn't crash, while reads, writes, `setAutomaton` and `toPng` throw.
+   * Calls made before it still complete: a pending `readGrid` or `toPng` resolves
+   * with the grid as it was. Calling it more than once is safe.
    */
   const destroy = (): void => {
     if (destroyed) {
