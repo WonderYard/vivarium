@@ -416,14 +416,14 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
- * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792); larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792), and `width` and `height` at most 524280 each; larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
  * Or pass `{ weights }` to keep random initialization with element names mapped to relative weights: `{ weights: { empty: 9, tree: 1 } }`
  * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
  * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
- * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step. Defaults to a random one, readable as `seed` on the result to replay the run.
+ * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step, on any device and browser. A new vivarium version may change the outcomes of a seed. Defaults to a random one, readable as `seed` on the result to replay the run.
  * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy` and its grid is gone; call `setup` again to recreate it on a new device. To resume, pass a grid saved earlier with `readGrid` as `initialGrid`.
  * @throws If the automaton is not one {@link VivariumBlueprint.create | create()} could have made, apart from its ids (which only need to be unique) and elements sharing a color. The error names the first bad field, e.g. `rules[0].when[1].count[2]`.
  * @returns A promise of an object with:
@@ -547,6 +547,18 @@ export const setup = async ({
   if (width * height > maxCells) {
     throw new Error(
       `Grid ${width}x${height} has ${width * height} cells, but this device allows at most ${maxCells}.`,
+    );
+  }
+
+  // Past this, the update's dispatch is rejected without throwing, and the grid never changes.
+  // Default limits allow 65535 workgroups per dimension: 524280 cells of width or height.
+  const maxWorkgroups = device.limits.maxComputeWorkgroupsPerDimension;
+  const maxWidth = maxWorkgroups * WORKGROUP_SIZE[0];
+  const maxHeight = maxWorkgroups * WORKGROUP_SIZE[1];
+
+  if (width > maxWidth || height > maxHeight) {
+    throw new Error(
+      `Grid ${width}x${height} is too wide or tall: this device allows at most ${maxWidth} columns and ${maxHeight} rows.`,
     );
   }
 
