@@ -25,11 +25,11 @@ export const isNeighbor = (value: unknown, neighborhood: Neighborhood): value is
   (neighborhood === "square" || value.x === 0 || value.y === 0);
 
 /** The whole of a chance ratio: a finite number greater than 0. */
-export const isWhole = (value: unknown): value is number =>
+export const isWhole = (value: unknown): boolean =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 
 /** The part of a chance ratio: a number in [0, whole]. */
-export const isPart = (value: unknown, whole: number): value is number =>
+export const isPart = (value: unknown, whole: number): boolean =>
   typeof value === "number" && value >= 0 && value <= whole;
 
 // Short enough for an error message: numbers as they are (NaN too), short JSON, or else the type.
@@ -205,11 +205,12 @@ export function assertAutomaton(automaton: unknown): asserts automaton is Automa
           ratio.whole,
           "a finite number greater than 0",
         );
+        const whole = ratio.whole as number;
         check(
-          isPart(ratio.part, ratio.whole),
+          isPart(ratio.part, whole),
           `${conditionPath}.ratio.part`,
           ratio.part,
-          `a number in [0, ${ratio.whole}]`,
+          `a number in [0, ${whole}]`,
         );
       } else {
         check(false, `${conditionPath}.type`, condition.type, '"count", "is" or "chance"');

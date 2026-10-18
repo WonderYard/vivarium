@@ -1,19 +1,21 @@
 import type { Neighborhood, Point } from "@/automaton/types";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
+import { isCount, isNeighbor } from "@/automaton/validate";
 import { Cross, maxCount, neighborhoodPoints, Square } from "@/common/constants";
 import type { AnyNeighbor } from "./types";
 
 // Types only stop TS callers, so plain JS can still pass a diagonal in a cross vivarium, or any string.
 export const toPoint = (neighbor: AnyNeighbor, neighborhood: Neighborhood): Point => {
-  const neighbors: string[] = Object.values(neighborhood === "cross" ? Cross : Square);
+  const point: unknown = neighborhoodPoints[neighbor];
 
-  if (!neighbors.includes(neighbor)) {
+  if (!isNeighbor(point, neighborhood)) {
+    const neighbors = Object.values(neighborhood === "cross" ? Cross : Square);
     throw new Error(
       `Neighbor "${neighbor}" is invalid. Expected one of ${neighbors.join(", ")} for a ${neighborhood} neighborhood.`,
     );
   }
 
-  return neighborhoodPoints[neighbor];
+  return point;
 };
 
 export const toRefIdOrPoint = (
@@ -27,7 +29,7 @@ export const toRefIdOrPoint = (
 
 export const assertCounts = (counts: number[], neighborhood?: Neighborhood): void => {
   const max = maxCount(neighborhood);
-  const invalid = counts.find((count) => !Number.isInteger(count) || count < 0 || count > max);
+  const invalid = counts.find((count) => !isCount(count, neighborhood));
 
   if (invalid !== undefined) {
     throw new Error(
