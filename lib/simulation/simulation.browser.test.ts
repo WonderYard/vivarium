@@ -885,6 +885,40 @@ describe("GPU simulation", () => {
       // In wrapping mode, every cell has 8 alive neighbors → all die.
       expect(toRows(after)).toEqual([[D]]);
     });
+
+    test("matches a CPU step on a grid spanning several workgroups", async () => {
+      // 17x11 spans 3x2 workgroups with partial ones on both edges, so cells near
+      // workgroup boundaries, the grid edge and invocations past it are all exercised.
+      const width = 17;
+      const height = 11;
+      const ids = Array.from({ length: width * height }, (_, i) => ((i * 7) % 5 < 2 ? A : D));
+      const before: Grid = { width, height, ids };
+
+      const cpuStep = (wrapping: boolean): number[] =>
+        ids.map((id, i) => {
+          const x = i % width;
+          const y = Math.floor(i / width);
+          let alive = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              let nx = x + dx;
+              let ny = y + dy;
+              if (wrapping) {
+                nx = (nx + width) % width;
+                ny = (ny + height) % height;
+              } else if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+              alive += ids[ny * width + nx];
+            }
+          }
+          return alive === 3 || (id === A && alive === 2) ? A : D;
+        });
+
+      for (const wrapping of [true, false]) {
+        const after = await step(buildLife, before, undefined, { wrapping });
+        expect(after.ids).toEqual(cpuStep(wrapping));
+      }
+    });
   });
 
   // ── Cross neighborhood ────────────────────────────────────────
