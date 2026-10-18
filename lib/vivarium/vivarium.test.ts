@@ -141,14 +141,11 @@ test("creates a count condition", () => {
 
   const checkCondition = automaton.rules[0].when[0];
 
-  expect(checkCondition).toHaveProperty("check");
-
-  if (typeof checkCondition === "object" && checkCondition.type === "count") {
-    expect(checkCondition.check).toBe(
-      automaton.elements.find((element) => element.name === "alive")?.id,
-    );
-    expect(checkCondition.count).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-  }
+  expect(checkCondition).toMatchObject({
+    type: "count",
+    check: automaton.elements.find((element) => element.name === "alive")?.id,
+    count: [1, 2, 3, 4, 5, 6, 7, 8],
+  });
 });
 
 test("creates a count condition with default cross count", () => {
@@ -161,9 +158,7 @@ test("creates a count condition with default cross count", () => {
 
   const checkCondition = automaton.rules[0].when[0];
 
-  if (typeof checkCondition === "object" && checkCondition.type === "count") {
-    expect(checkCondition.count).toStrictEqual([1, 2, 3, 4]);
-  }
+  expect(checkCondition).toMatchObject({ type: "count", count: [1, 2, 3, 4] });
 });
 
 test("creates a count condition with set cross count", () => {
@@ -176,9 +171,7 @@ test("creates a count condition with set cross count", () => {
 
   const checkCondition = automaton.rules[0].when[0];
 
-  if (typeof checkCondition === "object" && checkCondition.type === "count") {
-    expect(checkCondition.count).toStrictEqual([3]);
-  }
+  expect(checkCondition).toMatchObject({ type: "count", count: [3] });
 });
 
 // ── Vivarium neighborhood defaults ──────────────────────────────────
@@ -448,10 +441,7 @@ test("creates a count condition with multiple individual numbers", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  expect(condition.type).toBe("count");
-  if (condition.type === "count") {
-    expect(condition.count).toStrictEqual([2, 3]);
-  }
+  expect(condition).toMatchObject({ type: "count", count: [2, 3] });
 });
 
 test("creates a count condition with mixed numbers and arrays", () => {
@@ -463,9 +453,7 @@ test("creates a count condition with mixed numbers and arrays", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.count).toStrictEqual([1, 2, 3, 5]);
-  }
+  expect(condition).toMatchObject({ type: "count", count: [1, 2, 3, 5] });
 });
 
 test("creates a count condition checking a neighbor", () => {
@@ -477,10 +465,7 @@ test("creates a count condition checking a neighbor", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.check).toStrictEqual({ x: 0, y: -1 });
-    expect(condition.count).toStrictEqual([2]);
-  }
+  expect(condition).toMatchObject({ type: "count", check: { x: 0, y: -1 }, count: [2] });
 });
 
 test("creates a count condition checking a kind", () => {
@@ -493,10 +478,7 @@ test("creates a count condition checking a kind", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.check).toBe(flammable.id);
-    expect(condition.count).toStrictEqual([1, 2]);
-  }
+  expect(condition).toMatchObject({ type: "count", check: flammable.id, count: [1, 2] });
 });
 
 // ── Is condition ────────────────────────────────────────────────────
@@ -510,11 +492,7 @@ test("creates an is condition comparing neighbor with element", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  expect(condition.type).toBe("is");
-  if (condition.type === "is") {
-    expect(condition.compare).toStrictEqual({ x: 0, y: -1 });
-    expect(condition.with).toBe(alive.id);
-  }
+  expect(condition).toMatchObject({ type: "is", compare: { x: 0, y: -1 }, with: alive.id });
 });
 
 test("creates an is condition comparing neighbor with another neighbor", () => {
@@ -526,10 +504,7 @@ test("creates an is condition comparing neighbor with another neighbor", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "is") {
-    expect(condition.compare).toStrictEqual({ x: -1, y: 0 });
-    expect(condition.with).toStrictEqual({ x: 1, y: 0 });
-  }
+  expect(condition).toMatchObject({ type: "is", compare: { x: -1, y: 0 }, with: { x: 1, y: 0 } });
 });
 
 test("creates an is condition with kind", () => {
@@ -542,10 +517,7 @@ test("creates an is condition with kind", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "is") {
-    expect(condition.compare).toStrictEqual({ x: 0, y: 1 });
-    expect(condition.with).toBe(flammable.id);
-  }
+  expect(condition).toMatchObject({ type: "is", compare: { x: 0, y: 1 }, with: flammable.id });
 });
 
 test("creates an is condition with cross neighborhood", () => {
@@ -557,10 +529,7 @@ test("creates an is condition with cross neighborhood", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "is") {
-    expect(condition.compare).toStrictEqual({ x: -1, y: 0 });
-    expect(condition.with).toBe(alive.id);
-  }
+  expect(condition).toMatchObject({ type: "is", compare: { x: -1, y: 0 }, with: alive.id });
 });
 
 // ── Chance condition ────────────────────────────────────────────────
@@ -574,10 +543,7 @@ test("creates a chance condition with default whole", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  expect(condition.type).toBe("chance");
-  if (condition.type === "chance") {
-    expect(condition.ratio).toStrictEqual({ part: 50, whole: 100 });
-  }
+  expect(condition).toMatchObject({ type: "chance", ratio: { part: 50, whole: 100 } });
 });
 
 test("creates a chance condition with custom whole", () => {
@@ -589,9 +555,7 @@ test("creates a chance condition with custom whole", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "chance") {
-    expect(condition.ratio).toStrictEqual({ part: 1, whole: 10 });
-  }
+  expect(condition).toMatchObject({ type: "chance", ratio: { part: 1, whole: 10 } });
 });
 
 test.each([
@@ -617,9 +581,7 @@ test("keeps fractional values in chance condition", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "chance") {
-    expect(condition.ratio).toStrictEqual({ part: 2.5, whole: 10 });
-  }
+  expect(condition).toMatchObject({ type: "chance", ratio: { part: 2.5, whole: 10 } });
 });
 
 test.each([[-1], [9], [1.5]])("throws on invalid count %s in a square neighborhood", (count) => {
@@ -881,9 +843,7 @@ test("helpers.not can be used in count condition", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.count).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-  }
+  expect(condition).toMatchObject({ type: "count", count: [1, 2, 3, 4, 5, 6, 7, 8] });
 });
 
 test("helpers.between can be used in count condition", () => {
@@ -895,9 +855,7 @@ test("helpers.between can be used in count condition", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.count).toStrictEqual([2, 3, 4]);
-  }
+  expect(condition).toMatchObject({ type: "count", count: [2, 3, 4] });
 });
 
 test("helpers.even can be used in count condition", () => {
@@ -909,9 +867,7 @@ test("helpers.even can be used in count condition", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.count).toStrictEqual([0, 2, 4, 6, 8]);
-  }
+  expect(condition).toMatchObject({ type: "count", count: [0, 2, 4, 6, 8] });
 });
 
 test("helpers.odd can be used in count condition", () => {
@@ -923,9 +879,7 @@ test("helpers.odd can be used in count condition", () => {
   const automaton = vi.create();
   const condition = automaton.rules[0].when[0];
 
-  if (condition.type === "count") {
-    expect(condition.count).toStrictEqual([1, 3, 5, 7]);
-  }
+  expect(condition).toMatchObject({ type: "count", count: [1, 3, 5, 7] });
 });
 
 // ── Post-create lockdown on new element/kind ────────────────────────
@@ -1007,9 +961,7 @@ test("Conway's Game of Life", () => {
   expect(automaton.rules[1].fromId).toBe(alive.id);
   expect(automaton.rules[1].to).toBe(alive.id);
   expect(automaton.rules[1].when).toHaveLength(1);
-  if (automaton.rules[1].when[0].type === "count") {
-    expect(automaton.rules[1].when[0].count).toStrictEqual([2, 3]);
-  }
+  expect(automaton.rules[1].when[0]).toMatchObject({ type: "count", count: [2, 3] });
 
   // Rule 3: alive -> dead (fallback, no conditions)
   expect(automaton.rules[2].fromId).toBe(alive.id);
@@ -1036,9 +988,7 @@ test("Seeds automaton", () => {
 
   expect(automaton.rules[0].fromId).toBe(off.id);
   expect(automaton.rules[0].to).toBe(on.id);
-  if (automaton.rules[0].when[0].type === "count") {
-    expect(automaton.rules[0].when[0].count).toStrictEqual([2]);
-  }
+  expect(automaton.rules[0].when[0]).toMatchObject({ type: "count", count: [2] });
 
   expect(automaton.rules[1].fromId).toBe(on.id);
   expect(automaton.rules[1].to).toBe(off.id);
@@ -1141,9 +1091,7 @@ test("Game of Life variant using helpers.not for survival", () => {
   const automaton = vi.create();
   const survivalCondition = automaton.rules[1].when[0];
 
-  if (survivalCondition.type === "count") {
-    expect(survivalCondition.count).toStrictEqual([2, 3, 4, 5, 6, 7, 8]);
-  }
+  expect(survivalCondition).toMatchObject({ type: "count", count: [2, 3, 4, 5, 6, 7, 8] });
 });
 
 test("cross neighborhood automaton with is condition", () => {
@@ -1165,10 +1113,7 @@ test("cross neighborhood automaton with is condition", () => {
   expect(rule.to).toBe(b.id);
 
   const condition = rule.when[0];
-  if (condition.type === "is") {
-    expect(condition.compare).toStrictEqual({ x: 0, y: -1 });
-    expect(condition.with).toBe(b.id);
-  }
+  expect(condition).toMatchObject({ type: "is", compare: { x: 0, y: -1 }, with: b.id });
 });
 
 test("stochastic automaton with chance and count", () => {
@@ -1197,21 +1142,18 @@ test("stochastic automaton with chance and count", () => {
 
   // Rule 0: empty -> tree with 1/100 chance
   const chanceCondition = automaton.rules[0].when[0];
-  if (chanceCondition.type === "chance") {
-    expect(chanceCondition.ratio).toStrictEqual({ part: 1, whole: 100 });
-  }
+  expect(chanceCondition).toMatchObject({ type: "chance", ratio: { part: 1, whole: 100 } });
 
   // Rule 1: tree -> fire with count and accept any
   expect(automaton.rules[1].accept).toBe(Accept.ANY);
-  if (automaton.rules[1].when[0].type === "count") {
-    expect(automaton.rules[1].when[0].count).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-  }
+  expect(automaton.rules[1].when[0]).toMatchObject({
+    type: "count",
+    count: [1, 2, 3, 4, 5, 6, 7, 8],
+  });
 
   // Rule 2: tree -> fire with 1/10000 chance
   const spontaneousChance = automaton.rules[2].when[0];
-  if (spontaneousChance.type === "chance") {
-    expect(spontaneousChance.ratio).toStrictEqual({ part: 1, whole: 10000 });
-  }
+  expect(spontaneousChance).toMatchObject({ type: "chance", ratio: { part: 1, whole: 10000 } });
 
   // Rule 3: fire -> empty (unconditional)
   expect(automaton.rules[3].when).toHaveLength(0);
