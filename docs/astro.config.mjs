@@ -55,6 +55,9 @@ export default defineConfig({
           slug: "guides/canvas",
         },
         {
+          slug: "guides/migrating",
+        },
+        {
           label: "Reference",
           collapsed: true,
           items: [typeDocSidebarGroup],
