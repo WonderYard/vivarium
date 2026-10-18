@@ -1837,6 +1837,45 @@ describe("GPU simulation", () => {
       );
     });
 
+    test("initialGrid weights pick elements in proportion and skip zero weights", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      vi.element("c", "#0000ff");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(100, 100);
+      const { readGrid } = await setup({
+        canvas,
+        automaton,
+        initialGrid: { weights: { a: 30, c: 10 } },
+      });
+      const result = await readGrid();
+
+      expect(result).not.toContain(1);
+      // Expect 7500 cells of a out of 10000; 6 standard deviations is about 260.
+      const aCount = result.filter((id) => id === 0).length;
+      expect(Math.abs(aCount - 7500)).toBeLessThan(260);
+    });
+
+    test("throws on invalid initialGrid weights", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(1, 1);
+
+      await expect(
+        setup({ canvas, automaton, initialGrid: { weights: { z: 1 } } }),
+      ).rejects.toThrow("no element");
+      await expect(
+        setup({ canvas, automaton, initialGrid: { weights: { a: -1 } } }),
+      ).rejects.toThrow("invalid");
+      await expect(
+        setup({ canvas, automaton, initialGrid: { weights: { a: 0 } } }),
+      ).rejects.toThrow("more than 0");
+    });
+
     test("throws when grid dimensions are not positive integers", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");

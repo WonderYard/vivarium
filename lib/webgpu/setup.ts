@@ -398,7 +398,7 @@ export const render = tgpu.fragmentFn({
 
 /**
  * Initializes the WebGPU simulation for a given canvas and automaton. The grid is randomly initialized
- * with the defined elements unless an `initialGrid` is provided.
+ * with the defined elements, each equally likely, unless an `initialGrid` is provided.
  *
  * Async because the first call initializes WebGPU, which later simulations share.
  * If the device is lost, the next call requests a new one.
@@ -411,6 +411,9 @@ export const render = tgpu.fragmentFn({
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
+ * Or pass `{ weights }` to keep random initialization with element names mapped to relative weights: `{ weights: { empty: 9, tree: 1 } }`
+ * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
+ * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
  * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
@@ -436,7 +439,7 @@ export const setup = async ({
   width?: number;
   height?: number;
   automaton: Automaton;
-  initialGrid?: number[] | number[][];
+  initialGrid?: number[] | number[][] | { weights: Record<string, number> };
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
   // Run every check before the first allocation, so a throw leaks no GPU buffer.
@@ -444,7 +447,7 @@ export const setup = async ({
     throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
   }
 
-  const flatGrid = initialGrid?.flat();
+  const flatGrid = Array.isArray(initialGrid) ? initialGrid.flat() : undefined;
 
   if (flatGrid !== undefined && flatGrid.length !== width * height) {
     throw new Error(
@@ -455,6 +458,37 @@ export const setup = async ({
   const ids = new Uint32Array(width * height);
 
   const elementsLength = automaton.elements.length;
+
+  // Running totals of the weights, by element index: a cell picks the first one above a random point in [0, total).
+  const cumulativeWeights: number[] = [];
+  let totalWeight = 0;
+
+  if (initialGrid !== undefined && !Array.isArray(initialGrid)) {
+    const { weights } = initialGrid;
+
+    for (const name of Object.keys(weights)) {
+      if (!automaton.elements.some((element) => element.name === name)) {
+        throw new Error(
+          `Weight given for "${name}", but the automaton has no element with that name.`,
+        );
+      }
+    }
+
+    for (const { name } of automaton.elements) {
+      const weight = weights[name] ?? 0;
+
+      if (!Number.isFinite(weight) || weight < 0) {
+        throw new Error(`Weight ${weight} of "${name}" is invalid. Expected a finite number >= 0.`);
+      }
+
+      totalWeight += weight;
+      cumulativeWeights.push(totalWeight);
+    }
+
+    if (totalWeight <= 0) {
+      throw new Error("Weights must add up to more than 0.");
+    }
+  }
 
   for (let i = 0; i < ids.length; i++) {
     let elementIndex: number;
@@ -474,6 +508,9 @@ export const setup = async ({
       }
 
       elementIndex = rawIndex;
+    } else if (totalWeight > 0) {
+      const point = Math.random() * totalWeight;
+      elementIndex = cumulativeWeights.findIndex((weight) => point < weight);
     } else {
       elementIndex = Math.floor(Math.random() * elementsLength);
     }
