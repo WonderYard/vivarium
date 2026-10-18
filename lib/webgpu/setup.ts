@@ -55,7 +55,7 @@ const deviceLostListeners = new Set<(info: GPUDeviceLostInfo) => void>();
 const getGpu = (): ReturnType<typeof createGpu> => (gpuPromise ??= createGpu());
 
 // layouts are predefined
-export const gridLayout = tgpu.bindGroupLayout({
+const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   wrapping: { uniform: d.u32 },
   // x is the simulation seed, y the step number.
@@ -64,7 +64,7 @@ export const gridLayout = tgpu.bindGroupLayout({
   newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
 });
 
-export const automatonLayout = tgpu.bindGroupLayout({
+const automatonLayout = tgpu.bindGroupLayout({
   neighborhood: { uniform: d.u32 },
   elements: {
     storage: d.arrayOf(GpuElement),
@@ -245,7 +245,7 @@ const comparePointWithPoint = (x: number, y: number, comparePoint: d.v2u, withPo
 };
 
 // also the main compute function has no variable dependencies
-export const compute = tgpu.computeFn({
+const compute = tgpu.computeFn({
   workgroupSize: WORKGROUP_SIZE,
   in: { pos: d.builtin.globalInvocationId },
 })(({ pos }) => {
