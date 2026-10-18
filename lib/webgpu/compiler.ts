@@ -1,4 +1,5 @@
 import type { Automaton, Condition, Count, Is, Point, Rule } from "@/automaton/types";
+import { assertReferences } from "@/automaton/validate";
 import { GpuCondition, GpuElement, GpuRule, maxCount, Opcode, To } from "@/common/constants";
 import { colorToABGR } from "@/common/utils";
 import * as d from "typegpu/data";
@@ -7,64 +8,6 @@ type GpuRuleType = d.Infer<typeof GpuRule>;
 type GpuElementType = d.Infer<typeof GpuElement>;
 type GpuConditionType = d.Infer<typeof GpuCondition>;
 type GpuNeighborhoodType = 0 | 1;
-
-/**
- * Throws if an id is shared, or if a rule, condition or extension references an id the automaton
- * doesn't have or a point that isn't a neighbor. The builder never produces these, but automata
- * assembled outside it (or loaded with `fromPng`) can. `undefined` targets are left to the compiler.
- */
-export const assertReferences = (automaton: Automaton): void => {
-  const elementIds = new Set(automaton.elements.map((element) => element.id));
-  const kindIds = new Set(automaton.kinds.map((kind) => kind.id));
-  const refIds = new Set([...elementIds, ...kindIds]);
-
-  if (refIds.size !== automaton.elements.length + automaton.kinds.length) {
-    throw new Error("Element and kind ids must be unique.");
-  }
-
-  const assertRef = (
-    ref: number | Point | undefined,
-    where: string,
-    ids: Set<number>,
-    expected: string,
-  ): void => {
-    if (typeof ref === "number" && !ids.has(ref)) {
-      throw new Error(`${where} references ${ref}, which is not ${expected}.`);
-    }
-
-    if (typeof ref === "object" && ![ref.x, ref.y].every((v) => v === -1 || v === 0 || v === 1)) {
-      throw new Error(`${where} references (${ref.x}, ${ref.y}), which is not a neighbor.`);
-    }
-  };
-
-  automaton.elements.forEach((element) => {
-    element.extensions.forEach((kindId) =>
-      assertRef(kindId, `Element "${element.name}"`, kindIds, "a kind"),
-    );
-  });
-
-  automaton.rules.forEach((rule, i) => {
-    const where = `Rule ${i}`;
-
-    if (rule.fromType === "kind") {
-      assertRef(rule.fromId, where, kindIds, "a kind");
-    } else {
-      assertRef(rule.fromId, where, elementIds, "an element");
-    }
-    assertRef(rule.to, where, elementIds, "an element");
-
-    rule.when.forEach((condition, j) => {
-      const where = `Condition ${j} of rule ${i}`;
-
-      if (condition.type === "count") {
-        assertRef(condition.check, where, refIds, "an element or a kind");
-      } else if (condition.type === "is") {
-        assertRef(condition.compare, where, new Set(), "a neighbor");
-        assertRef(condition.with, where, refIds, "an element or a kind");
-      }
-    });
-  });
-};
 
 const compileKindIndex = (kindId: number, automaton: Automaton) =>
   automaton.kinds.findIndex((kind) => kind.id === kindId);
