@@ -412,7 +412,7 @@ export const render = tgpu.fragmentFn({
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
- * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792); larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
@@ -537,6 +537,18 @@ export const setup = async ({
 
   const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;
+
+  // Past this, WebGPU rejects the grid's bind groups without throwing, and every update silently
+  // zeroes the grid. The device is requested with default limits: 128 MiB, about 33.5M cells.
+  const maxCells = Math.floor(
+    Math.min(device.limits.maxStorageBufferBindingSize, device.limits.maxBufferSize) / 4,
+  );
+
+  if (width * height > maxCells) {
+    throw new Error(
+      `Grid ${width}x${height} has ${width * height} cells, but this device allows at most ${maxCells}.`,
+    );
+  }
 
   let frames = 0;
   let destroyed = false;
