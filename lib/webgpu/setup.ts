@@ -201,8 +201,8 @@ const checkKindCount = (x: number, y: number, kind: number, packedCount: number)
 const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
   "use gpu";
 
-  const px = x + d.u32(checkPoint.x);
-  const py = y + d.u32(checkPoint.y);
+  const px = x + checkPoint.x;
+  const py = y + checkPoint.y;
   const pointIndex = pointToIndex(px, py);
   const checkId = gridLayout.$.ids[pointIndex];
   const selected = checkIdCount(x, y, checkId, packedCount);
@@ -351,8 +351,8 @@ export const compute = tgpu.computeFn({
       const toType = rule.toType as To;
 
       if (toType === To.POINT) {
-        const nx = x + d.u32(rule.toNeighbor.x);
-        const ny = y + d.u32(rule.toNeighbor.y);
+        const nx = x + rule.toNeighbor.x;
+        const ny = y + rule.toNeighbor.y;
         // pointToIndex always returns a valid array index, even for OOB coordinates.
         // When OOB in non-wrapping mode, mask is 0, so the read value is multiplied away.
         const pointIndex = pointToIndex(nx, ny);
@@ -687,8 +687,7 @@ export const setup = async ({
   const readGrid = async (): Promise<number[]> => {
     assertNotDestroyed();
 
-    const result = await currentGrid().ids.read();
-    return Array.from(result);
+    return currentGrid().ids.read();
   };
 
   /**
@@ -717,6 +716,9 @@ export const setup = async ({
       );
     }
 
+    // Raw write instead of TypeGPU's write/patch: these keep a CPU copy of the whole grid
+    // (4 bytes per cell, per buffer) only to stage the bytes, and patch was ~4x slower per call
+    // (typegpu 0.12.6). A u32 array needs no padding, so the raw bytes are the layout.
     device.queue.writeBuffer(currentGrid().ids.buffer, index * 4, new Uint32Array([elementIndex]));
   };
 
@@ -779,6 +781,7 @@ export const setup = async ({
       newIds[i] = elementIndex;
     }
 
+    // Raw write for the same reason as in writeCell.
     device.queue.writeBuffer(currentGrid().ids.buffer, 0, newIds);
   };
 
@@ -801,7 +804,7 @@ export const setup = async ({
       return;
     }
 
-    seedBuffer.write(d.vec2u(seed, frames >>> 0));
+    seedBuffer.write([seed, frames >>> 0]);
 
     pipeline
       .with(automatonGroup)
