@@ -8,8 +8,9 @@ import {
   To,
   WORKGROUP_SIZE,
 } from "@/common/constants";
+import { mulberry32 } from "@/common/utils";
 import { toPng as encodePng } from "@/png/png";
-import { randf } from "@typegpu/noise";
+import { hash, randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
@@ -57,7 +58,8 @@ const getGpu = (): ReturnType<typeof createGpu> => (gpuPromise ??= createGpu());
 export const gridLayout = tgpu.bindGroupLayout({
   dimensions: { uniform: d.vec2u },
   wrapping: { uniform: d.u32 },
-  seed: { uniform: d.f32 },
+  // x is the simulation seed, y the step number.
+  seed: { uniform: d.vec2u },
   ids: { storage: d.arrayOf(d.u32), access: "mutable" },
   newIds: { storage: d.arrayOf(d.u32), access: "mutable" },
 });
@@ -262,8 +264,11 @@ export const compute = tgpu.computeFn({
   const element = automatonLayout.$.elements[id];
 
   // Seed once per invocation so that each CHANCE condition draws a fresh sample.
-  randf.seed3(
-    d.vec3f(std.div(d.vec2f(pos.xy), d.vec2f(gridLayout.$.dimensions.xy)), gridLayout.$.seed),
+  // The hash gives each step of a seed a distinct u32, passed as two 16-bit halves that f32 holds
+  // exactly: the step itself as an f32 would repeat after 2^24 steps.
+  const stepSeed = hash(gridLayout.$.seed.y) ^ gridLayout.$.seed.x;
+  randf.seed4(
+    d.vec4f(d.vec2f(pos.xy), d.f32(stepSeed & d.u32(0xffff)), d.f32(stepSeed >>> d.u32(16))),
   );
 
   const ruleStart = element.ruleStart;
@@ -414,6 +419,7 @@ export const render = tgpu.fragmentFn({
  * Or pass `{ weights }` to keep random initialization with element names mapped to relative weights: `{ weights: { empty: 9, tree: 1 } }`
  * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
  * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
+ * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step. Defaults to a random one, readable as `seed` on the result to replay the run.
  * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
@@ -426,6 +432,7 @@ export const render = tgpu.fragmentFn({
  * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
  * - `toPng` — saves the current grid and automaton as a PNG, loadable with {@link fromPng}.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
+ * - `seed` — the seed of this run, the given one or the random default.
  */
 export const setup = async ({
   canvas,
@@ -433,6 +440,7 @@ export const setup = async ({
   height = canvas.height,
   automaton,
   initialGrid,
+  seed = Math.floor(Math.random() * 2 ** 32),
   onDeviceLost,
 }: {
   canvas: HTMLCanvasElement;
@@ -440,12 +448,19 @@ export const setup = async ({
   height?: number;
   automaton: Automaton;
   initialGrid?: number[] | number[][] | { weights: Record<string, number> };
+  seed?: number;
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
   // Run every check before the first allocation, so a throw leaks no GPU buffer.
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     throw new Error(`Width and height must be positive integers, but got ${width}x${height}.`);
   }
+
+  if (!Number.isInteger(seed) || seed < 0 || seed >= 2 ** 32) {
+    throw new Error(`Seed ${seed} is invalid. Expected an integer in range [0, 2^32).`);
+  }
+
+  const random = mulberry32(seed);
 
   const flatGrid = Array.isArray(initialGrid) ? initialGrid.flat() : undefined;
 
@@ -509,10 +524,10 @@ export const setup = async ({
 
       elementIndex = rawIndex;
     } else if (totalWeight > 0) {
-      const point = Math.random() * totalWeight;
+      const point = random() * totalWeight;
       elementIndex = cumulativeWeights.findIndex((weight) => point < weight);
     } else {
-      elementIndex = Math.floor(Math.random() * elementsLength);
+      elementIndex = Math.floor(random() * elementsLength);
     }
     ids[i] = elementIndex;
   }
@@ -542,7 +557,7 @@ export const setup = async ({
   // Define all the buffers. Creating them depends on width and height only.
   // When automaton changes we don't need to recreate them.
 
-  const seed = root.createUniform(d.f32);
+  const seedBuffer = root.createUniform(d.vec2u);
 
   const dimensions = root.createUniform(d.vec2u, [width, height]);
 
@@ -555,7 +570,7 @@ export const setup = async ({
   const gridGroup0 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
-    seed,
+    seed: seedBuffer,
     ids: ids0,
     newIds: ids1,
   });
@@ -563,7 +578,7 @@ export const setup = async ({
   const gridGroup1 = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
-    seed,
+    seed: seedBuffer,
     ids: ids1,
     newIds: ids0,
   });
@@ -786,7 +801,7 @@ export const setup = async ({
       return;
     }
 
-    seed.write(Math.random());
+    seedBuffer.write(d.vec2u(seed, frames >>> 0));
 
     pipeline
       .with(automatonGroup)
@@ -838,7 +853,7 @@ export const setup = async ({
     [
       dimensions.buffer,
       wrappingBuffer.buffer,
-      seed.buffer,
+      seedBuffer.buffer,
       ids0,
       ids1,
       ...automatonBuffers,
@@ -864,5 +879,6 @@ export const setup = async ({
     setAutomaton,
     toPng,
     destroy,
+    seed,
   };
 };

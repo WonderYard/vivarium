@@ -100,7 +100,7 @@ async function gpuEvolve(
   const gridGroup = root.createBindGroup(gridLayout, {
     dimensions,
     wrapping: wrappingBuffer,
-    seed: root.createUniform(d.f32, 0),
+    seed: root.createUniform(d.vec2u),
     ids: ids0,
     newIds: ids1,
   });
@@ -1508,50 +1508,28 @@ describe("GPU simulation", () => {
       const grids = sizes.map((size, n) =>
         Array.from({ length: size * size }, (_, i) => ((i * (n + 3)) % 7 < 3 ? 1 : 0)),
       );
-      const seeds = [
-        [0.11, 0.42, 0.73, 0.05, 0.9],
-        [0.66, 0.27, 0.38, 0.81, 0.19],
-      ];
-      const steps = seeds[0].length;
+      const steps = 5;
 
       const create = (n: number) => {
         const canvas = document.createElement("canvas");
         canvas.width = sizes[n];
         canvas.height = sizes[n];
-        return setup({ canvas, automaton, initialGrid: grids[n] });
-      };
-
-      // Each update draws its seed from Math.random, so feed the seeds in call order.
-      const random = Math.random;
-      const withSeeds = async <T>(queue: number[], run: () => Promise<T>): Promise<T> => {
-        Math.random = () => queue.shift() ?? random();
-        try {
-          return await run();
-        } finally {
-          Math.random = random;
-        }
+        return setup({ canvas, automaton, initialGrid: grids[n], seed: n + 1 });
       };
 
       const alone: number[][] = [];
       for (const n of [0, 1]) {
-        alone.push(
-          await withSeeds([...seeds[n]], async () => {
-            const sim = await create(n);
-            for (let i = 0; i < steps; i++) sim.update();
-            return sim.readGrid();
-          }),
-        );
+        const sim = await create(n);
+        for (let i = 0; i < steps; i++) sim.update();
+        alone.push(await sim.readGrid());
       }
 
-      const interleaved = seeds[0].flatMap((s, i) => [s, seeds[1][i]]);
-      const together = await withSeeds(interleaved, async () => {
-        const sims = await Promise.all([create(0), create(1)]);
-        for (let i = 0; i < steps; i++) {
-          sims[0].update();
-          sims[1].update();
-        }
-        return Promise.all(sims.map((sim) => sim.readGrid()));
-      });
+      const sims = await Promise.all([create(0), create(1)]);
+      for (let i = 0; i < steps; i++) {
+        sims[0].update();
+        sims[1].update();
+      }
+      const together = await Promise.all(sims.map((sim) => sim.readGrid()));
 
       expect(together).toEqual(alone);
     });
@@ -1874,6 +1852,59 @@ describe("GPU simulation", () => {
       await expect(
         setup({ canvas, automaton, initialGrid: { weights: { a: 0 } } }),
       ).rejects.toThrow("more than 0");
+    });
+
+    test("the same seed replays the random initial grid and every chance outcome", async () => {
+      const vi = vivarium();
+      const a = vi.element("a", "#000000");
+      const b = vi.element("b", "#ff0000");
+      a.to(b).chance(1, 2);
+      b.to(a).chance(1, 2);
+      const automaton = vi.create();
+
+      const run = async (seed: number, initialGrid?: { weights: Record<string, number> }) => {
+        const sim = await setup({ canvas: createCanvas(16, 16), automaton, initialGrid, seed });
+        const grids = [await sim.readGrid()];
+        for (let i = 0; i < 3; i++) {
+          sim.update();
+          grids.push(await sim.readGrid());
+        }
+        return grids;
+      };
+
+      const grids = await run(42);
+      expect(await run(42)).toEqual(grids);
+      // Each step draws new outcomes rather than repeating the previous ones.
+      expect(grids[2]).not.toEqual(grids[3]);
+      expect(await run(43)).not.toEqual(grids);
+
+      const weights = { weights: { a: 1, b: 3 } };
+      expect(await run(7, weights)).toEqual(await run(7, weights));
+    });
+
+    test("defaults to a random seed and exposes it", async () => {
+      const vi = vivarium();
+      vi.element("a", "#000000");
+      vi.element("b", "#ff0000");
+      const automaton = vi.create();
+
+      const first = await setup({ canvas: createCanvas(16, 16), automaton });
+      const replay = await setup({ canvas: createCanvas(16, 16), automaton, seed: first.seed });
+
+      expect(Number.isInteger(first.seed)).toBe(true);
+      expect(await replay.readGrid()).toEqual(await first.readGrid());
+    });
+
+    test("throws on an invalid seed", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(1, 1);
+
+      for (const seed of [-1, 1.5, 2 ** 32, NaN]) {
+        await expect(setup({ canvas, automaton, seed })).rejects.toThrow("Seed");
+      }
     });
 
     test("throws when grid dimensions are not positive integers", async () => {
