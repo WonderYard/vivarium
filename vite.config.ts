@@ -56,6 +56,8 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
+            // Tests read back GPU buffers and draw nothing to the page, so failure screenshots are blank.
+            screenshotFailures: false,
             provider: playwright({
               launchOptions: {
                 args: ["--enable-unsafe-webgpu", "--use-angle=swiftshader"],
