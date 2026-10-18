@@ -425,6 +425,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
  * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step. Defaults to a random one, readable as `seed` on the result to replay the run.
  * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy` and its grid is gone; call `setup` again to recreate it on a new device. To resume, pass a grid saved earlier with `readGrid` as `initialGrid`.
+ * @throws If the automaton is not one {@link VivariumBlueprint.create | create()} could have made, apart from its ids (which only need to be unique) and elements sharing a color. The error names the first bad field, e.g. `rules[0].when[1].count[2]`.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
@@ -617,6 +618,8 @@ export const setup = async ({
    *
    * To load a grid made for another automaton (e.g. from {@link fromPng}), call `setAutomaton`
    * before `writeGrid`, which only accepts indices of the current automaton.
+   *
+   * @throws If the automaton is invalid, as `setup` does, leaving the current one running.
    */
   const setAutomaton = ({ automaton }: { automaton: Automaton }): void => {
     assertNotDestroyed();
