@@ -55,7 +55,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    *
    * @param name - A unique name identifying this element.
    * @param color - The color used to draw this element. Accepts CSS named colors or hex values (e.g. `"green"`, `"#FF7A45"`).
-   * Elements can share a color, but then the vivarium can't be saved with `toPng`.
+   * Elements can share a color.
    * @param extensions - An optional array of kinds this element extends.
    * @returns An {@link ElementBlueprint} that can be used to define rules.
    */

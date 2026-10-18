@@ -9,7 +9,6 @@ import {
   WORKGROUP_SIZE,
 } from "@/common/constants";
 import { mulberry32 } from "@/common/utils";
-import { toPng as encodePng } from "@/png/png";
 import { hash, randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
@@ -435,7 +434,6 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
- * - `toPng` — saves the current grid and automaton as a PNG, loadable with {@link fromPng}.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
  * - `seed` — the seed of this run, the given one or the random default.
  */
@@ -618,17 +616,16 @@ export const setup = async ({
   let automatonGroup: TgpuBindGroup;
   let automatonBuffers: { destroy: () => void }[] = [];
   let elementCount = 0;
-  let currentAutomaton = automaton;
 
   /**
    * Replaces the automaton, keeping the grid.
    *
    * Cells refer to elements by index, so the new automaton's element at index `i` takes over
    * every cell holding `i`. When it has fewer elements, cells holding an index it doesn't have
-   * are set to element 0, so the grid stays valid for `readGrid`, `writeGrid` and `toPng`.
+   * are set to element 0, so the grid stays valid for `readGrid` and `writeGrid`.
    * Adding the elements back later doesn't restore those cells.
    *
-   * To load a grid made for another automaton (e.g. from {@link fromPng}), call `setAutomaton`
+   * To load a grid made for another automaton, call `setAutomaton`
    * before `writeGrid`, which only accepts indices of the current automaton.
    *
    * @throws If the automaton is invalid, as `setup` does, leaving the current one running.
@@ -694,7 +691,6 @@ export const setup = async ({
     ];
 
     wrappingBuffer.write(automaton.wrapping ? 1 : 0);
-    currentAutomaton = automaton;
 
     if (elementCount < previousElementCount) {
       clearPipeline
@@ -803,13 +799,6 @@ export const setup = async ({
   };
 
   /**
-   * Saves the current grid and automaton as a PNG, one pixel per cell.
-   * Load it back with {@link fromPng}. Rejects if two elements share a color.
-   */
-  const toPng = async (): Promise<Blob> =>
-    encodePng({ automaton: currentAutomaton, grid: await readGrid(), width, height });
-
-  /**
    * Advances the simulation by one step on the GPU. This function is synchronous
    * — it only queues GPU commands without waiting for them to complete.
    *
@@ -859,8 +848,8 @@ export const setup = async ({
   /**
    * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
    * and `evolve` do nothing, so a loop still running (e.g. during a React effect
-   * cleanup) doesn't crash, while reads, writes, `setAutomaton` and `toPng` throw.
-   * Calls made before it still complete: a pending `readGrid` or `toPng` resolves
+   * cleanup) doesn't crash, while reads, writes and `setAutomaton` throw.
+   * Calls made before it still complete: a pending `readGrid` resolves
    * with the grid as it was. Calling it more than once is safe.
    */
   const destroy = (): void => {
@@ -898,7 +887,6 @@ export const setup = async ({
     writeCellAt,
     writeGrid,
     setAutomaton,
-    toPng,
     destroy,
     seed,
   };
