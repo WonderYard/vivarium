@@ -1278,7 +1278,8 @@ describe("GPU simulation", () => {
       const automaton = vi.create();
 
       // With 2500 cells, the standard deviation of each fraction is at most 0.01,
-      // so the 0.05 tolerance below is 5 standard deviations.
+      // so the 0.05 tolerance below is 5 standard deviations. The fixed seed makes
+      // a failure reproducible.
       const size = 50;
       const canvas = document.createElement("canvas");
       canvas.width = size;
@@ -1288,6 +1289,7 @@ describe("GPU simulation", () => {
         canvas,
         automaton,
         initialGrid: Array.from({ length: size * size }, () => 0),
+        seed: 1,
       });
       update();
       const result = await readGrid();
