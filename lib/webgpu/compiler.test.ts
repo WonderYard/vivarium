@@ -791,16 +791,16 @@ describe("reference checks", () => {
 
   test("throws on an unknown rule target", () => {
     const broken = automaton();
-    broken.rules[0].to = "missing";
+    broken.rules[0].to = 99;
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references "missing"');
+    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references 99');
   });
 
   test("throws on an unknown rule source", () => {
     const broken = automaton();
-    broken.rules[0].fromId = "missing";
+    broken.rules[0].fromId = 99;
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references "missing"');
+    expect(() => compileGpuAutomaton(broken)).toThrow('Rule 0 references 99');
   });
 
   test("throws on a source of the wrong type", () => {
@@ -812,16 +812,16 @@ describe("reference checks", () => {
 
   test("throws on an unknown condition reference", () => {
     const broken = automaton();
-    broken.rules[0].when[1] = { type: "is", id: "c", compare: { x: 0, y: 0 }, with: "missing" };
+    broken.rules[0].when[1] = { type: "is", id: 99, compare: { x: 0, y: 0 }, with: 99 };
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Condition 1 of rule 0 references "missing"');
+    expect(() => compileGpuAutomaton(broken)).toThrow('Condition 1 of rule 0 references 99');
   });
 
   test("throws on an unknown extension", () => {
     const broken = automaton();
-    broken.elements[0].extensions = ["missing"];
+    broken.elements[0].extensions = [99];
 
-    expect(() => compileGpuAutomaton(broken)).toThrow('Element "a" references "missing"');
+    expect(() => compileGpuAutomaton(broken)).toThrow('Element "a" references 99');
   });
 
   test("throws on a point that is not a neighbor", () => {

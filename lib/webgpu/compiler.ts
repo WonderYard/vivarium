@@ -23,13 +23,13 @@ export const assertReferences = (automaton: Automaton): void => {
   }
 
   const assertRef = (
-    ref: string | Point | undefined,
+    ref: number | Point | undefined,
     where: string,
-    ids: Set<string>,
+    ids: Set<number>,
     expected: string,
   ): void => {
-    if (typeof ref === "string" && !ids.has(ref)) {
-      throw new Error(`${where} references "${ref}", which is not ${expected}.`);
+    if (typeof ref === "number" && !ids.has(ref)) {
+      throw new Error(`${where} references ${ref}, which is not ${expected}.`);
     }
 
     if (typeof ref === "object" && ![ref.x, ref.y].every((v) => v === -1 || v === 0 || v === 1)) {
@@ -66,10 +66,10 @@ export const assertReferences = (automaton: Automaton): void => {
   });
 };
 
-const compileKindIndex = (kindId: string, automaton: Automaton) =>
+const compileKindIndex = (kindId: number, automaton: Automaton) =>
   automaton.kinds.findIndex((kind) => kind.id === kindId);
 
-const compileCheckId = (checkId: string, gpuCondition: GpuConditionType, automaton: Automaton) => {
+const compileCheckId = (checkId: number, gpuCondition: GpuConditionType, automaton: Automaton) => {
   const { elements } = automaton;
 
   const elementId = elements.findIndex((element) => element.id === checkId);
@@ -98,7 +98,7 @@ const compileCount = (condition: Count, gpuCondition: GpuConditionType, automato
   }
 
   // check
-  if (typeof check === "string") {
+  if (typeof check === "number") {
     compileCheckId(check, gpuCondition, automaton);
   } else {
     compileCheckPoint(check, gpuCondition);
@@ -135,7 +135,7 @@ const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Aut
 
   gpuCondition.checkPointOrComparePoint = d.vec2u(comparePoint.x, comparePoint.y);
 
-  if (typeof condition.with === "string") {
+  if (typeof condition.with === "number") {
     const _with = condition.with;
     if (automaton.elements.some((element) => element.id === _with)) {
       gpuCondition.opcode = Opcode.IS_ELEMENT;
@@ -270,7 +270,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
       throw new Error("rule.to is undefined");
     }
 
-    if (typeof rule.to === "string") {
+    if (typeof rule.to === "number") {
       gpuRule.toType = To.ELEMENT_ID;
       gpuRule.toId = elements.findIndex((element) => element.id === rule.to);
     } else {

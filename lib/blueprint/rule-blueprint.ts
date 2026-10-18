@@ -1,4 +1,3 @@
-import { nanoid } from "nanoid";
 import type { Automaton, Condition, Neighborhood, Rule, Strategy } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
@@ -47,7 +46,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
 
     return this.condition({
       type: "count",
-      id: nanoid(),
+      id: this.context.nextId++,
       check: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
       count: flatCount,
     });
@@ -66,7 +65,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
   ): RuleBlueprintWithAccept<N> {
     return this.condition({
       type: "is",
-      id: nanoid(),
+      id: this.context.nextId++,
       compare: toPoint(neighbor, this.automaton.neighborhood),
       with: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
     });
@@ -90,7 +89,7 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
 
     return this.condition({
       type: "chance",
-      id: nanoid(),
+      id: this.context.nextId++,
       ratio: { part, whole },
     });
   }

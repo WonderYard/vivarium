@@ -6,7 +6,7 @@ export type RefType = "element" | "kind";
 
 export type Kind = {
   type: "kind";
-  id: string;
+  id: number;
   name: string;
 };
 
@@ -22,10 +22,10 @@ export type Automaton = {
 
 export type Element = {
   type: "element";
-  id: string;
+  id: number;
   name: string;
   color: string;
-  extensions: string[];
+  extensions: number[];
 };
 
 /*
@@ -39,9 +39,9 @@ export type Element = {
  * the compiler throws on any `undefined` it still finds instead of compiling a wrong rule.
  */
 export type Rule = {
-  fromId: string;
+  fromId: number;
   fromType: RefType;
-  to: string | Point | undefined;
+  to: number | Point | undefined;
   when: Condition[];
   accept: Accept;
 };
@@ -50,23 +50,23 @@ export type Condition = Count | Is | Chance;
 
 export type Count = {
   type: "count";
-  id: string;
-  check: string | Point | undefined;
+  id: number;
+  check: number | Point | undefined;
   count: number[];
 };
 
 export type Is = {
   type: "is";
-  id: string;
+  id: number;
   compare: Point | undefined;
-  with: string | Point | undefined;
+  with: number | Point | undefined;
 };
 
 export type Ratio = { part: number; whole: number };
 
 export type Chance = {
   type: "chance";
-  id: string;
+  id: number;
   ratio: Ratio;
 };
 

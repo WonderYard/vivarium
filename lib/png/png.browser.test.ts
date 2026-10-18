@@ -84,8 +84,8 @@ test("rejects a malformed automaton", async () => {
   await expect(fromPng(await pngWith((a) => delete a.rules[0].when[0].with))).rejects.toThrow(
     "rules[0].when[0].with is not an id or a point",
   );
-  await expect(fromPng(await pngWith((a) => (a.rules[0].to = "missing")))).rejects.toThrow(
-    'Rule 0 references "missing"',
+  await expect(fromPng(await pngWith((a) => (a.rules[0].to = 99)))).rejects.toThrow(
+    'Rule 0 references 99',
   );
 });
 

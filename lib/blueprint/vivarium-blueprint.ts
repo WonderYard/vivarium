@@ -1,8 +1,8 @@
-import { nanoid } from "nanoid";
 import type { Automaton, Color, Element, Kind, Neighborhood } from "@/automaton/types";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { Helpers } from "@/blueprint/helpers";
 import { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
+import type { BlueprintContext } from "@/blueprint/types";
 import { Cross, Square } from "@/common/constants";
 
 /**
@@ -11,7 +11,7 @@ import { Cross, Square } from "@/common/constants";
  */
 export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBlueprint {
   protected automaton: Automaton;
-  protected context = { created: false };
+  protected context: BlueprintContext = { created: false, nextId: 0 };
 
   /**
    * Named constants for referring to specific positions in the neighborhood.
@@ -70,7 +70,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     const element = {
       type: "element",
-      id: nanoid(),
+      id: this.context.nextId++,
       name,
       color,
       extensions: extensions.map((element) => element.id),
@@ -93,7 +93,7 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
 
     const kind = {
       type: "kind",
-      id: nanoid(),
+      id: this.context.nextId++,
       name,
     } satisfies Kind;
 

@@ -19,7 +19,7 @@ export const toPoint = (neighbor: AnyNeighbor, neighborhood: Neighborhood): Poin
 export const toRefIdOrPoint = (
   refBlueprintOrNeighbor: RefBlueprint | AnyNeighbor,
   neighborhood: Neighborhood,
-): string | Point => {
+): number | Point => {
   return typeof refBlueprintOrNeighbor === "string"
     ? toPoint(refBlueprintOrNeighbor, neighborhood)
     : refBlueprintOrNeighbor.id;

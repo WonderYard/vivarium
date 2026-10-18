@@ -77,7 +77,7 @@ const isString = (value: unknown): value is string => typeof value === "string";
 const isPoint = (value: unknown): boolean =>
   isObject(value) && Number.isInteger(value.x) && Number.isInteger(value.y);
 
-const isRef = (value: unknown): boolean => isString(value) || isPoint(value);
+const isRef = (value: unknown): boolean => Number.isInteger(value) || isPoint(value);
 
 // Checks that value is an array of objects and returns them with their paths.
 const objects = (value: unknown, path: string): [Json, string][] => {
@@ -109,7 +109,7 @@ const parseAutomaton = (text: string): Automaton => {
 
   for (const [element, path] of objects(automaton.elements, "elements")) {
     check(element.type === "element", `${path}.type`, '"element"');
-    check(isString(element.id), `${path}.id`, "a string");
+    check(Number.isInteger(element.id), `${path}.id`, "an integer");
     check(isString(element.name), `${path}.name`, "a string");
     check(
       isString(element.color) && parseColor(element.color) !== undefined,
@@ -117,15 +117,15 @@ const parseAutomaton = (text: string): Automaton => {
       "a valid color",
     );
     check(
-      Array.isArray(element.extensions) && element.extensions.every(isString),
+      Array.isArray(element.extensions) && element.extensions.every(Number.isInteger),
       `${path}.extensions`,
-      "an array of strings",
+      "an array of integers",
     );
   }
 
   for (const [kind, path] of objects(automaton.kinds, "kinds")) {
     check(kind.type === "kind", `${path}.type`, '"kind"');
-    check(isString(kind.id), `${path}.id`, "a string");
+    check(Number.isInteger(kind.id), `${path}.id`, "an integer");
     check(isString(kind.name), `${path}.name`, "a string");
   }
 
@@ -135,7 +135,7 @@ const parseAutomaton = (text: string): Automaton => {
       `${path}.fromType`,
       '"element" or "kind"',
     );
-    check(isString(rule.fromId), `${path}.fromId`, "a string");
+    check(Number.isInteger(rule.fromId), `${path}.fromId`, "an integer");
     check(isRef(rule.to), `${path}.to`, "an id or a point");
     check(
       Object.values<unknown>(acceptMap).includes(rule.accept),
@@ -144,7 +144,7 @@ const parseAutomaton = (text: string): Automaton => {
     );
 
     for (const [condition, conditionPath] of objects(rule.when, `${path}.when`)) {
-      check(isString(condition.id), `${conditionPath}.id`, "a string");
+      check(Number.isInteger(condition.id), `${conditionPath}.id`, "an integer");
 
       if (condition.type === "count") {
         check(isRef(condition.check), `${conditionPath}.check`, "an id or a point");

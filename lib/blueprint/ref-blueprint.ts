@@ -9,7 +9,7 @@ import { Accept } from "@/common/constants";
  * Base class for element and kind blueprints. Provides the {@link RefBlueprint.to | to} method for defining rules.
  */
 export abstract class RefBlueprint<N extends Neighborhood = Neighborhood> extends BaseBlueprint {
-  public id: string;
+  public id: number;
   public name: string;
   public type: RefType;
 
@@ -53,7 +53,7 @@ export abstract class RefBlueprint<N extends Neighborhood = Neighborhood> extend
  */
 export class ElementBlueprint<N extends Neighborhood = Neighborhood> extends RefBlueprint<N> {
   type = "element" as const;
-  id: string;
+  id: number;
   index: number;
 
   constructor(
@@ -75,7 +75,7 @@ export class ElementBlueprint<N extends Neighborhood = Neighborhood> extends Ref
  */
 export class KindBlueprint<N extends Neighborhood = Neighborhood> extends RefBlueprint<N> {
   type = "kind" as const;
-  id: string;
+  id: number;
 
   constructor(
     protected context: BlueprintContext,

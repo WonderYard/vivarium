@@ -29,6 +29,20 @@ test("throws on building after closing with create", () => {
   expect(() => vi.create()).toThrow(/^Blueprint methods can no longer be called after create/);
 });
 
+test("builds the same automaton deterministically", () => {
+  const build = () => {
+    const vi = vivarium();
+    const flammable = vi.kind("flammable");
+    const tree = vi.element("tree", "#00ff00", [flammable]);
+    const fire = vi.element("fire", "#ff0000");
+    flammable.to(fire).count(fire).chance(10);
+    tree.to(tree).is(vi.neighbor.TOP, fire);
+    return vi.create();
+  };
+
+  expect(JSON.stringify(build())).toBe(JSON.stringify(build()));
+});
+
 test("creates an element", () => {
   const vi = vivarium();
   const alive = vi.element("alive", "#ffffff");
@@ -321,8 +335,7 @@ test("kind has correct type and id", () => {
 
   expect(k.type).toBe("kind");
   expect(k).toBeInstanceOf(RefBlueprint);
-  expect(typeof k.id).toBe("string");
-  expect(k.id.length).toBeGreaterThan(0);
+  expect(Number.isInteger(k.id)).toBe(true);
 });
 
 test("creates multiple kinds", () => {
