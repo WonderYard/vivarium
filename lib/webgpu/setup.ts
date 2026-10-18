@@ -412,7 +412,7 @@ export const render = tgpu.fragmentFn({
  *
  * @param options - An object containing the `canvas` element and the compiled `automaton`.
  * @param options.canvas - The HTML canvas element. By default, its `width` and `height` define the grid dimensions. The simulation renders to it through a `webgpu` context, so the canvas must not already have a `2d` or `webgl` context.
- * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
+ * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792); larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
  * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
@@ -420,7 +420,7 @@ export const render = tgpu.fragmentFn({
  * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
  * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
  * @param options.seed - An integer in [0, 2^32) that makes the run reproducible: the same seed, automaton, options and calls give the same random initial grid and the same `chance` outcomes at every step. Defaults to a random one, readable as `seed` on the result to replay the run.
- * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy`; call `setup` again to recreate it on a new device.
+ * @param options.onDeviceLost - Called if the GPU device is lost (e.g. driver crash or reset). The simulation then behaves as after `destroy` and its grid is gone; call `setup` again to recreate it on a new device. To resume, pass a grid saved earlier with `readGrid` as `initialGrid`.
  * @returns A promise of an object with:
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
@@ -537,6 +537,18 @@ export const setup = async ({
 
   const { root, pipeline, clearPipeline, renderPipeline } = await getGpu();
   const { device } = root;
+
+  // Past this, WebGPU rejects the grid's bind groups without throwing, and every update silently
+  // zeroes the grid. The device is requested with default limits: 128 MiB, about 33.5M cells.
+  const maxCells = Math.floor(
+    Math.min(device.limits.maxStorageBufferBindingSize, device.limits.maxBufferSize) / 4,
+  );
+
+  if (width * height > maxCells) {
+    throw new Error(
+      `Grid ${width}x${height} has ${width * height} cells, but this device allows at most ${maxCells}.`,
+    );
+  }
 
   let frames = 0;
   let destroyed = false;
@@ -843,8 +855,9 @@ export const setup = async ({
   /**
    * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
    * and `evolve` do nothing, so a loop still running (e.g. during a React effect
-   * cleanup) doesn't crash, while reads, writes and `setAutomaton` throw.
-   * Calling it more than once is safe.
+   * cleanup) doesn't crash, while reads, writes, `setAutomaton` and `toPng` throw.
+   * Calls made before it still complete: a pending `readGrid` or `toPng` resolves
+   * with the grid as it was. Calling it more than once is safe.
    */
   const destroy = (): void => {
     if (destroyed) {

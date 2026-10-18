@@ -1929,5 +1929,46 @@ describe("GPU simulation", () => {
       await expect(setup({ canvas, automaton, width: 0 })).rejects.toThrow("positive integers");
       await expect(setup({ canvas, automaton, height: 2.5 })).rejects.toThrow("positive integers");
     });
+
+    describe("grid size limit", () => {
+      // WebGPU's default maxStorageBufferBindingSize is 128 MiB, 4 bytes per cell.
+      const MAX_CELLS = 2 ** 25;
+
+      test("runs a grid at the device limit", { timeout: 60_000 }, async () => {
+        const vi = vivarium();
+        vi.element("a", "#000000");
+        vi.element("b", "#ffffff");
+        const automaton = vi.create();
+
+        const sim = await setup({
+          canvas: createCanvas(1, 1),
+          width: 8192,
+          height: MAX_CELLS / 8192,
+          automaton,
+          initialGrid: { weights: { b: 1 } },
+        });
+        sim.update();
+        const grid = await sim.readGrid();
+        sim.destroy();
+
+        // A grid past the limit would come back all zeros after the update.
+        expect(grid.every((id) => id === 1)).toBe(true);
+      });
+
+      test("throws on a grid one row past the device limit", { timeout: 60_000 }, async () => {
+        const vi = vivarium();
+        vi.element("a", "#000000");
+        const automaton = vi.create();
+
+        await expect(
+          setup({
+            canvas: createCanvas(1, 1),
+            width: 8192,
+            height: MAX_CELLS / 8192 + 1,
+            automaton,
+          }),
+        ).rejects.toThrow(`at most ${MAX_CELLS}`);
+      });
+    });
   });
 });

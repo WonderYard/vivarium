@@ -125,7 +125,7 @@ const { update, draw, destroy } = await setup({ canvas, automaton });
 destroy();
 ```
 
-After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash. `readGrid`, `writeGrid`, `writeCell`, `writeCellAt` and `setAutomaton` throw an error. Calling `destroy` more than once is safe.
+After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash. `readGrid`, `writeGrid`, `writeCell`, `writeCellAt`, `setAutomaton` and `toPng` throw an error. Calls made before `destroy` still complete: a `readGrid` or `toPng` you are awaiting resolves with the grid as it was. Calling `destroy` more than once is safe.
 
 <Aside type="note" title="Why not wait for garbage collection?">
   The browser eventually frees the GPU memory of a simulation you no longer reference, but it may
@@ -148,4 +148,4 @@ const simulation = await setup({
 });
 ```
 
-Once the device is lost, the simulation behaves as if `destroy` had been called, and its grid can no longer be read. Call `setup` again to create a new simulation; it gets a new device automatically.
+Once the device is lost, the simulation behaves as if `destroy` had been called, and its grid is gone: it lived in GPU memory. Call `setup` again to create a new simulation; it gets a new device automatically. To resume where you were, take snapshots with `readGrid` (or `toPng`, loaded back with `fromPng`) while the simulation runs, and pass the last one to `setup` as `initialGrid`.
