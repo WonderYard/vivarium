@@ -1,4 +1,3 @@
-import * as d from "typegpu/data";
 import type { Neighborhood, Point, Strategy } from "../automaton/types";
 
 export enum Square {
@@ -65,29 +64,5 @@ export const acceptMap: Record<Strategy, Accept> = {
   one: Accept.ONE,
   none: Accept.NONE,
 };
-
-export const GpuElement = d.struct({
-  color: d.u32,
-  ruleStart: d.u32,
-  ruleEnd: d.u32,
-});
-
-export const GpuRule = d.struct({
-  toType: d.u32,
-  toId: d.u32,
-  toNeighbor: d.vec2u,
-  accept: d.u32,
-  conditionsStart: d.u32,
-  conditionsEnd: d.u32,
-});
-
-export const GpuCondition = d.struct({
-  opcode: d.u32,
-  checkId: d.u32,
-  countOrWithId: d.u32,
-  checkPointOrComparePoint: d.vec2u,
-  withPoint: d.vec2u,
-  chance: d.f32,
-});
 
 export const WORKGROUP_SIZE = [8, 8] as [number, number];

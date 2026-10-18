@@ -1,8 +1,32 @@
 import type { Automaton, Condition, Count, Is, Point, Rule } from "@/automaton/types";
 import { assertAutomaton } from "@/automaton/validate";
-import { GpuCondition, GpuElement, GpuRule, Opcode, To } from "@/common/constants";
+import { Opcode, To } from "@/common/constants";
 import { colorToABGR } from "@/common/utils";
 import * as d from "typegpu/data";
+
+export const GpuElement = d.struct({
+  color: d.u32,
+  ruleStart: d.u32,
+  ruleEnd: d.u32,
+});
+
+export const GpuRule = d.struct({
+  toType: d.u32,
+  toId: d.u32,
+  toNeighbor: d.vec2u,
+  accept: d.u32,
+  conditionsStart: d.u32,
+  conditionsEnd: d.u32,
+});
+
+export const GpuCondition = d.struct({
+  opcode: d.u32,
+  checkId: d.u32,
+  countOrWithId: d.u32,
+  checkPointOrComparePoint: d.vec2u,
+  withPoint: d.vec2u,
+  chance: d.f32,
+});
 
 type GpuRuleType = d.Infer<typeof GpuRule>;
 type GpuElementType = d.Infer<typeof GpuElement>;

@@ -1,19 +1,17 @@
 import type { Automaton } from "@/automaton/types";
-import {
-  Accept,
-  GpuCondition,
-  GpuElement,
-  GpuRule,
-  Opcode,
-  To,
-  WORKGROUP_SIZE,
-} from "@/common/constants";
+import { Accept, Opcode, To, WORKGROUP_SIZE } from "@/common/constants";
 import { mulberry32 } from "@/common/utils";
 import { hash, randf } from "@typegpu/noise";
 import tgpu, { common, type TgpuBindGroup } from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
-import { compileGpuAutomaton, type GpuAutomaton } from "./compiler";
+import {
+  compileGpuAutomaton,
+  GpuCondition,
+  GpuElement,
+  GpuRule,
+  type GpuAutomaton,
+} from "./compiler";
 
 // A lost device can't be revived: forget it so the next setup creates a new root.
 const watchDeviceLoss = async (device: GPUDevice): Promise<void> => {
