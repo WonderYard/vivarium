@@ -1994,6 +1994,46 @@ describe("GPU simulation", () => {
           }),
         ).rejects.toThrow(`at most ${MAX_CELLS}`);
       });
+
+      // WebGPU's default maxComputeWorkgroupsPerDimension is 65535, of 8 cells each.
+      const MAX_SIDE = 65535 * WORKGROUP_SIZE[0];
+
+      test("runs a grid at the widest dispatch", async () => {
+        const vi = vivarium();
+        const a = vi.element("a", "#000000");
+        const b = vi.element("b", "#ffffff");
+        a.to(b);
+        const automaton = vi.create();
+
+        const sim = await setup({
+          canvas: createCanvas(1, 1),
+          width: MAX_SIDE,
+          height: 1,
+          automaton,
+          initialGrid: Array.from({ length: MAX_SIDE }, () => a.index),
+        });
+        sim.update();
+        const grid = await sim.readGrid();
+        sim.destroy();
+
+        // A wider grid would skip the update and stay all a.
+        expect(grid.every((id) => id === b.index)).toBe(true);
+      });
+
+      test("throws on a grid one cell wider or taller than a dispatch allows", async () => {
+        const vi = vivarium();
+        vi.element("a", "#000000");
+        const automaton = vi.create();
+        const canvas = createCanvas(1, 1);
+        const side = MAX_SIDE + 1;
+
+        await expect(setup({ canvas, width: side, height: 1, automaton })).rejects.toThrow(
+          `at most ${MAX_SIDE}`,
+        );
+        await expect(setup({ canvas, width: 1, height: side, automaton })).rejects.toThrow(
+          `at most ${MAX_SIDE}`,
+        );
+      });
     });
   });
 });

@@ -550,6 +550,18 @@ export const setup = async ({
     );
   }
 
+  // Past this, the update's dispatch is rejected without throwing, and the grid never changes.
+  // Default limits allow 65535 workgroups per dimension: 524280 cells of width or height.
+  const maxWorkgroups = device.limits.maxComputeWorkgroupsPerDimension;
+  const maxWidth = maxWorkgroups * WORKGROUP_SIZE[0];
+  const maxHeight = maxWorkgroups * WORKGROUP_SIZE[1];
+
+  if (width > maxWidth || height > maxHeight) {
+    throw new Error(
+      `Grid ${width}x${height} is too wide or tall: this device allows at most ${maxWidth} columns and ${maxHeight} rows.`,
+    );
+  }
+
   let frames = 0;
   let destroyed = false;
 
