@@ -2,6 +2,7 @@ import type { Automaton, Condition, Neighborhood, Rule, Strategy } from "@/autom
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
 import type { BlueprintContext, Neighbor } from "@/blueprint/types";
+import { isPart, isWhole } from "@/automaton/validate";
 import { assertCounts, toPoint, toRefIdOrPoint } from "@/blueprint/utils";
 import { acceptMap, maxCount } from "@/common/constants";
 
@@ -80,10 +81,10 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
    * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
    */
   public chance(part: number, whole = 100): RuleBlueprintWithAccept<N> {
-    if (!(whole > 0) || !Number.isFinite(whole)) {
+    if (!isWhole(whole)) {
       throw new Error(`Chance whole ${whole} is invalid. Expected a finite number greater than 0.`);
     }
-    if (!(part >= 0 && part <= whole)) {
+    if (!isPart(part, whole)) {
       throw new Error(`Chance part ${part} is invalid. Expected a number in range [0, ${whole}].`);
     }
 

@@ -35,8 +35,8 @@ export type Element = {
  * blueprint builder always sets them. An automaton can also be assembled step by step outside
  * the builder (for example in an editor where a rule exists before its target is picked), and
  * these types let such a partial automaton be stored with the library's own types. Callers must
- * drop incomplete rules and conditions before passing the automaton to `setup`/`setAutomaton`;
- * the compiler throws on any `undefined` it still finds instead of compiling a wrong rule.
+ * drop incomplete rules and conditions before passing the automaton to `setup`/`setAutomaton`,
+ * which throw on any `undefined` they still find instead of compiling a wrong rule.
  */
 export type Rule = {
   fromId: number;

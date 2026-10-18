@@ -1,5 +1,6 @@
 import type { Automaton, Color } from "@/automaton/types";
 import type { BlueprintContext } from "@/blueprint/types";
+import { isName } from "@/automaton/validate";
 import { parseColor } from "@/common/utils";
 
 export abstract class BaseBlueprint {
@@ -13,7 +14,7 @@ export abstract class BaseBlueprint {
   }
 
   protected assertUniqueName(name: string): void {
-    if (name.trim().length === 0) {
+    if (!isName(name)) {
       throw new Error(`Name cannot be empty`);
     }
 

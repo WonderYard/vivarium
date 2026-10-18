@@ -143,6 +143,8 @@ const life = vi.create();
 
 After calling `create`, no more elements, kinds, or rules can be added. Think of it as locking in your design before running the experiment.
 
+You can also assemble an automaton object yourself with the exported `Automaton` types, for example in an editor. `setup` and `setAutomaton` check it first: it must be one `create` could have returned, apart from its ids (which only need to be unique) and elements sharing a color. Otherwise they throw an error naming the first bad field, such as `rules[0].when[1].count[2]`.
+
 ## Running the simulation
 
 You've designed your vivarium — now it's time to bring it to life! Vivarium uses [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) to run the simulation entirely on the GPU, which makes it fast even on large grids. All you need is a `<canvas>` element and a few lines of code.

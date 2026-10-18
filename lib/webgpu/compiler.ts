@@ -1,5 +1,6 @@
 import type { Automaton, Condition, Count, Is, Point, Rule } from "@/automaton/types";
-import { GpuCondition, GpuElement, GpuRule, maxCount, Opcode, To } from "@/common/constants";
+import { assertAutomaton } from "@/automaton/validate";
+import { GpuCondition, GpuElement, GpuRule, Opcode, To } from "@/common/constants";
 import { colorToABGR } from "@/common/utils";
 import * as d from "typegpu/data";
 
@@ -7,64 +8,6 @@ type GpuRuleType = d.Infer<typeof GpuRule>;
 type GpuElementType = d.Infer<typeof GpuElement>;
 type GpuConditionType = d.Infer<typeof GpuCondition>;
 type GpuNeighborhoodType = 0 | 1;
-
-/**
- * Throws if an id is shared, or if a rule, condition or extension references an id the automaton
- * doesn't have or a point that isn't a neighbor. The builder never produces these, but automata
- * assembled outside it (or loaded with `fromPng`) can. `undefined` targets are left to the compiler.
- */
-export const assertReferences = (automaton: Automaton): void => {
-  const elementIds = new Set(automaton.elements.map((element) => element.id));
-  const kindIds = new Set(automaton.kinds.map((kind) => kind.id));
-  const refIds = new Set([...elementIds, ...kindIds]);
-
-  if (refIds.size !== automaton.elements.length + automaton.kinds.length) {
-    throw new Error("Element and kind ids must be unique.");
-  }
-
-  const assertRef = (
-    ref: number | Point | undefined,
-    where: string,
-    ids: Set<number>,
-    expected: string,
-  ): void => {
-    if (typeof ref === "number" && !ids.has(ref)) {
-      throw new Error(`${where} references ${ref}, which is not ${expected}.`);
-    }
-
-    if (typeof ref === "object" && ![ref.x, ref.y].every((v) => v === -1 || v === 0 || v === 1)) {
-      throw new Error(`${where} references (${ref.x}, ${ref.y}), which is not a neighbor.`);
-    }
-  };
-
-  automaton.elements.forEach((element) => {
-    element.extensions.forEach((kindId) =>
-      assertRef(kindId, `Element "${element.name}"`, kindIds, "a kind"),
-    );
-  });
-
-  automaton.rules.forEach((rule, i) => {
-    const where = `Rule ${i}`;
-
-    if (rule.fromType === "kind") {
-      assertRef(rule.fromId, where, kindIds, "a kind");
-    } else {
-      assertRef(rule.fromId, where, elementIds, "an element");
-    }
-    assertRef(rule.to, where, elementIds, "an element");
-
-    rule.when.forEach((condition, j) => {
-      const where = `Condition ${j} of rule ${i}`;
-
-      if (condition.type === "count") {
-        assertRef(condition.check, where, refIds, "an element or a kind");
-      } else if (condition.type === "is") {
-        assertRef(condition.compare, where, new Set(), "a neighbor");
-        assertRef(condition.with, where, refIds, "an element or a kind");
-      }
-    });
-  });
-};
 
 const compileKindIndex = (kindId: number, automaton: Automaton) =>
   automaton.kinds.findIndex((kind) => kind.id === kindId);
@@ -91,11 +34,8 @@ const compileCheckPoint = (checkPoint: Point, gpuCondition: GpuConditionType) =>
 };
 
 const compileCount = (condition: Count, gpuCondition: GpuConditionType, automaton: Automaton) => {
-  const { check, count } = condition;
-
-  if (typeof check === "undefined") {
-    throw new Error("condition.check is undefined");
-  }
+  // assertAutomaton ruled out undefined targets and counts no cell can have.
+  const check = condition.check!;
 
   // check
   if (typeof check === "number") {
@@ -105,38 +45,25 @@ const compileCount = (condition: Count, gpuCondition: GpuConditionType, automato
   }
 
   // count
-  // The builder rejects invalid counts, but an automaton assembled outside it can still hold
-  // counts no cell can have (e.g. 6 after switching to a cross neighborhood). They can never
-  // match, so they are skipped instead of wrapping around in the bit shift (1 << 33 === 1 << 1).
-  const max = maxCount(automaton.neighborhood);
-  gpuCondition.countOrWithId = count
-    .filter((val) => Number.isInteger(val) && val >= 0 && val <= max)
-    .reduce(
-      // Packing numbers as positional bits.
-      // Example: [2, 3] -> 0b000001100
-      (acc, val) => {
-        acc |= 1 << val;
-        return acc;
-      },
-      0,
-    );
+  gpuCondition.countOrWithId = condition.count.reduce(
+    // Packing numbers as positional bits.
+    // Example: [2, 3] -> 0b000001100
+    (acc, val) => {
+      acc |= 1 << val;
+      return acc;
+    },
+    0,
+  );
 };
 
 const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Automaton) => {
-  const comparePoint = condition.compare;
-
-  if (typeof comparePoint === "undefined") {
-    throw new Error("condition.compare is undefined");
-  }
-
-  if (typeof condition.with === "undefined") {
-    throw new Error("condition.with is undefined");
-  }
+  // assertAutomaton ruled out undefined targets.
+  const comparePoint = condition.compare!;
+  const _with = condition.with!;
 
   gpuCondition.checkPointOrComparePoint = d.vec2u(comparePoint.x, comparePoint.y);
 
-  if (typeof condition.with === "number") {
-    const _with = condition.with;
+  if (typeof _with === "number") {
     if (automaton.elements.some((element) => element.id === _with)) {
       gpuCondition.opcode = Opcode.IS_ELEMENT;
 
@@ -149,7 +76,7 @@ const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Aut
     }
   } else {
     gpuCondition.opcode = Opcode.IS_POINT;
-    gpuCondition.withPoint = d.vec2u(condition.with.x, condition.with.y);
+    gpuCondition.withPoint = d.vec2u(_with.x, _with.y);
   }
 };
 
@@ -163,7 +90,7 @@ export type GpuAutomaton = {
 };
 
 export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
-  assertReferences(automaton);
+  assertAutomaton(automaton);
 
   const { elements, rules: _rules } = automaton;
 
@@ -266,17 +193,16 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
 
     gpuRules.push(gpuRule);
 
-    if (typeof rule.to === "undefined") {
-      throw new Error("rule.to is undefined");
-    }
+    // assertAutomaton ruled out an undefined target.
+    const to = rule.to!;
 
-    if (typeof rule.to === "number") {
+    if (typeof to === "number") {
       gpuRule.toType = To.ELEMENT_ID;
-      gpuRule.toId = elements.findIndex((element) => element.id === rule.to);
+      gpuRule.toId = elements.findIndex((element) => element.id === to);
     } else {
       // TODO: is there a need to optimize some cases where point is (0, 0)?
       gpuRule.toType = To.POINT;
-      gpuRule.toNeighbor = d.vec2u(rule.to.x, rule.to.y);
+      gpuRule.toNeighbor = d.vec2u(to.x, to.y);
     }
   });
 
