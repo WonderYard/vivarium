@@ -1836,6 +1836,18 @@ describe("GPU simulation", () => {
       expect(Math.abs(aCount - 7500)).toBeLessThan(260);
     });
 
+    test("initialGrid weights treat an element named like an Object.prototype key as left out", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("toString", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(4, 4);
+      const { readGrid } = await setup({ canvas, automaton, initialGrid: { weights: { a: 1 } } });
+
+      expect(await readGrid()).toEqual(Array.from({ length: 16 }, () => 0));
+    });
+
     test("throws on invalid initialGrid weights", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");

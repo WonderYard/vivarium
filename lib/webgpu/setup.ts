@@ -490,7 +490,8 @@ export const setup = async ({
     }
 
     for (const { name } of automaton.elements) {
-      const weight = weights[name] ?? 0;
+      // hasOwn so an element named like an Object.prototype key (e.g. toString) reads as left out.
+      const weight = Object.hasOwn(weights, name) ? weights[name] : 0;
 
       if (!Number.isFinite(weight) || weight < 0) {
         throw new Error(`Weight ${weight} of "${name}" is invalid. Expected a finite number >= 0.`);
