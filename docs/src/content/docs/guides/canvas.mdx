@@ -27,7 +27,7 @@ This is useful for inspecting the current state, running analytics, or saving a 
 
 ## Writing the entire grid
 
-`writeGrid` replaces every cell at once. Pass a flat array of element indices whose length must equal `width * height`:
+`writeGrid` replaces every cell at once. Pass a flat array (or a `Uint32Array`) of element indices whose length must equal `width * height`:
 
 ```typescript
 writeGrid(snapshot); // restore a previously saved snapshot
@@ -60,6 +60,16 @@ If you prefer working with grid coordinates instead of flat indices, use `writeC
 ```typescript
 writeCellAt(x, y, alien.index);
 ```
+
+## Writing a span of cells
+
+`writeCells` updates consecutive cells, in row-major order, with a single upload. Pass the flat index of the first cell and a `Uint32Array` of element indices. If you keep an image of the grid as a `Uint32Array`, a `subarray` of it works without a copy:
+
+```typescript
+writeCells(first, image.subarray(first, last + 1));
+```
+
+It throws if the span doesn't fit in the grid or if any of its values is out of range.
 
 ## Practical examples
 
@@ -125,7 +135,7 @@ const { update, draw, destroy } = await setup({ canvas, automaton });
 destroy();
 ```
 
-After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash. `readGrid`, `writeGrid`, `writeCell`, `writeCellAt` and `setAutomaton` throw an error. Calls made before `destroy` still complete: a `readGrid` you are awaiting resolves with the grid as it was. Calling `destroy` more than once is safe.
+After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash. `readGrid`, `writeGrid`, `writeCell`, `writeCellAt`, `writeCells` and `setAutomaton` throw an error. Calls made before `destroy` still complete: a `readGrid` you are awaiting resolves with the grid as it was. Calling `destroy` more than once is safe.
 
 <Aside type="note" title="Why not wait for garbage collection?">
   The browser eventually frees the GPU memory of a simulation you no longer reference, but it may

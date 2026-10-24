@@ -398,7 +398,8 @@ const render = tgpu.fragmentFn({
   return std.unpack4x8unorm(automatonLayout.$.elements[id].color);
 });
 
-// Cells hold element indices, so initialGrid, writeCell and writeGrid accept the same ones.
+// Cells hold element indices, so initialGrid, writeCell, writeCells and writeGrid accept the same
+// ones.
 const isElementIndex = (value: number, elementCount: number): boolean =>
   Number.isInteger(value) && value >= 0 && value < elementCount;
 
@@ -430,6 +431,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * - `readGrid` — reads the current grid state.
  * - `writeCell` — updates a single cell by flat index.
  * - `writeCellAt` — updates a single cell by grid coordinates.
+ * - `writeCells` — updates a span of consecutive cells by flat index, in one upload.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
@@ -762,13 +764,49 @@ export const setup = async ({
     writeCell(y * width + x, elementIndex);
   };
 
+  // Shared by writeCells and writeGrid, so both report the grid position of a bad cell.
+  const assertElementIndices = (cells: ArrayLike<number>, start: number): void => {
+    for (let i = 0; i < cells.length; i++) {
+      const elementIndex = cells[i];
+
+      if (!isElementIndex(elementIndex, elementCount)) {
+        throw new Error(
+          `Element index ${elementIndex} at position ${start + i} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
+        );
+      }
+    }
+  };
+
+  /**
+   * Writes a span of consecutive cells in the current grid with a single upload.
+   * Useful for pushing a changed region of an image kept in the same layout as the grid.
+   *
+   * @param start - The flat index of the first cell to update (row-major order).
+   * @param cells - The element indices to assign, from `start` onwards. A `subarray` view works.
+   */
+  const writeCells = (start: number, cells: Uint32Array): void => {
+    assertNotDestroyed();
+
+    if (!Number.isInteger(start) || start < 0 || start + cells.length > width * height) {
+      throw new Error(
+        `Cells ${start} to ${start + cells.length - 1} are out of bounds. Expected integers in range [0, ${width * height - 1}].`,
+      );
+    }
+
+    assertElementIndices(cells, start);
+
+    // Raw write for the same reason as in writeCell.
+    device.queue.writeBuffer(currentGrid().ids.buffer, start * 4, cells);
+  };
+
   /**
    * Overwrites the entire grid with the given flat array of element indices.
-   * Useful for restoring a snapshot or painting the grid in bulk.
+   * Useful for restoring a snapshot or painting the grid in bulk. A `Uint32Array` is uploaded as is,
+   * without a copy.
    *
    * @param grid - A flat array of element indices (row-major order) whose length must equal `width * height`.
    */
-  const writeGrid = (grid: number[]): void => {
+  const writeGrid = (grid: number[] | Uint32Array): void => {
     assertNotDestroyed();
 
     const totalCells = width * height;
@@ -779,22 +817,15 @@ export const setup = async ({
       );
     }
 
-    const newIds = new Uint32Array(totalCells);
-
-    for (let i = 0; i < totalCells; i++) {
-      const elementIndex = grid[i];
-
-      if (!isElementIndex(elementIndex, elementCount)) {
-        throw new Error(
-          `Element index ${elementIndex} at position ${i} is invalid. Expected a finite integer in range [0, ${elementCount - 1}].`,
-        );
-      }
-
-      newIds[i] = elementIndex;
-    }
+    // Validated before converting, which would turn -1 or 0.5 into a valid-looking u32.
+    assertElementIndices(grid, 0);
 
     // Raw write for the same reason as in writeCell.
-    device.queue.writeBuffer(currentGrid().ids.buffer, 0, newIds);
+    device.queue.writeBuffer(
+      currentGrid().ids.buffer,
+      0,
+      grid instanceof Uint32Array ? grid : new Uint32Array(grid),
+    );
   };
 
   /**
@@ -884,6 +915,7 @@ export const setup = async ({
     readGrid,
     writeCell,
     writeCellAt,
+    writeCells,
     writeGrid,
     setAutomaton,
     destroy,

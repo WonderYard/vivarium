@@ -1259,6 +1259,23 @@ describe("GPU simulation", () => {
       expect(() => writeGrid([2])).toThrow("invalid");
     });
 
+    test("writeGrid accepts a Uint32Array", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(2, 1);
+      const { readGrid, writeGrid } = await setup({ canvas, automaton, initialGrid: [[0, 0]] });
+
+      writeGrid(new Uint32Array([1, 0]));
+      const result = await readGrid();
+
+      expect(result).toEqual([1, 0]);
+      expect(() => writeGrid(new Uint32Array([0, 2]))).toThrow("invalid");
+      expect(() => writeGrid(new Uint32Array([0]))).toThrow("does not match");
+    });
+
     test("writeCellAt updates a cell by coordinates", async () => {
       const vi = vivarium();
       vi.element("a", "#ff0000");
@@ -1296,6 +1313,58 @@ describe("GPU simulation", () => {
       expect(() => writeCellAt(0, -1, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0.5, 0, 0)).toThrow("out of bounds");
       expect(() => writeCellAt(0, NaN, 0)).toThrow("out of bounds");
+    });
+
+    test("writeCells writes a span starting at a flat index", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      vi.element("c", "#0000ff");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(2, 2);
+      const { readGrid, writeCells } = await setup({
+        canvas,
+        automaton,
+        initialGrid: [
+          [0, 0],
+          [0, 0],
+        ],
+      });
+
+      // A view into a larger image: the 9 before it isn't in the span, so it isn't validated.
+      // The span crosses the row break, so it's row-major.
+      writeCells(1, new Uint32Array([9, 1, 2]).subarray(1));
+      const result = await readGrid();
+
+      expect(result).toEqual([0, 1, 2, 0]);
+    });
+
+    test("writeCells throws when the span leaves the grid", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(2, 1);
+      const { writeCells } = await setup({ canvas, automaton, initialGrid: [[0, 0]] });
+
+      expect(() => writeCells(1, new Uint32Array([0, 0]))).toThrow("out of bounds");
+      expect(() => writeCells(-1, new Uint32Array([0]))).toThrow("out of bounds");
+      expect(() => writeCells(0.5, new Uint32Array([0]))).toThrow("out of bounds");
+      expect(() => writeCells(NaN, new Uint32Array([0]))).toThrow("out of bounds");
+    });
+
+    test("writeCells throws on an invalid element index and writes nothing", async () => {
+      const vi = vivarium();
+      vi.element("a", "#ff0000");
+      vi.element("b", "#00ff00");
+      const automaton = vi.create();
+
+      const canvas = createCanvas(2, 1);
+      const { readGrid, writeCells } = await setup({ canvas, automaton, initialGrid: [[0, 0]] });
+
+      expect(() => writeCells(0, new Uint32Array([1, 2]))).toThrow("invalid");
+      expect(await readGrid()).toEqual([0, 0]);
     });
   });
 
@@ -1525,13 +1594,15 @@ describe("GPU simulation", () => {
       const vi = vivarium();
       vi.element("a", "#000000");
       const automaton = vi.create();
-      const { readGrid, writeCell, writeCellAt, writeGrid, setAutomaton, destroy } = await create();
+      const { readGrid, writeCell, writeCellAt, writeCells, writeGrid, setAutomaton, destroy } =
+        await create();
       destroy();
 
       const error = /^Simulation is destroyed/;
       await expect(readGrid()).rejects.toThrow(error);
       expect(() => writeCell(0, 0)).toThrow(error);
       expect(() => writeCellAt(0, 0, 0)).toThrow(error);
+      expect(() => writeCells(0, new Uint32Array([0]))).toThrow(error);
       expect(() => writeGrid([0])).toThrow(error);
       expect(() => setAutomaton({ automaton })).toThrow(error);
     });
