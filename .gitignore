@@ -26,3 +26,5 @@ dist-ssr
 
 # Vitest artifacts (attachments, reports, screenshots)
 .vitest/
+
+.claude/settings.json
