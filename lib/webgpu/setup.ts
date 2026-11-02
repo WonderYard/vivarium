@@ -417,7 +417,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * @param options.width - The number of grid columns, any positive integer. Defaults to `canvas.width`. `width * height` can be at most 2^25 (about 5792×5792), and `width` and `height` at most 524280 each; larger grids throw. The grid is stretched over the canvas, so a small grid on a large canvas draws each cell as a block of pixels.
  * @param options.height - The number of grid rows, any positive integer. Defaults to `canvas.height`.
  * @param options.automaton - The compiled automaton produced by {@link VivariumBlueprint.create | vivarium().create()}.
- * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order.
+ * @param options.initialGrid - An optional 2d array of element indices to use instead of random initialization. Alternatively, you can pass a flat (1d) array with one index per cell, row-major order, such as a `readGrid` or `readGridTyped` result.
  * Or pass `{ weights }` to keep random initialization with element names mapped to relative weights: `{ weights: { empty: 9, tree: 1 } }`
  * fills about 90% of the cells with `empty` and 10% with `tree`, same as `{ empty: 90, tree: 10 }`. Elements left out are never picked.
  * Prefer taking the names from `ElementBlueprint.name`, e.g. `{ weights: { [empty.name]: 9, [tree.name]: 1 } }`, so renaming an element can't break the weights.
@@ -429,6 +429,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
  * - `evolve` — convenience shorthand for `update()` + `draw()`.
  * - `readGrid` — reads the current grid state.
+ * - `readGridTyped` — like `readGrid`, but returns a `Uint32Array`; much faster on large grids.
  * - `writeCell` — updates a single cell by flat index.
  * - `writeCellAt` — updates a single cell by grid coordinates.
  * - `writeCells` — updates a span of consecutive cells by flat index, in one upload.
@@ -450,7 +451,7 @@ export const setup = async ({
   width?: number;
   height?: number;
   automaton: Automaton;
-  initialGrid?: number[] | number[][] | { weights: Record<string, number> };
+  initialGrid?: number[] | number[][] | Uint32Array | { weights: Record<string, number> };
   seed?: number;
   onDeviceLost?: (info: GPUDeviceLostInfo) => void;
 }) => {
@@ -468,7 +469,11 @@ export const setup = async ({
 
   const random = mulberry32(seed);
 
-  const flatGrid = Array.isArray(initialGrid) ? initialGrid.flat() : undefined;
+  const flatGrid = Array.isArray(initialGrid)
+    ? initialGrid.flat()
+    : initialGrid instanceof Uint32Array
+      ? initialGrid
+      : undefined;
 
   if (flatGrid !== undefined && flatGrid.length !== width * height) {
     throw new Error(
@@ -484,8 +489,8 @@ export const setup = async ({
   const cumulativeWeights: number[] = [];
   let totalWeight = 0;
 
-  if (initialGrid !== undefined && !Array.isArray(initialGrid)) {
-    const { weights } = initialGrid;
+  if (initialGrid !== undefined && flatGrid === undefined) {
+    const { weights } = initialGrid as { weights: Record<string, number> };
 
     for (const name of Object.keys(weights)) {
       if (!automaton.elements.some((element) => element.name === name)) {
@@ -708,10 +713,29 @@ export const setup = async ({
   /**
    * Reads the current grid state from the GPU and returns a flat array of element indices.
    */
-  const readGrid = async (): Promise<number[]> => {
+  const readGrid = async (): Promise<number[]> => Array.from(await readGridTyped());
+
+  /**
+   * Like `readGrid`, but returns a `Uint32Array`. Much faster on large grids.
+   */
+  const readGridTyped = async (): Promise<Uint32Array> => {
     assertNotDestroyed();
 
-    return currentGrid().ids.read();
+    // Raw, not TypeGPU's read: that one builds a number[], which takes longer.
+    const source = currentGrid().ids.buffer;
+    const staging = device.createBuffer({
+      size: source.size,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    const encoder = device.createCommandEncoder();
+    encoder.copyBufferToBuffer(source, 0, staging, 0, source.size);
+    device.queue.submit([encoder.finish()]);
+    try {
+      await staging.mapAsync(GPUMapMode.READ);
+      return new Uint32Array(staging.getMappedRange().slice(0));
+    } finally {
+      staging.destroy();
+    }
   };
 
   /**
@@ -913,6 +937,7 @@ export const setup = async ({
     draw,
     evolve,
     readGrid,
+    readGridTyped,
     writeCell,
     writeCellAt,
     writeCells,

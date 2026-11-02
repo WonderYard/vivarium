@@ -1158,6 +1158,24 @@ describe("GPU simulation", () => {
       expect(result).toEqual(initialGrid.flat());
     });
 
+    test("readGridTyped returns a Uint32Array that setup takes back as initialGrid", async () => {
+      const vi = vivarium();
+      const a = vi.element("a", "#ff0000");
+      const b = vi.element("b", "#00ff00");
+      a.to(b);
+      b.to(a);
+      const automaton = vi.create();
+
+      const first = await setup({ canvas: createCanvas(2, 1), automaton, initialGrid: [[0, 1]] });
+      first.evolve();
+      const grid = await first.readGridTyped();
+      expect(grid).toBeInstanceOf(Uint32Array);
+      expect(Array.from(grid)).toEqual([1, 0]);
+
+      const resumed = await setup({ canvas: createCanvas(2, 1), automaton, initialGrid: grid });
+      expect(await resumed.readGrid()).toEqual([1, 0]);
+    });
+
     test("readGrid returns evolved state after evolve", async () => {
       const vi = vivarium();
       const a = vi.element("a", "#ff0000");
@@ -1594,12 +1612,21 @@ describe("GPU simulation", () => {
       const vi = vivarium();
       vi.element("a", "#000000");
       const automaton = vi.create();
-      const { readGrid, writeCell, writeCellAt, writeCells, writeGrid, setAutomaton, destroy } =
-        await create();
+      const {
+        readGrid,
+        readGridTyped,
+        writeCell,
+        writeCellAt,
+        writeCells,
+        writeGrid,
+        setAutomaton,
+        destroy,
+      } = await create();
       destroy();
 
       const error = /^Simulation is destroyed/;
       await expect(readGrid()).rejects.toThrow(error);
+      await expect(readGridTyped()).rejects.toThrow(error);
       expect(() => writeCell(0, 0)).toThrow(error);
       expect(() => writeCellAt(0, 0, 0)).toThrow(error);
       expect(() => writeCells(0, new Uint32Array([0]))).toThrow(error);
