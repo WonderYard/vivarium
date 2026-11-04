@@ -109,20 +109,25 @@ const inBoundsMask = (x: number, y: number) => {
   return d.u32(1) - oob * (d.u32(1) - gridLayout.$.wrapping);
 };
 
+// Neighbor offsets are at most 1 cell, so a coordinate ranges from -1 to the size. In unsigned space
+// -1 is 4294967295, the only value above the size.
+const wrapCoordinate = (value: number, size: number) => {
+  "use gpu";
+
+  return std.select(std.select(value, d.u32(0), value === size), size - d.u32(1), value > size);
+};
+
 const pointToIndex = (x: number, y: number) => {
   "use gpu";
 
   const width = gridLayout.$.dimensions.x;
   const height = gridLayout.$.dimensions.y;
 
-  // Neighbor offsets are at most 1 cell, so coordinates range from -1 to the dimension.
-  // Adding the dimension before the modulo keeps -1 working in unsigned space:
-  // 0 - 1 = 4294967295, and 4294967295 + width overflows to width - 1.
   // In wrapping mode this wraps OOB coordinates to the opposite edge correctly.
   // In non-wrapping mode, this leads to wrong indices at the edges,
   // but in this mode OOB results are discarded via inBoundsMask,
   // so the wrapped index is wrong, but harmless (it still falls within bounds).
-  return ((y + height) % height) * width + ((x + width) % width);
+  return wrapCoordinate(y, height) * width + wrapCoordinate(x, width);
 };
 
 const testNeighbor = (checkId: number, x: number, y: number) => {
