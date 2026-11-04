@@ -428,6 +428,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * - `update` — advances the simulation by one step (synchronous, GPU only).
  * - `draw` — renders the latest state to the canvas (synchronous, GPU only).
  * - `evolve` — convenience shorthand for `update()` + `draw()`.
+ * - `settled` — resolves when the GPU has finished everything submitted so far.
  * - `readGrid` — reads the current grid state.
  * - `readGridTyped` — like `readGrid`, but returns a `Uint32Array`; much faster on large grids.
  * - `writeCell` — updates a single cell by flat index.
@@ -435,7 +436,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * - `writeCells` — updates a span of consecutive cells by flat index, in one upload.
  * - `writeGrid` — overwrites the entire grid.
  * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
- * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing and the other functions throw.
+ * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing, `settled` still resolves and the other functions throw.
  * - `seed` — the seed of this run, the given one or the random default.
  */
 export const setup = async ({
@@ -900,6 +901,12 @@ export const setup = async ({
   };
 
   /**
+   * Resolves when the GPU has finished everything submitted so far. `update` returns long before
+   * its step runs, so a loop can wait on this instead of queuing steps faster than the GPU runs them.
+   */
+  const settled = (): Promise<void> => device.queue.onSubmittedWorkDone();
+
+  /**
    * Frees the GPU resources owned by this simulation. Afterwards `update`, `draw`
    * and `evolve` do nothing, so a loop still running (e.g. during a React effect
    * cleanup) doesn't crash, while reads, writes and `setAutomaton` throw.
@@ -936,6 +943,7 @@ export const setup = async ({
     update,
     draw,
     evolve,
+    settled,
     readGrid,
     readGridTyped,
     writeCell,

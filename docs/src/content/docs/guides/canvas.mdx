@@ -118,6 +118,24 @@ document.getElementById("restore")!.addEventListener("click", () => {
 });
 ```
 
+## Waiting for the GPU
+
+`update` and `evolve` only queue work, and return long before the step runs. On a large grid, a loop can queue steps faster than the GPU runs them. `settled` returns a `Promise` that resolves when the GPU has finished everything submitted so far, so the loop can wait for it:
+
+```typescript
+const { evolve, settled } = await setup({ canvas, automaton });
+
+const loop = async () => {
+  evolve();
+  await settled();
+  requestAnimationFrame(loop);
+};
+
+loop();
+```
+
+Simulations on the same page share one GPU device, so `settled` also waits for the work of the others.
+
 ## Changing the rules
 
 `setAutomaton` replaces the automaton of a running simulation and keeps the grid. Its neighborhood and wrapping replace the old ones too. Cells hold element indices, so the new automaton's element at index `i` takes over every cell holding `i`:
@@ -142,7 +160,7 @@ const { update, draw, destroy } = await setup({ canvas, automaton });
 destroy();
 ```
 
-After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash. `readGrid`, `readGridTyped`, `writeGrid`, `writeCell`, `writeCellAt`, `writeCells` and `setAutomaton` throw an error. Calls made before `destroy` still complete: a `readGrid` you are awaiting resolves with the grid as it was. Calling `destroy` more than once is safe.
+After `destroy`, `update`, `draw` and `evolve` do nothing, so an animation loop that is still running won't crash, and `settled` still resolves. `readGrid`, `readGridTyped`, `writeGrid`, `writeCell`, `writeCellAt`, `writeCells` and `setAutomaton` throw an error. Calls made before `destroy` still complete: a `readGrid` you are awaiting resolves with the grid as it was. Calling `destroy` more than once is safe.
 
 <Aside type="note" title="Why not wait for garbage collection?">
   The browser eventually frees the GPU memory of a simulation you no longer reference, but it may
