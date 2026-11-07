@@ -8,6 +8,9 @@
   <img src="docs/banner.png" />
 </p>
 
+> [!TIP]
+> **New: try it in WonderYard.** Want to explore before you code? [WonderYard](https://wonderyard.app) is our new playground, where you can experiment with Vivarium right in your browser, no code needed. Give it a try!
+
 ## Introduction
 
 Vivarium is a TypeScript library that aims to provide a simple yet expressive way of creating your own cellular automata and run simulations on the web.
