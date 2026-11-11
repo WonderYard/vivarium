@@ -443,6 +443,7 @@ const isElementIndex = (value: number, elementCount: number): boolean =>
  * - `setAutomaton` — replaces the automaton. Cells whose element index the new automaton doesn't have become element 0.
  * - `destroy` — frees the GPU resources; afterwards `update`, `draw` and `evolve` do nothing, `settled` still resolves and the other functions throw.
  * - `seed` — the seed of this run, the given one or the random default.
+ * - `gpu` — the device, the grid size and the current cell buffer (one u32 element index per cell, row-major), for a host's own passes on the same device. `ids()` changes after every update.
  */
 export const setup = async ({
   canvas,
@@ -958,5 +959,11 @@ export const setup = async ({
     setAutomaton,
     destroy,
     seed,
+    gpu: {
+      device,
+      ids: () => currentGrid().ids.buffer,
+      width,
+      height,
+    },
   };
 };
