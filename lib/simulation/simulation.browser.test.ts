@@ -292,6 +292,81 @@ describe("GPU simulation", () => {
     });
   });
 
+  describe("POINTED condition", () => {
+    // Elements 2 to 9 point at the center of a 3×3 grid from each of its 8 neighbors.
+    const pointing = (vi: ReturnType<typeof vivarium>) => {
+      const off = vi.element("off", "#000000");
+      const on = vi.element("on", "#ffffff");
+      const from = [
+        Square.BOTTOM_RIGHT,
+        Square.BOTTOM,
+        Square.BOTTOM_LEFT,
+        Square.RIGHT,
+        Square.LEFT,
+        Square.TOP_RIGHT,
+        Square.TOP,
+        Square.TOP_LEFT,
+      ];
+      from.forEach((output, i) => vi.element(`arrow ${i}`, "#ff0000", [], [output]));
+      return { off, on };
+    };
+
+    test("counts every neighbor pointing at the cell", async () => {
+      const before = grid([
+        [2, 3, 4],
+        [5, 0, 6],
+        [7, 8, 9],
+      ]);
+
+      const after = await step((vi) => {
+        const { off, on } = pointing(vi);
+        off.to(on).pointed(8);
+      }, before);
+
+      expect(toRows(after)[1][1]).toBe(1);
+    });
+
+    test("ignores neighbors pointing elsewhere", async () => {
+      // Each arrow is mirrored, so it points away from the center.
+      const before = grid([
+        [9, 8, 7],
+        [6, 0, 5],
+        [4, 3, 2],
+      ]);
+
+      const after = await step((vi) => {
+        const { off, on } = pointing(vi);
+        off.to(on).pointed(0);
+      }, before);
+
+      expect(toRows(after)[1][1]).toBe(1);
+    });
+
+    test("a cross neighborhood ignores diagonal pointers", async () => {
+      const before = grid([
+        [0, 2],
+        [0, 0],
+      ]);
+
+      const after = await step(
+        (vi) => {
+          const off = vi.element("off", "#000000");
+          const on = vi.element("on", "#ffffff");
+          vi.element("down", "#ff0000", [], [Square.BOTTOM]);
+          off.to(on).pointed(1);
+        },
+        before,
+        "cross",
+      );
+
+      // Only the cell below the arrow is pointed at.
+      expect(toRows(after)).toEqual([
+        [0, 2],
+        [0, 1],
+      ]);
+    });
+  });
+
   // ── Kind membership ───────────────────────────────────────────
 
   describe("kind membership", () => {

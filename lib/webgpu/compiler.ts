@@ -8,6 +8,8 @@ export const GpuElement = d.struct({
   color: d.u32,
   ruleStart: d.u32,
   ruleEnd: d.u32,
+  // Bit (y + 1) * 3 + (x + 1) is set for each output (x, y).
+  outputs: d.u32,
 });
 
 export const GpuRule = d.struct({
@@ -57,6 +59,10 @@ const compileCheckPoint = (checkPoint: Point, gpuCondition: GpuConditionType) =>
   gpuCondition.checkPointOrComparePoint = d.vec2u(checkPoint.x, checkPoint.y);
 };
 
+// Packing numbers as positional bits.
+// Example: [2, 3] -> 0b000001100
+const packCount = (count: number[]) => count.reduce((acc, val) => acc | (1 << val), 0);
+
 const compileCount = (condition: Count, gpuCondition: GpuConditionType, automaton: Automaton) => {
   // assertAutomaton ruled out undefined targets and counts no cell can have.
   const check = condition.check!;
@@ -69,15 +75,7 @@ const compileCount = (condition: Count, gpuCondition: GpuConditionType, automato
   }
 
   // count
-  gpuCondition.countOrWithId = condition.count.reduce(
-    // Packing numbers as positional bits.
-    // Example: [2, 3] -> 0b000001100
-    (acc, val) => {
-      acc |= 1 << val;
-      return acc;
-    },
-    0,
-  );
+  gpuCondition.countOrWithId = packCount(condition.count);
 };
 
 const compileIs = (condition: Is, gpuCondition: GpuConditionType, automaton: Automaton) => {
@@ -198,6 +196,10 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
       color: colorToABGR(element.color),
       ruleStart,
       ruleEnd,
+      outputs: (element.outputs ?? []).reduce(
+        (acc, { x, y }) => acc | (1 << ((y + 1) * 3 + x + 1)),
+        0,
+      ),
     });
 
     gpuElements.push(gpuElement);
@@ -246,6 +248,9 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
       compileCount(condition, gpuCondition, automaton);
     } else if (condition.type === "is") {
       compileIs(condition, gpuCondition, automaton);
+    } else if (condition.type === "pointed") {
+      gpuCondition.opcode = Opcode.POINTED;
+      gpuCondition.countOrWithId = packCount(condition.count);
     } else {
       gpuCondition.opcode = Opcode.CHANCE;
       gpuCondition.chance = condition.ratio.part / condition.ratio.whole;

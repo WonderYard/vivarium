@@ -227,6 +227,30 @@ describe("COUNT_KIND opcode", () => {
   });
 });
 
+// ── POINTED opcode ──────────────────────────────────────────────────
+
+describe("POINTED opcode", () => {
+  test("outputs pack as bits (y + 1) * 3 + (x + 1) and pointed packs its counts", () => {
+    const gpu = compile((vi) => {
+      const off = vi.element("off", "#000000");
+      const on = vi.element("on", "#ffffff");
+      vi.element("arrow", "#ff0000", [], [Square.TOP_LEFT, Square.RIGHT]);
+
+      off.to(on).pointed(0, 2);
+    });
+
+    expect(gpu.gpuElements.map((element) => element.outputs)).toEqual([0, 0, (1 << 0) | (1 << 5)]);
+    expect(gpu.gpuConditions[0].opcode).toBe(Opcode.POINTED);
+    expect(gpu.gpuConditions[0].countOrWithId).toBe(0b101);
+  });
+
+  test("an element can't point at itself", () => {
+    expect(() => compile((vi) => vi.element("a", "#000000", [], [Square.SELF]))).toThrow(
+      "can't point at itself",
+    );
+  });
+});
+
 // ── IS_ELEMENT opcode ───────────────────────────────────────────────
 
 describe("IS_ELEMENT opcode", () => {
@@ -853,7 +877,7 @@ describe("automaton checks", () => {
     [
       "an unknown condition type",
       (a) => (a.rules[0].when[0] = { type: "bogus", id: 99 }),
-      'rules[0].when[0].type is "bogus", expected "count", "is" or "chance".',
+      'rules[0].when[0].type is "bogus", expected "count", "is", "chance" or "pointed".',
     ],
     [
       "an undefined count target",
@@ -907,6 +931,15 @@ describe("automaton checks", () => {
     edit(broken);
 
     expect(() => compileGpuAutomaton(broken as Automaton)).toThrow(message);
+  });
+
+  test("throws on an output at the cell itself", () => {
+    const broken = automaton();
+    broken.elements[0].outputs = [{ x: 0, y: 0 }];
+
+    expect(() => compileGpuAutomaton(broken as Automaton)).toThrow(
+      'elements[0].outputs[0] is {"x":0,"y":0}, expected a square neighbor other than the cell itself.',
+    );
   });
 
   test("throws on counts no cell can have in a cross neighborhood", () => {

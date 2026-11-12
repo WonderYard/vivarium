@@ -9,7 +9,7 @@ A rule without conditions is always accepted when evaluated. A condition determi
 
 ## Condition types
 
-There are three types of conditions: [Count](#count), [Is](#is), [Chance](#chance).
+There are four types of conditions: [Count](#count), [Is](#is), [Pointed](#pointed), [Chance](#chance).
 
 ### Count
 
@@ -142,6 +142,28 @@ const { neighbor } = vi;
 // Space becomes alien if the cell above and the cell below are the same element
 space.to(alien).is(neighbor.TOP, neighbor.BOTTOM);
 ```
+
+### Pointed
+
+An element can point at some of its neighbors. Pass them as `outputs`, the fourth argument of `element`. The `pointed` condition counts how many neighbors point at the cell, whatever element they are. The rule is accepted only if that count is one of the given values.
+
+```typescript
+const { neighbor } = vi;
+
+// An arrow points at the cell below it
+const arrow = vi.element("arrow", "red", [], [neighbor.BOTTOM]);
+
+// Space becomes alien if exactly 2 neighbors point at it
+space.to(alien).pointed(2);
+```
+
+Directions are part of the element, so you need one element per direction an arrow can face. In return, a single `pointed` condition counts every incoming arrow, from any side, of any element. With `is` you would need one condition per neighbor and per arrow element.
+
+`pointed` takes counts like `count` does: several values, arrays, the [helpers](#helpers), and no values for "at least one". It looks at the same neighbors too, so in a `"cross"` neighborhood a diagonal neighbor never counts.
+
+An element can have several outputs, but it can't point at itself: `element` throws on `SELF`.
+
+See the [Logic Gates example](https://github.com/WonderYard/vivarium/blob/develop/examples/src/logic-gates.ts), where an AND gate is a single cell with `pointed(2)`.
 
 ### Chance
 

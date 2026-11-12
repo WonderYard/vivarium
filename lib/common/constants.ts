@@ -49,6 +49,7 @@ export enum Opcode {
   IS_POINT,
   IS_KIND,
   CHANCE,
+  POINTED,
 }
 
 export enum Accept {

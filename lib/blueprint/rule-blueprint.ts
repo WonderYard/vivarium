@@ -3,8 +3,8 @@ import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import type { RefBlueprint } from "@/blueprint/ref-blueprint";
 import type { BlueprintContext, Neighbor } from "@/blueprint/types";
 import { isPart, isWhole } from "@/automaton/validate";
-import { assertCounts, toPoint, toRefIdOrPoint } from "@/blueprint/utils";
-import { acceptMap, maxCount } from "@/common/constants";
+import { toCounts, toPoint, toRefIdOrPoint } from "@/blueprint/utils";
+import { acceptMap } from "@/common/constants";
 
 /**
  * Blueprint for a rule. Provides methods to add conditions. Returned by {@link RefBlueprint.to | element.to()} or {@link RefBlueprint.to | kind.to()}.
@@ -39,17 +39,27 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
     refBlueprintOrNeighbor: RefBlueprint | Neighbor<N>,
     ...count: (number | number[])[]
   ): RuleBlueprintWithAccept<N> {
-    const max = maxCount(this.automaton.neighborhood);
-    const flatCount =
-      count.length !== 0 ? count.flat() : Array.from({ length: max }, (_, i) => i + 1);
-
-    assertCounts(flatCount, this.automaton.neighborhood);
-
     return this.condition({
       type: "count",
       id: this.context.nextId++,
       check: toRefIdOrPoint(refBlueprintOrNeighbor, this.automaton.neighborhood),
-      count: flatCount,
+      count: toCounts(count, this.automaton.neighborhood),
+    });
+  }
+
+  /**
+   * Adds a pointed condition to the rule. The condition passes only if the number of neighbors whose
+   * outputs point at this cell equals one of the specified count values.
+   *
+   * @param count - The accepted count values. When omitted, matches any count from 1 to the neighborhood size.
+   * @throws If a count value is not a whole number between 0 and the neighborhood size.
+   * @returns A {@link RuleBlueprintWithAccept} for chaining more conditions or setting an accept strategy.
+   */
+  public pointed(...count: (number | number[])[]): RuleBlueprintWithAccept<N> {
+    return this.condition({
+      type: "pointed",
+      id: this.context.nextId++,
+      count: toCounts(count, this.automaton.neighborhood),
     });
   }
 

@@ -27,6 +27,16 @@ export const toRefIdOrPoint = (
     : refBlueprintOrNeighbor.id;
 };
 
+// The counts passed to count() or pointed(). None means any count from 1 to the neighborhood size.
+export const toCounts = (count: (number | number[])[], neighborhood?: Neighborhood): number[] => {
+  const counts =
+    count.length !== 0
+      ? count.flat()
+      : Array.from({ length: maxCount(neighborhood) }, (_, i) => i + 1);
+  assertCounts(counts, neighborhood);
+  return counts;
+};
+
 export const assertCounts = (counts: number[], neighborhood?: Neighborhood): void => {
   const max = maxCount(neighborhood);
   const invalid = counts.find((count) => !isCount(count, neighborhood));

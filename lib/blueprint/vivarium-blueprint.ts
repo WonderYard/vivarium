@@ -2,7 +2,8 @@ import type { Automaton, Color, Element, Kind, Neighborhood } from "@/automaton/
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { Helpers } from "@/blueprint/helpers";
 import { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
-import type { BlueprintContext } from "@/blueprint/types";
+import type { BlueprintContext, Neighbor } from "@/blueprint/types";
+import { toPoint } from "@/blueprint/utils";
 import { Cross, Square } from "@/common/constants";
 
 /**
@@ -57,12 +58,14 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    * @param color - The color used to draw this element. Accepts CSS named colors or hex values (e.g. `"green"`, `"#FF7A45"`).
    * Elements can share a color.
    * @param extensions - An optional array of kinds this element extends.
+   * @param outputs - The neighbors this element points at, which {@link RuleBlueprint.pointed | pointed} counts.
    * @returns An {@link ElementBlueprint} that can be used to define rules.
    */
   public element(
     name: string,
     color: Color,
     extensions: KindBlueprint[] = [],
+    outputs: Neighbor<N>[] = [],
   ): ElementBlueprint<N> {
     this.assertNotCreated();
     this.assertUniqueName(name);
@@ -74,6 +77,13 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
       name,
       color,
       extensions: extensions.map((element) => element.id),
+      outputs: outputs.map((output) => {
+        const point = toPoint(output, this.automaton.neighborhood);
+        if (point.x === 0 && point.y === 0) {
+          throw new Error(`Output "${output}" is invalid. An element can't point at itself.`);
+        }
+        return point;
+      }),
     } satisfies Element;
 
     const index = this.automaton.elements.push(element) - 1;

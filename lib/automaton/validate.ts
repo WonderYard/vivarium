@@ -128,6 +128,18 @@ export function assertAutomaton(automaton: unknown): asserts automaton is Automa
     element.extensions.forEach((id: unknown, i) =>
       check(kindIds.has(id), `${path}.extensions[${i}]`, id, "a kind id"),
     );
+    if (element.outputs !== undefined) {
+      check(Array.isArray(element.outputs), `${path}.outputs`, element.outputs, "an array");
+      element.outputs.forEach((output: unknown, i) =>
+        check(
+          // Any square neighbor: a cross never counts diagonal ones, so they do nothing there.
+          isNeighbor(output, "square") && (output.x !== 0 || output.y !== 0),
+          `${path}.outputs[${i}]`,
+          output,
+          "a square neighbor other than the cell itself",
+        ),
+      );
+    }
   }
 
   const neighbor = `a ${neighborhood} neighbor`;
@@ -162,13 +174,15 @@ export function assertAutomaton(automaton: unknown): asserts automaton is Automa
     for (const [condition, conditionPath] of objects(rule.when, `${path}.when`)) {
       check(Number.isInteger(condition.id), `${conditionPath}.id`, condition.id, "an integer");
 
-      if (condition.type === "count") {
-        check(
-          isRef(condition.check) || isNeighbor(condition.check, neighborhood),
-          `${conditionPath}.check`,
-          condition.check,
-          `an element id, a kind id or ${neighbor}`,
-        );
+      if (condition.type === "count" || condition.type === "pointed") {
+        if (condition.type === "count") {
+          check(
+            isRef(condition.check) || isNeighbor(condition.check, neighborhood),
+            `${conditionPath}.check`,
+            condition.check,
+            `an element id, a kind id or ${neighbor}`,
+          );
+        }
         check(
           Array.isArray(condition.count),
           `${conditionPath}.count`,
@@ -213,7 +227,12 @@ export function assertAutomaton(automaton: unknown): asserts automaton is Automa
           `a number in [0, ${whole}]`,
         );
       } else {
-        check(false, `${conditionPath}.type`, condition.type, '"count", "is" or "chance"');
+        check(
+          false,
+          `${conditionPath}.type`,
+          condition.type,
+          '"count", "is", "chance" or "pointed"',
+        );
       }
     }
   }

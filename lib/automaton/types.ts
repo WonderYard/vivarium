@@ -26,6 +26,8 @@ export type Element = {
   name: string;
   color: string;
   extensions: number[];
+  /** The neighbors this element points at, for {@link Pointed} conditions. None when omitted. */
+  outputs?: Point[];
 };
 
 /*
@@ -46,7 +48,7 @@ export type Rule = {
   accept: Accept;
 };
 
-export type Condition = Count | Is | Chance;
+export type Condition = Count | Is | Chance | Pointed;
 
 export type Count = {
   type: "count";
@@ -60,6 +62,13 @@ export type Is = {
   id: number;
   compare: Point | undefined;
   with: number | Point | undefined;
+};
+
+/** Passes when the number of neighbors whose outputs point at this cell is one of `count`. */
+export type Pointed = {
+  type: "pointed";
+  id: number;
+  count: number[];
 };
 
 export type Ratio = { part: number; whole: number };

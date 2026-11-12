@@ -200,6 +200,36 @@ const checkKindCount = (x: number, y: number, kind: number, packedCount: number)
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };
 
+// 1 when the neighbor at (x, y) has the output with the given bit, the one pointing back at the cell.
+const testPointer = (x: number, y: number, bit: number) => {
+  "use gpu";
+
+  const outputs = automatonLayout.$.elements[gridLayout.$.ids[pointToIndex(x, y)]].outputs;
+  return ((outputs >>> bit) & d.u32(1)) * inBoundsMask(x, y);
+};
+
+/** Compare the number of neighbors pointing at the cell with count, over the same neighbors as count. */
+const checkPointedCount = (x: number, y: number, packedCount: number) => {
+  "use gpu";
+
+  // A neighbor at offset (dx, dy) points here with output (-dx, -dy): bit (1 - dy) * 3 + (1 - dx).
+  const crossCountMask =
+    testPointer(x, y - 1, d.u32(7)) +
+    testPointer(x - 1, y, d.u32(5)) +
+    testPointer(x + 1, y, d.u32(3)) +
+    testPointer(x, y + 1, d.u32(1));
+
+  const squareCountMask =
+    testPointer(x - 1, y - 1, d.u32(8)) +
+    testPointer(x + 1, y - 1, d.u32(6)) +
+    testPointer(x - 1, y + 1, d.u32(2)) +
+    testPointer(x + 1, y + 1, d.u32(0));
+
+  const countMask = crossCountMask + automatonLayout.$.neighborhood * squareCountMask;
+
+  return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
+};
+
 const checkPointCount = (x: number, y: number, checkPoint: d.v2u, packedCount: number) => {
   "use gpu";
 
@@ -333,6 +363,10 @@ const compute = tgpu.computeFn({
             condition.checkPointOrComparePoint,
             condition.countOrWithId,
           );
+          break;
+        }
+        case Opcode.POINTED: {
+          passing += checkPointedCount(x, y, condition.countOrWithId);
           break;
         }
         case Opcode.CHANCE: {
