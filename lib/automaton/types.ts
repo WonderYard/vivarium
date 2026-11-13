@@ -26,7 +26,10 @@ export type Element = {
   name: string;
   color: string;
   extensions: number[];
-  /** The neighbors this element points at, for {@link Pointed} conditions. None when omitted. */
+  /**
+   * The cells this element points at, up to 2 cells away on each axis, for {@link Pointed}
+   * conditions. None when omitted.
+   */
   outputs?: Point[];
 };
 

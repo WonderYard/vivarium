@@ -230,23 +230,33 @@ describe("COUNT_KIND opcode", () => {
 // ── POINTED opcode ──────────────────────────────────────────────────
 
 describe("POINTED opcode", () => {
-  test("outputs pack as bits (y + 1) * 3 + (x + 1) and pointed packs its counts", () => {
+  test("outputs pack as bits (y + 2) * 5 + (x + 2) and pointed packs its counts", () => {
     const gpu = compile((vi) => {
       const off = vi.element("off", "#000000");
       const on = vi.element("on", "#ffffff");
-      vi.element("arrow", "#ff0000", [], [Square.TOP_LEFT, Square.RIGHT]);
+      vi.element("arrow", "#ff0000", [], [Square.TOP_LEFT, Square.RIGHT, { x: 0, y: -2 }]);
 
       off.to(on).pointed(0, 2);
     });
 
-    expect(gpu.gpuElements.map((element) => element.outputs)).toEqual([0, 0, (1 << 0) | (1 << 5)]);
+    expect(gpu.gpuElements.map((element) => element.outputs)).toEqual([
+      0,
+      0,
+      (1 << 6) | (1 << 13) | (1 << 2),
+    ]);
     expect(gpu.gpuConditions[0].opcode).toBe(Opcode.POINTED);
     expect(gpu.gpuConditions[0].countOrWithId).toBe(0b101);
   });
 
   test("an element can't point at itself", () => {
     expect(() => compile((vi) => vi.element("a", "#000000", [], [Square.SELF]))).toThrow(
-      "can't point at itself",
+      "other than the cell itself",
+    );
+  });
+
+  test("an element can't point more than 2 cells away", () => {
+    expect(() => compile((vi) => vi.element("a", "#000000", [], [{ x: 0, y: -3 }]))).toThrow(
+      "up to 2 cells away",
     );
   });
 });
@@ -938,7 +948,7 @@ describe("automaton checks", () => {
     broken.elements[0].outputs = [{ x: 0, y: 0 }];
 
     expect(() => compileGpuAutomaton(broken as Automaton)).toThrow(
-      'elements[0].outputs[0] is {"x":0,"y":0}, expected a square neighbor other than the cell itself.',
+      'elements[0].outputs[0] is {"x":0,"y":0}, expected a point up to 2 cells away on each axis, other than the cell itself.',
     );
   });
 

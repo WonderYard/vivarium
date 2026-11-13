@@ -159,9 +159,16 @@ space.to(alien).pointed(2);
 
 Directions are part of the element, so you need one element per direction an arrow can face. In return, a single `pointed` condition counts every incoming arrow, from any side, of any element. With `is` you would need one condition per neighbor and per arrow element.
 
-`pointed` takes counts like `count` does: several values, arrays, the [helpers](#helpers), and no values for "at least one". It looks at the same neighbors too, so in a `"cross"` neighborhood a diagonal neighbor never counts.
+An output can also be a point up to 2 cells away on each axis, to skip a cell:
 
-An element can have several outputs, but it can't point at itself: `element` throws on `SELF`.
+```typescript
+// Points 2 cells up, past the cell above it
+const skip = vi.element("skip", "blue", [], [{ x: 0, y: -2 }]);
+```
+
+`pointed` takes counts like `count` does: several values, arrays, the [helpers](#helpers), and no values for "at least one". The count goes no higher than the neighborhood size, so a cell pointed at from more than 8 cells (4 in a `"cross"`) matches no count. `pointed` looks 2 cells out, and in a `"cross"` neighborhood only cells on an axis count: no diagonals.
+
+An element can have several outputs, but it can't point at itself: `element` throws on `SELF` or `{ x: 0, y: 0 }`.
 
 See the [Logic Gates example](https://github.com/WonderYard/vivarium/blob/develop/examples/src/logic-gates.ts), where an AND gate is a single cell with `pointed(2)`.
 

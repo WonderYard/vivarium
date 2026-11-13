@@ -8,7 +8,7 @@ export const GpuElement = d.struct({
   color: d.u32,
   ruleStart: d.u32,
   ruleEnd: d.u32,
-  // Bit (y + 1) * 3 + (x + 1) is set for each output (x, y).
+  // Bit (y + 2) * 5 + (x + 2) is set for each output (x, y).
   outputs: d.u32,
 });
 
@@ -197,7 +197,7 @@ export const compileGpuAutomaton = (automaton: Automaton): GpuAutomaton => {
       ruleStart,
       ruleEnd,
       outputs: (element.outputs ?? []).reduce(
-        (acc, { x, y }) => acc | (1 << ((y + 1) * 3 + x + 1)),
+        (acc, { x, y }) => acc | (1 << ((y + 2) * 5 + x + 2)),
         0,
       ),
     });

@@ -109,12 +109,16 @@ const inBoundsMask = (x: number, y: number) => {
   return d.u32(1) - oob * (d.u32(1) - gridLayout.$.wrapping);
 };
 
-// Neighbor offsets are at most 1 cell, so a coordinate ranges from -1 to the size. In unsigned space
-// -1 is 4294967295, the only value above the size.
+// Offsets are at most 2 cells, so a coordinate ranges from -2 to size + 1. In unsigned space -1 and -2
+// are the largest values, above size + 1.
 const wrapCoordinate = (value: number, size: number) => {
   "use gpu";
 
-  return std.select(std.select(value, d.u32(0), value === size), size - d.u32(1), value > size);
+  return std.select(
+    std.select(value, value - size, value >= size),
+    value + size,
+    value > size + d.u32(1),
+  );
 };
 
 const pointToIndex = (x: number, y: number) => {
@@ -208,24 +212,26 @@ const testPointer = (x: number, y: number, bit: number) => {
   return ((outputs >>> bit) & d.u32(1)) * inBoundsMask(x, y);
 };
 
-/** Compare the number of neighbors pointing at the cell with count, over the same neighbors as count. */
+/**
+ * Compare the number of cells pointing at the cell with count. Outputs reach 2 cells away, so this
+ * looks 2 cells out; a cross only counts cells on an axis.
+ */
 const checkPointedCount = (x: number, y: number, packedCount: number) => {
   "use gpu";
 
-  // A neighbor at offset (dx, dy) points here with output (-dx, -dy): bit (1 - dy) * 3 + (1 - dx).
-  const crossCountMask =
-    testPointer(x, y - 1, d.u32(7)) +
-    testPointer(x - 1, y, d.u32(5)) +
-    testPointer(x + 1, y, d.u32(3)) +
-    testPointer(x, y + 1, d.u32(1));
+  let countMask = d.u32(0);
 
-  const squareCountMask =
-    testPointer(x - 1, y - 1, d.u32(8)) +
-    testPointer(x + 1, y - 1, d.u32(6)) +
-    testPointer(x - 1, y + 1, d.u32(2)) +
-    testPointer(x + 1, y + 1, d.u32(0));
-
-  const countMask = crossCountMask + automatonLayout.$.neighborhood * squareCountMask;
+  // A cell at offset (dx - 2, dy - 2) points here with output (2 - dx, 2 - dy): bit (4 - dy) * 5 + (4 - dx).
+  for (let dy = d.u32(0); dy < 5; dy++) {
+    for (let dx = d.u32(0); dx < 5; dx++) {
+      const self = dx === d.u32(2) && dy === d.u32(2);
+      const onAxis = dx === d.u32(2) || dy === d.u32(2);
+      // neighborhood is 0 when cross, 1 when square
+      if (!self && (onAxis || automatonLayout.$.neighborhood === d.u32(1))) {
+        countMask += testPointer(x + dx - 2, y + dy - 2, (d.u32(4) - dy) * 5 + (d.u32(4) - dx));
+      }
+    }
+  }
 
   return std.select(d.u32(0), d.u32(1), (packedCount & (d.u32(1) << countMask)) !== d.u32(0));
 };

@@ -365,6 +365,60 @@ describe("GPU simulation", () => {
         [0, 1],
       ]);
     });
+
+    // A blue arrow: points 2 cells down, skipping the cell between.
+    const skipping = (vi: ReturnType<typeof vivarium>) => {
+      const off = vi.element("off", "#000000");
+      const on = vi.element("on", "#ffffff");
+      vi.element("skip", "#0000ff", [], [{ x: 0, y: 2 }]);
+      off.to(on).pointed(1);
+    };
+
+    test("counts a pointer 2 cells away, not the cell it skips", async () => {
+      const after = await step(skipping, grid([[2], [0], [0], [0]]));
+
+      expect(toRows(after)).toEqual([[2], [0], [1], [0]]);
+    });
+
+    test("a pointer 2 cells away wraps across the edge", async () => {
+      const after = await step(skipping, grid([[0], [0], [2]]), undefined, { wrapping: true });
+
+      // Down 2 from the bottom row wraps to the second row.
+      expect(toRows(after)).toEqual([[0], [1], [2]]);
+    });
+
+    test("a pointer 2 cells away stops at the edge without wrapping", async () => {
+      const after = await step(skipping, grid([[0], [0], [2]]));
+
+      expect(toRows(after)).toEqual([[0], [0], [2]]);
+    });
+
+    test("a cross neighborhood counts pointers 2 cells away on an axis only", async () => {
+      const before = grid([
+        [2, 3, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+
+      const after = await step(
+        (vi) => {
+          const off = vi.element("off", "#000000");
+          const on = vi.element("on", "#ffffff");
+          vi.element("skip", "#0000ff", [], [{ x: 0, y: 2 }]);
+          vi.element("knight", "#00ff00", [], [{ x: 1, y: 2 }]);
+          off.to(on).pointed(1);
+        },
+        before,
+        "cross",
+      );
+
+      // (0, 2) is pointed at on an axis; the knight's (2, 2) is off any axis.
+      expect(toRows(after)).toEqual([
+        [2, 3, 0],
+        [0, 0, 0],
+        [1, 0, 0],
+      ]);
+    });
   });
 
   // ── Kind membership ───────────────────────────────────────────

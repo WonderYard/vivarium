@@ -1,4 +1,5 @@
-import type { Automaton, Color, Element, Kind, Neighborhood } from "@/automaton/types";
+import type { Automaton, Color, Element, Kind, Neighborhood, Point } from "@/automaton/types";
+import { isOutput } from "@/automaton/validate";
 import { BaseBlueprint } from "@/blueprint/base-blueprint";
 import { Helpers } from "@/blueprint/helpers";
 import { ElementBlueprint, KindBlueprint } from "@/blueprint/ref-blueprint";
@@ -58,14 +59,15 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
    * @param color - The color used to draw this element. Accepts CSS named colors or hex values (e.g. `"green"`, `"#FF7A45"`).
    * Elements can share a color.
    * @param extensions - An optional array of kinds this element extends.
-   * @param outputs - The neighbors this element points at, which {@link RuleBlueprint.pointed | pointed} counts.
+   * @param outputs - The cells this element points at, which {@link RuleBlueprint.pointed | pointed} counts:
+   * neighbor names, or `{ x, y }` points up to 2 cells away on each axis (e.g. `{ x: 0, y: -2 }`).
    * @returns An {@link ElementBlueprint} that can be used to define rules.
    */
   public element(
     name: string,
     color: Color,
     extensions: KindBlueprint[] = [],
-    outputs: Neighbor<N>[] = [],
+    outputs: (Neighbor<N> | Point)[] = [],
   ): ElementBlueprint<N> {
     this.assertNotCreated();
     this.assertUniqueName(name);
@@ -78,11 +80,14 @@ export class VivariumBlueprint<N extends Neighborhood = "square"> extends BaseBl
       color,
       extensions: extensions.map((element) => element.id),
       outputs: outputs.map((output) => {
-        const point = toPoint(output, this.automaton.neighborhood);
-        if (point.x === 0 && point.y === 0) {
-          throw new Error(`Output "${output}" is invalid. An element can't point at itself.`);
+        const point =
+          typeof output === "string" ? toPoint(output, this.automaton.neighborhood) : output;
+        if (!isOutput(point)) {
+          throw new Error(
+            `Output ${JSON.stringify(output)} is invalid. Expected a point up to 2 cells away on each axis, other than the cell itself.`,
+          );
         }
-        return point;
+        return { x: point.x, y: point.y };
       }),
     } satisfies Element;
 

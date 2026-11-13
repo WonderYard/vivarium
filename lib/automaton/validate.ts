@@ -18,6 +18,12 @@ export const isName = (value: unknown): value is string =>
 export const isCount = (value: unknown, neighborhood?: Neighborhood): boolean =>
   Number.isInteger(value) && (value as number) >= 0 && (value as number) <= maxCount(neighborhood);
 
+/** A cell an element can point at: up to 2 cells away on each axis, not the cell itself. */
+export const isOutput = (value: unknown): value is Point =>
+  isObject(value) &&
+  [value.x, value.y].every((v) => Number.isInteger(v) && Math.abs(v as number) <= 2) &&
+  (value.x !== 0 || value.y !== 0);
+
 /** A point of the neighborhood, the cell itself included: no diagonals in a cross. */
 export const isNeighbor = (value: unknown, neighborhood: Neighborhood): value is Point =>
   isObject(value) &&
@@ -132,11 +138,11 @@ export function assertAutomaton(automaton: unknown): asserts automaton is Automa
       check(Array.isArray(element.outputs), `${path}.outputs`, element.outputs, "an array");
       element.outputs.forEach((output: unknown, i) =>
         check(
-          // Any square neighbor: a cross never counts diagonal ones, so they do nothing there.
-          isNeighbor(output, "square") && (output.x !== 0 || output.y !== 0),
+          // A cross only counts outputs on an axis, so the others do nothing there.
+          isOutput(output),
           `${path}.outputs[${i}]`,
           output,
-          "a square neighbor other than the cell itself",
+          "a point up to 2 cells away on each axis, other than the cell itself",
         ),
       );
     }
