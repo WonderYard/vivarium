@@ -111,6 +111,8 @@ const inBoundsMask = (x: number, y: number) => {
 
 // Offsets are at most 2 cells, so a coordinate ranges from -2 to size + 1. In unsigned space -1 and -2
 // are the largest values, above size + 1.
+// shortcut: assumes offsets ≤ size, so a 1-wide or 1-tall wrapped grid with 2-cell outputs reads
+// wrong cells; throw at setup if that ever matters.
 const wrapCoordinate = (value: number, size: number) => {
   "use gpu";
 

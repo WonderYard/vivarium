@@ -166,7 +166,7 @@ An output can also be a point up to 2 cells away on each axis, to skip a cell:
 const skip = vi.element("skip", "blue", [], [{ x: 0, y: -2 }]);
 ```
 
-`pointed` takes counts like `count` does: several values, arrays, the [helpers](#helpers), and no values for "at least one". The count goes no higher than the neighborhood size, so a cell pointed at from more than 8 cells (4 in a `"cross"`) matches no count. `pointed` looks 2 cells out, and in a `"cross"` neighborhood only cells on an axis count: no diagonals.
+`pointed` takes counts like `count` does: several values, arrays, the [helpers](#helpers), and no values for "at least one". The count goes no higher than the neighborhood size, so a cell pointed at from more than 8 cells (4 in a `"cross"`) matches no count. `pointed` looks 2 cells out, and in a `"cross"` neighborhood only cells on an axis count: no diagonals. On a wrapping grid only 1 cell wide or tall, outputs 2 cells away along that side aren't supported and give wrong counts.
 
 An element can have several outputs, but it can't point at itself: `element` throws on `SELF` or `{ x: 0, y: 0 }`.
 

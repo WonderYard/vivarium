@@ -48,8 +48,9 @@ export class RuleBlueprint<N extends Neighborhood = Neighborhood> extends BaseBl
   }
 
   /**
-   * Adds a pointed condition to the rule. The condition passes only if the number of neighbors whose
-   * outputs point at this cell equals one of the specified count values.
+   * Adds a pointed condition to the rule. The condition passes only if the number of cells, up to 2
+   * away, whose outputs point at this cell equals one of the specified count values. Counts above
+   * the neighborhood size match nothing, the omitted form included.
    *
    * @param count - The accepted count values. When omitted, matches any count from 1 to the neighborhood size.
    * @throws If a count value is not a whole number between 0 and the neighborhood size.
