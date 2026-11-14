@@ -9,7 +9,7 @@ A rule without conditions is always accepted when evaluated. A condition determi
 
 ## Condition types
 
-There are four types of conditions: [Count](#count), [Is](#is), [Pointed](#pointed), [Chance](#chance).
+There are four types of conditions: [Count](#count), [Is](#is), [Chance](#chance), [Pointed](#pointed).
 
 ### Count
 
@@ -143,6 +143,26 @@ const { neighbor } = vi;
 space.to(alien).is(neighbor.TOP, neighbor.BOTTOM);
 ```
 
+### Chance
+
+The `chance` condition introduces randomness. It accepts with a probability of `part / whole`:
+
+```typescript
+// 1 in 1000 chance for the cell to become an alien each step
+space.to(alien).chance(1, 1000);
+```
+
+If `whole` is omitted, it defaults to 100:
+
+```typescript
+// 5% chance
+space.to(alien).chance(5);
+```
+
+`whole` must be greater than 0 and `part` between 0 and `whole`, otherwise `chance` throws.
+
+To get the same `chance` outcomes on every run, pass a `seed` to `setup` (see [Reproducible runs](/guides/start/#reproducible-runs)).
+
 ### Pointed
 
 An element can point at some of its neighbors. Pass them as `outputs`, the fourth argument of `element`. The `pointed` condition counts how many neighbors point at the cell, whatever element they are. The rule is accepted only if that count is one of the given values.
@@ -171,26 +191,6 @@ const skip = vi.element("skip", "blue", [], [{ x: 0, y: -2 }]);
 An element can have several outputs, but it can't point at itself: `element` throws on `SELF` or `{ x: 0, y: 0 }`.
 
 See the [Logic Gates example](https://github.com/WonderYard/vivarium/blob/develop/examples/src/logic-gates.ts), where an AND gate is a single cell with `pointed(2)`.
-
-### Chance
-
-The `chance` condition introduces randomness. It accepts with a probability of `part / whole`:
-
-```typescript
-// 1 in 1000 chance for the cell to become an alien each step
-space.to(alien).chance(1, 1000);
-```
-
-If `whole` is omitted, it defaults to 100:
-
-```typescript
-// 5% chance
-space.to(alien).chance(5);
-```
-
-`whole` must be greater than 0 and `part` between 0 and `whole`, otherwise `chance` throws.
-
-To get the same `chance` outcomes on every run, pass a `seed` to `setup` (see [Reproducible runs](/guides/start/#reproducible-runs)).
 
 ## Multiple conditions
 
