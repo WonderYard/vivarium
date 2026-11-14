@@ -6,12 +6,18 @@ settings:
 
 catalogs:
   default:
+    '@tailwindcss/vite':
+      specifier: ^4.3.3
+      version: 4.3.3
     '@types/node':
       specifier: ^26.6.4
       version: 26.6.4
     '@webgpu/types':
       specifier: ^0.1.74
       version: 0.1.74
+    tailwindcss:
+      specifier: ^4.3.3
+      version: 4.3.3
     typescript:
       specifier: ~6.0.3
       version: 6.0.3
@@ -27,11 +33,11 @@ importers:
   .:
     dependencies:
       '@typegpu/noise':
-        specifier: 0.12.0
-        version: 0.12.0(typegpu@0.12.6)
+        specifier: 0.12.1
+        version: 0.12.1(typegpu@0.12.10)
       typegpu:
-        specifier: 0.12.6
-        version: 0.12.6
+        specifier: 0.12.10
+        version: 0.12.10
     devDependencies:
       '@release-it/conventional-changelog':
         specifier: ^12.0.2
@@ -71,7 +77,7 @@ importers:
         version: 6.0.3
       unplugin-typegpu:
         specifier: 'catalog:'
-        version: 0.12.4(acorn@8.16.0)(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(typegpu@0.12.6)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+        version: 0.12.4(acorn@8.16.0)(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(typegpu@0.12.10)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: 'catalog:'
         version: 8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -150,7 +156,7 @@ importers:
         version: 6.0.3
       unplugin-typegpu:
         specifier: 'catalog:'
-        version: 0.12.4(acorn@8.16.0)(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(typegpu@0.12.6)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+        version: 0.12.4(acorn@8.16.0)(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(typegpu@0.12.10)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: 'catalog:'
         version: 8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -1749,10 +1755,10 @@ packages:
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
-  '@typegpu/noise@0.12.0':
-    resolution: {integrity: sha512-JuBKXz8nkwC+1jMjJS5C6SZD+xzsF1yb8+Pcl3L5uhjqdEGraksXH20v0vOvjmio8dsRZWhmZ5S27DTdqhSpCA==}
+  '@typegpu/noise@0.12.1':
+    resolution: {integrity: sha512-0WAQ/UwrOboCe9JsNbxxf19hht6XwESjPajHswRp6MD3j6CGHwZNFy8rbGCRfoOGDYop6iDDXCdfcRsNNc05Nw==}
     peerDependencies:
-      typegpu: ^0.12.0
+      typegpu: ^0.12.7
 
   '@types/argparse@1.0.38':
     resolution: {integrity: sha512-ebDJ9b0e702Yr7pWgB0jzm+CX4Srzz8RcXtLJDJB+BSccqMa36uyH/zUsSYao5+BD1ytv3k3rPYCq4mAE1hsXA==}
@@ -3743,8 +3749,8 @@ packages:
     resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
     engines: {node: '>=12.20'}
 
-  typed-binary@4.3.3:
-    resolution: {integrity: sha512-W2hLsSzt3k/tg38gDE4Fn/QiwcoqGuUHBc2cb3mXuH7KcYxe/GM57vzW14s2/bawB4R5knGgGq8Xb57vsaJ4Sg==}
+  typed-binary@4.3.5:
+    resolution: {integrity: sha512-irziT9zxcyZs8TawuZBab1kQTACM3Q6wGWDh/a5IB2iWbueu+jbkN5ofoSvp28Em1w4ZEa7y44Jx7pHmgBGZdw==}
 
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
@@ -3762,8 +3768,8 @@ packages:
     peerDependencies:
       typescript: 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x || 5.6.x || 5.7.x || 5.8.x || 5.9.x || 6.0.x
 
-  typegpu@0.12.6:
-    resolution: {integrity: sha512-EypNvqL2IA3BL2IsJbd12oOHaxmvtjFVz0+IZTmquc8BZcYYAlL8piT6V0r+GViIWXGr5703Y0P5FswuLKytMA==}
+  typegpu@0.12.10:
+    resolution: {integrity: sha512-uZDsn/HKSS81X3RARkXGC3EkTQba7HPBPpTsOR4a/yVeJxdDEsj2K7oAvbTXuRsKW2IFsKdstrIRff1mIqoDxA==}
     engines: {node: '>=12.20.0'}
     hasBin: true
 
@@ -5511,9 +5517,9 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@typegpu/noise@0.12.0(typegpu@0.12.6)':
+  '@typegpu/noise@0.12.1(typegpu@0.12.10)':
     dependencies:
-      typegpu: 0.12.6
+      typegpu: 0.12.10
 
   '@types/argparse@1.0.38':
     optional: true
@@ -7842,7 +7848,7 @@ snapshots:
 
   type-fest@2.19.0: {}
 
-  typed-binary@4.3.3: {}
+  typed-binary@4.3.5: {}
 
   typedarray@0.0.6: {}
 
@@ -7859,11 +7865,11 @@ snapshots:
       typescript: 6.0.3
       yaml: 2.9.1
 
-  typegpu@0.12.6:
+  typegpu@0.12.10:
     dependencies:
       tinyest: 0.3.4
       tsover-runtime: 0.0.7
-      typed-binary: 4.3.3
+      typed-binary: 4.3.5
 
   typescript@5.8.2:
     optional: true
@@ -7956,7 +7962,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  unplugin-typegpu@0.12.4(acorn@8.16.0)(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(typegpu@0.12.6)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)):
+  unplugin-typegpu@0.12.4(acorn@8.16.0)(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(typegpu@0.12.10)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@babel/parser': 7.29.9
       '@babel/traverse': 7.29.8
@@ -7968,7 +7974,7 @@ snapshots:
       picomatch: 4.0.7
       tinyest: 0.3.4
       tinyest-for-wgsl: 0.4.2(@babel/types@7.29.8)(acorn@8.16.0)
-      typegpu: 0.12.6
+      typegpu: 0.12.10
       unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.57.1)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@farmfe/core'
